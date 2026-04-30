@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -240,6 +240,641 @@ export default function HomePage() {
   const tueThuFill = '#57534e';
   const sharedHeaderBg = '#f3f0e8';
 
+  function renderCalendarSection() {
+    return (
+      <section style={{ ...shellCardStyle, padding: '26px' }}>
+        <div style={{ marginBottom: '14px' }}>
+          <div
+            style={{
+              fontSize: '18px',
+              color: '#78716c',
+              marginBottom: '8px',
+            }}
+          >
+            {calendarItem?.year ?? ''}
+          </div>
+
+          <div
+            style={{
+              fontSize: '62px',
+              fontWeight: 700,
+              lineHeight: 1,
+              color: '#44403c',
+              letterSpacing: '-0.04em',
+            }}
+          >
+            {calendarItem
+              ? `${calendarItem.month} ${new Date(
+                  calendarItem.year,
+                  calendarItem.month - 1,
+                  1
+                ).toLocaleString('en-US', { month: 'long' })}`
+              : '5 May'}
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '18px',
+            alignItems: 'center',
+            marginBottom: '10px',
+            color: '#57534e',
+            fontSize: '14px',
+            fontWeight: 500,
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span
+              style={{
+                width: '14px',
+                height: '14px',
+                borderRadius: '999px',
+                backgroundColor: monWedFill,
+                display: 'inline-block',
+              }}
+            />
+            월수반
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span
+              style={{
+                width: '14px',
+                height: '14px',
+                borderRadius: '999px',
+                backgroundColor: tueThuFill,
+                display: 'inline-block',
+              }}
+            />
+            화목반
+          </div>
+        </div>
+
+        {calendarMessage ? (
+          <div
+            style={{
+              border: '1px solid #e5e7eb',
+              borderRadius: '16px',
+              padding: '24px',
+              color: '#64748b',
+            }}
+          >
+            {calendarMessage}
+          </div>
+        ) : calendarItem ? (
+          <div
+            style={{
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              borderRadius: '20px',
+              border: '1px solid #e5e7eb',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            <div style={{ minWidth: '760px' }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, 1fr)',
+                  backgroundColor: '#fafaf9',
+                  borderBottom: '1px solid #e5e7eb',
+                }}
+              >
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                  <div
+                    key={day}
+                    style={{
+                      padding: '12px 8px',
+                      textAlign: 'center',
+                      fontWeight: 700,
+                      color: '#57534e',
+                      fontSize: '15px',
+                    }}
+                  >
+                    {day}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'grid', gap: '0' }}>
+                {calendarWeeks.map((week, weekIndex) => (
+                  <div
+                    key={weekIndex}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(7, 1fr)',
+                      borderBottom:
+                        weekIndex === calendarWeeks.length - 1 ? 'none' : '1px solid #e5e7eb',
+                    }}
+                  >
+                    {week.map((cell, index) => {
+                      const isMonWed =
+                        cell.isCurrentMonth &&
+                        (calendarItem.monWedDates ?? []).includes(cell.day);
+                      const isTueThu =
+                        cell.isCurrentMonth &&
+                        (calendarItem.tueThuDates ?? []).includes(cell.day);
+                      const labels = cell.isCurrentMonth ? specialMap.get(cell.day) ?? [] : [];
+                      const isSpecial = labels.some((label) => !label.includes('토익'));
+                      const isToeic = labels.some((label) => label.includes('토익'));
+
+                      let backgroundColor = 'transparent';
+                      let textColor = '#44403c';
+                      let border = '1px solid transparent';
+
+                      if (!cell.isCurrentMonth) {
+                        textColor = '#d6d3d1';
+                      } else if (isTueThu) {
+                        backgroundColor = tueThuFill;
+                        textColor = 'white';
+                      } else if (isMonWed) {
+                        backgroundColor = monWedFill;
+                        textColor = '#111827';
+                      }
+
+                      if (cell.isCurrentMonth && isSpecial) {
+                        border = `3px solid ${tueThuFill}`;
+                        backgroundColor = 'transparent';
+                        textColor = tueThuFill;
+                      } else if (cell.isCurrentMonth && isToeic) {
+                        border = '2px solid #cbd5e1';
+                        if (!isMonWed && !isTueThu) {
+                          backgroundColor = 'transparent';
+                          textColor = '#64748b';
+                        }
+                      }
+
+                      return (
+                        <div
+                          key={`${weekIndex}-${index}`}
+                          style={{
+                            minHeight: '98px',
+                            borderRight: index === 6 ? 'none' : '1px solid #e5e7eb',
+                            padding: '10px 8px',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: '44px',
+                              height: '44px',
+                              borderRadius: '999px',
+                              margin: '0 auto',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '17px',
+                              fontWeight: 700,
+                              color: textColor,
+                              backgroundColor,
+                              border,
+                            }}
+                          >
+                            {cell.day}
+                          </div>
+
+                          {cell.isCurrentMonth && labels.length > 0 && (
+                            <div
+                              style={{
+                                marginTop: '8px',
+                                textAlign: 'center',
+                                fontSize: '12px',
+                                color: '#57534e',
+                                lineHeight: 1.45,
+                                whiteSpace: 'pre-wrap',
+                                fontWeight: 500,
+                              }}
+                            >
+                              {labels.join('\n')}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </section>
+    );
+  }
+
+  function renderTimetableSection() {
+    return (
+      <section style={{ ...shellCardStyle, padding: '26px' }}>
+        <div style={{ marginBottom: '18px' }}>
+          <div
+            style={{
+              fontSize: '16px',
+              color: '#78716c',
+              marginBottom: '8px',
+            }}
+          >
+            시간표
+          </div>
+
+          <div
+            style={{
+              fontSize: '52px',
+              fontWeight: 700,
+              lineHeight: 1,
+              color: '#44403c',
+              letterSpacing: '-0.04em',
+            }}
+          >
+            {timetableItem?.title || 'Timetable'}
+          </div>
+        </div>
+
+        {timetableMessage ? (
+          <div
+            style={{
+              border: '1px solid #e5e7eb',
+              borderRadius: '16px',
+              padding: '24px',
+              color: '#64748b',
+            }}
+          >
+            {timetableMessage}
+          </div>
+        ) : timetableItem ? (
+          <div
+            style={{
+              borderRadius: '20px',
+              border: '1px solid #e5e7eb',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            <table
+              style={{
+                width: '100%',
+                minWidth: '760px',
+                borderCollapse: 'collapse',
+                tableLayout: 'fixed',
+                textAlign: 'center',
+              }}
+            >
+              <thead>
+                <tr>
+                  <th
+                    style={{
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: sharedHeaderBg,
+                      padding: '10px 6px',
+                    }}
+                  />
+                  <th
+                    colSpan={2}
+                    style={{
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: sharedHeaderBg,
+                      padding: '10px 6px',
+                      fontSize: '17px',
+                      color: '#44403c',
+                    }}
+                  >
+                    600
+                  </th>
+                  <th
+                    colSpan={2}
+                    style={{
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: sharedHeaderBg,
+                      padding: '10px 6px',
+                      fontSize: '17px',
+                      color: '#44403c',
+                    }}
+                  >
+                    800
+                  </th>
+                </tr>
+                <tr>
+                  <th
+                    style={{
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: sharedHeaderBg,
+                      padding: '10px 6px',
+                    }}
+                  />
+                  <th
+                    style={{
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: sharedHeaderBg,
+                      padding: '10px 6px',
+                      color: '#57534e',
+                      fontSize: '14px',
+                    }}
+                  >
+                    월수
+                  </th>
+                  <th
+                    style={{
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: sharedHeaderBg,
+                      padding: '10px 6px',
+                      color: '#57534e',
+                      fontSize: '14px',
+                    }}
+                  >
+                    화목
+                  </th>
+                  <th
+                    style={{
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: sharedHeaderBg,
+                      padding: '10px 6px',
+                      color: '#57534e',
+                      fontSize: '14px',
+                    }}
+                  >
+                    월수
+                  </th>
+                  <th
+                    style={{
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: sharedHeaderBg,
+                      padding: '10px 6px',
+                      color: '#57534e',
+                      fontSize: '14px',
+                    }}
+                  >
+                    화목
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {timetableItem.rows.map((row, index) => (
+                  <tr key={index}>
+                    <td
+                      style={{
+                        border: '1px solid #e5e7eb',
+                        backgroundColor: '#fafaf9',
+                        padding: '12px 6px',
+                        fontWeight: 500,
+                        color: '#57534e',
+                        fontSize: '13px',
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {row.time}
+                    </td>
+
+                    <td
+                      style={{
+                        border: '1px solid #e5e7eb',
+                        backgroundColor: row.class600MonWed ? monWedFill : 'white',
+                        padding: '12px 6px',
+                        color: row.class600MonWed ? '#111827' : '#cbd5e1',
+                        fontSize: '14px',
+                        fontWeight: row.class600MonWed ? 600 : 400,
+                        lineHeight: 1.4,
+                        wordBreak: 'keep-all',
+                      }}
+                    >
+                      {row.class600MonWed || '-'}
+                    </td>
+
+                    <td
+                      style={{
+                        border: '1px solid #e5e7eb',
+                        backgroundColor: row.class600TueThu ? monWedFill : 'white',
+                        padding: '12px 6px',
+                        color: row.class600TueThu ? '#111827' : '#cbd5e1',
+                        fontSize: '14px',
+                        fontWeight: row.class600TueThu ? 600 : 400,
+                        lineHeight: 1.4,
+                        wordBreak: 'keep-all',
+                      }}
+                    >
+                      {row.class600TueThu || '-'}
+                    </td>
+
+                    <td
+                      style={{
+                        border: '1px solid #e5e7eb',
+                        backgroundColor: row.class800MonWed ? tueThuFill : 'white',
+                        padding: '12px 6px',
+                        color: row.class800MonWed ? 'white' : '#cbd5e1',
+                        fontSize: '14px',
+                        fontWeight: row.class800MonWed ? 700 : 400,
+                        lineHeight: 1.4,
+                        wordBreak: 'keep-all',
+                      }}
+                    >
+                      {row.class800MonWed || '-'}
+                    </td>
+
+                    <td
+                      style={{
+                        border: '1px solid #e5e7eb',
+                        backgroundColor: row.class800TueThu ? tueThuFill : 'white',
+                        padding: '12px 6px',
+                        color: row.class800TueThu ? 'white' : '#cbd5e1',
+                        fontSize: '14px',
+                        fontWeight: row.class800TueThu ? 700 : 400,
+                        lineHeight: 1.4,
+                        wordBreak: 'keep-all',
+                      }}
+                    >
+                      {row.class800TueThu || '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </section>
+    );
+  }
+
+  function renderLoginSection() {
+    return (
+      <section style={{ ...shellCardStyle, padding: '24px' }}>
+        <h2
+          style={{
+            marginTop: 0,
+            marginBottom: '8px',
+            fontSize: '26px',
+            color: '#111827',
+          }}
+        >
+          수강생 로그인
+        </h2>
+
+        <p
+          style={{
+            marginTop: 0,
+            marginBottom: '16px',
+            color: '#64748b',
+            fontSize: '14px',
+            lineHeight: 1.7,
+          }}
+        >
+          수강생 전용 페이지에 로그인해 주세요.
+        </p>
+
+        <form onSubmit={handleStudentLogin} style={{ display: 'grid', gap: '12px' }}>
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="아이디"
+            style={{
+              width: '100%',
+              padding: '12px 14px',
+              borderRadius: '12px',
+              border: '1px solid #cbd5e1',
+              fontSize: '14px',
+              boxSizing: 'border-box',
+            }}
+          />
+
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="비밀번호"
+            style={{
+              width: '100%',
+              padding: '12px 14px',
+              borderRadius: '12px',
+              border: '1px solid #cbd5e1',
+              fontSize: '14px',
+              boxSizing: 'border-box',
+            }}
+          />
+
+          <button
+            type="submit"
+            disabled={isLoggingIn}
+            style={{
+              width: '100%',
+              padding: '12px 14px',
+              borderRadius: '12px',
+              border: 'none',
+              backgroundColor: '#111827',
+              color: 'white',
+              fontSize: '15px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              opacity: isLoggingIn ? 0.7 : 1,
+            }}
+          >
+            {isLoggingIn ? '로그인 중...' : '로그인'}
+          </button>
+        </form>
+
+        <div
+          style={{
+            marginTop: '14px',
+            display: 'flex',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <Link
+            href="/student/signup"
+            style={{
+              fontSize: '14px',
+              color: '#64748b',
+              textDecoration: 'none',
+              borderBottom: '1px solid #cbd5e1',
+              paddingBottom: '1px',
+            }}
+          >
+            회원가입 신청
+          </Link>
+        </div>
+
+        {loginMessage && (
+          <p
+            style={{
+              marginTop: '12px',
+              marginBottom: 0,
+              color: '#475569',
+              lineHeight: 1.6,
+              fontSize: '14px',
+            }}
+          >
+            {loginMessage}
+          </p>
+        )}
+      </section>
+    );
+  }
+
+  function renderCalendarMemoSection() {
+    return (
+      <section style={{ ...shellCardStyle, padding: '24px', minHeight: '100%' }}>
+        <h2
+          style={{
+            marginTop: 0,
+            marginBottom: '8px',
+            fontSize: '26px',
+            color: '#111827',
+          }}
+        >
+          메모
+        </h2>
+
+        <p
+          style={{
+            marginTop: 0,
+            marginBottom: '16px',
+            color: '#64748b',
+            fontSize: '14px',
+            lineHeight: 1.7,
+          }}
+        >
+          이번 달 일정 관련 참고사항입니다.
+        </p>
+
+        <div style={singleMemoBoxStyle}>
+          {calendarItem?.memo?.trim() ? calendarItem.memo : '등록된 메모가 없습니다.'}
+        </div>
+      </section>
+    );
+  }
+
+  function renderTimetableMemoSection() {
+    return (
+      <section style={{ ...shellCardStyle, padding: '24px', minHeight: '100%' }}>
+        <h2
+          style={{
+            marginTop: 0,
+            marginBottom: '8px',
+            fontSize: '26px',
+            color: '#111827',
+          }}
+        >
+          메모
+        </h2>
+
+        <p
+          style={{
+            marginTop: 0,
+            marginBottom: '16px',
+            color: '#64748b',
+            fontSize: '14px',
+            lineHeight: 1.7,
+          }}
+        >
+          시간표 관련 참고사항입니다.
+        </p>
+
+        <div style={singleMemoBoxStyle}>
+          {timetableItem?.memo?.trim() ? timetableItem.memo : '등록된 메모가 없습니다.'}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <main
       style={{
@@ -282,638 +917,59 @@ export default function HomePage() {
           </p>
         </header>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.65fr) minmax(320px, 0.95fr)',
-            gap: '24px',
-            alignItems: 'stretch',
-          }}
-        >
-          <section style={{ ...shellCardStyle, padding: '26px' }}>
-            <div style={{ marginBottom: '14px' }}>
-              <div
-                style={{
-                  fontSize: '18px',
-                  color: '#78716c',
-                  marginBottom: '8px',
-                }}
-              >
-                {calendarItem?.year ?? ''}
-              </div>
-
-              <div
-                style={{
-                  fontSize: '62px',
-                  fontWeight: 700,
-                  lineHeight: 1,
-                  color: '#44403c',
-                  letterSpacing: '-0.04em',
-                }}
-              >
-                {calendarItem
-                  ? `${calendarItem.month} ${new Date(
-                      calendarItem.year,
-                      calendarItem.month - 1,
-                      1
-                    ).toLocaleString('en-US', { month: 'long' })}`
-                  : '5 May'}
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: '18px',
-                alignItems: 'center',
-                marginBottom: '10px',
-                color: '#57534e',
-                fontSize: '14px',
-                fontWeight: 500,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span
-                  style={{
-                    width: '14px',
-                    height: '14px',
-                    borderRadius: '999px',
-                    backgroundColor: monWedFill,
-                    display: 'inline-block',
-                  }}
-                />
-                월수반
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span
-                  style={{
-                    width: '14px',
-                    height: '14px',
-                    borderRadius: '999px',
-                    backgroundColor: tueThuFill,
-                    display: 'inline-block',
-                  }}
-                />
-                화목반
-              </div>
-            </div>
-
-            {calendarMessage ? (
-              <div
-                style={{
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '16px',
-                  padding: '24px',
-                  color: '#64748b',
-                }}
-              >
-                {calendarMessage}
-              </div>
-            ) : calendarItem ? (
-              <div
-                style={{
-                  overflow: 'hidden',
-                  borderRadius: '20px',
-                  border: '1px solid #e5e7eb',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(7, 1fr)',
-                    backgroundColor: '#fafaf9',
-                    borderBottom: '1px solid #e5e7eb',
-                  }}
-                >
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                    <div
-                      key={day}
-                      style={{
-                        padding: '12px 8px',
-                        textAlign: 'center',
-                        fontWeight: 700,
-                        color: '#57534e',
-                        fontSize: '15px',
-                      }}
-                    >
-                      {day}
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{ display: 'grid', gap: '0' }}>
-                  {calendarWeeks.map((week, weekIndex) => (
-                    <div
-                      key={weekIndex}
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(7, 1fr)',
-                        borderBottom:
-                          weekIndex === calendarWeeks.length - 1 ? 'none' : '1px solid #e5e7eb',
-                      }}
-                    >
-                      {week.map((cell, index) => {
-                        const isMonWed =
-                          cell.isCurrentMonth &&
-                          (calendarItem.monWedDates ?? []).includes(cell.day);
-                        const isTueThu =
-                          cell.isCurrentMonth &&
-                          (calendarItem.tueThuDates ?? []).includes(cell.day);
-                        const labels = cell.isCurrentMonth ? specialMap.get(cell.day) ?? [] : [];
-                        const isSpecial = labels.some((label) => !label.includes('토익'));
-                        const isToeic = labels.some((label) => label.includes('토익'));
-
-                        let backgroundColor = 'transparent';
-                        let textColor = '#44403c';
-                        let border = '1px solid transparent';
-
-                        if (!cell.isCurrentMonth) {
-                          textColor = '#d6d3d1';
-                        } else if (isTueThu) {
-                          backgroundColor = tueThuFill;
-                          textColor = 'white';
-                        } else if (isMonWed) {
-                          backgroundColor = monWedFill;
-                          textColor = '#111827';
-                        }
-
-                        if (cell.isCurrentMonth && isSpecial) {
-                          border = `3px solid ${tueThuFill}`;
-                          backgroundColor = 'transparent';
-                          textColor = tueThuFill;
-                        } else if (cell.isCurrentMonth && isToeic) {
-                          border = '2px solid #cbd5e1';
-                          if (!isMonWed && !isTueThu) {
-                            backgroundColor = 'transparent';
-                            textColor = '#64748b';
-                          }
-                        }
-
-                        return (
-                          <div
-                            key={`${weekIndex}-${index}`}
-                            style={{
-                              minHeight: '98px',
-                              borderRight: index === 6 ? 'none' : '1px solid #e5e7eb',
-                              padding: '10px 8px',
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: '44px',
-                                height: '44px',
-                                borderRadius: '999px',
-                                margin: '0 auto',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '17px',
-                                fontWeight: 700,
-                                color: textColor,
-                                backgroundColor,
-                                border,
-                              }}
-                            >
-                              {cell.day}
-                            </div>
-
-                            {cell.isCurrentMonth && labels.length > 0 && (
-                              <div
-                                style={{
-                                  marginTop: '8px',
-                                  textAlign: 'center',
-                                  fontSize: '12px',
-                                  color: '#57534e',
-                                  lineHeight: 1.45,
-                                  whiteSpace: 'pre-wrap',
-                                  fontWeight: 500,
-                                }}
-                              >
-                                {labels.join('\n')}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </section>
-
+        {/* PC 전용 - 기존 구조 유지 */}
+        <div className="desktopOnly">
           <div
             style={{
               display: 'grid',
-              gridTemplateRows: 'auto 1fr',
+              gridTemplateColumns: 'minmax(0, 1.65fr) minmax(320px, 0.95fr)',
               gap: '24px',
               alignItems: 'stretch',
             }}
           >
-            <section style={{ ...shellCardStyle, padding: '24px' }}>
-              <h2
-                style={{
-                  marginTop: 0,
-                  marginBottom: '8px',
-                  fontSize: '26px',
-                  color: '#111827',
-                }}
-              >
-                수강생 로그인
-              </h2>
+            {renderCalendarSection()}
 
-              <p
-                style={{
-                  marginTop: 0,
-                  marginBottom: '16px',
-                  color: '#64748b',
-                  fontSize: '14px',
-                  lineHeight: 1.7,
-                }}
-              >
-                수강생 전용 페이지에 로그인해 주세요.
-              </p>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateRows: 'auto 1fr',
+                gap: '24px',
+                alignItems: 'stretch',
+              }}
+            >
+              {renderLoginSection()}
+              {renderCalendarMemoSection()}
+            </div>
+          </div>
 
-              <form onSubmit={handleStudentLogin} style={{ display: 'grid', gap: '12px' }}>
-                <input
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="아이디"
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    borderRadius: '12px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                  }}
-                />
-
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="비밀번호"
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    borderRadius: '12px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                  }}
-                />
-
-                <button
-                  type="submit"
-                  disabled={isLoggingIn}
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    backgroundColor: '#111827',
-                    color: 'white',
-                    fontSize: '15px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    opacity: isLoggingIn ? 0.7 : 1,
-                  }}
-                >
-                  {isLoggingIn ? '로그인 중...' : '로그인'}
-                </button>
-              </form>
-
-              <div
-                style={{
-                  marginTop: '14px',
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                }}
-              >
-                <Link
-                  href="/student/signup"
-                  style={{
-                    fontSize: '14px',
-                    color: '#64748b',
-                    textDecoration: 'none',
-                    borderBottom: '1px solid #cbd5e1',
-                    paddingBottom: '1px',
-                  }}
-                >
-                  회원가입 신청
-                </Link>
-              </div>
-
-              {loginMessage && (
-                <p
-                  style={{
-                    marginTop: '12px',
-                    marginBottom: 0,
-                    color: '#475569',
-                    lineHeight: 1.6,
-                    fontSize: '14px',
-                  }}
-                >
-                  {loginMessage}
-                </p>
-              )}
-            </section>
-
-            <section style={{ ...shellCardStyle, padding: '24px', minHeight: '100%' }}>
-              <h2
-                style={{
-                  marginTop: 0,
-                  marginBottom: '8px',
-                  fontSize: '26px',
-                  color: '#111827',
-                }}
-              >
-                메모
-              </h2>
-
-              <p
-                style={{
-                  marginTop: 0,
-                  marginBottom: '16px',
-                  color: '#64748b',
-                  fontSize: '14px',
-                  lineHeight: 1.7,
-                }}
-              >
-                이번 달 일정 관련 참고사항입니다.
-              </p>
-
-              <div style={singleMemoBoxStyle}>
-                {calendarItem?.memo?.trim() ? calendarItem.memo : '등록된 메모가 없습니다.'}
-              </div>
-            </section>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(0, 1.65fr) minmax(320px, 0.95fr)',
+              gap: '24px',
+              alignItems: 'stretch',
+              marginTop: '24px',
+            }}
+          >
+            {renderTimetableSection()}
+            {renderTimetableMemoSection()}
           </div>
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.65fr) minmax(320px, 0.95fr)',
-            gap: '24px',
-            alignItems: 'stretch',
-          }}
-        >
-          <section style={{ ...shellCardStyle, padding: '26px' }}>
-            <div style={{ marginBottom: '18px' }}>
-              <div
-                style={{
-                  fontSize: '16px',
-                  color: '#78716c',
-                  marginBottom: '8px',
-                }}
-              >
-                시간표
-              </div>
-
-              <div
-                style={{
-                  fontSize: '52px',
-                  fontWeight: 700,
-                  lineHeight: 1,
-                  color: '#44403c',
-                  letterSpacing: '-0.04em',
-                }}
-              >
-                {timetableItem?.title || 'Timetable'}
-              </div>
-            </div>
-
-            {timetableMessage ? (
-              <div
-                style={{
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '16px',
-                  padding: '24px',
-                  color: '#64748b',
-                }}
-              >
-                {timetableMessage}
-              </div>
-            ) : timetableItem ? (
-              <div
-                style={{
-                  borderRadius: '20px',
-                  border: '1px solid #e5e7eb',
-                  overflow: 'hidden',
-                }}
-              >
-                <table
-                  style={{
-                    width: '100%',
-                    borderCollapse: 'collapse',
-                    tableLayout: 'fixed',
-                    textAlign: 'center',
-                  }}
-                >
-                  <thead>
-                    <tr>
-                      <th
-                        style={{
-                          border: '1px solid #e5e7eb',
-                          backgroundColor: sharedHeaderBg,
-                          padding: '10px 6px',
-                        }}
-                      />
-                      <th
-                        colSpan={2}
-                        style={{
-                          border: '1px solid #e5e7eb',
-                          backgroundColor: sharedHeaderBg,
-                          padding: '10px 6px',
-                          fontSize: '17px',
-                          color: '#44403c',
-                        }}
-                      >
-                        600
-                      </th>
-                      <th
-                        colSpan={2}
-                        style={{
-                          border: '1px solid #e5e7eb',
-                          backgroundColor: sharedHeaderBg,
-                          padding: '10px 6px',
-                          fontSize: '17px',
-                          color: '#44403c',
-                        }}
-                      >
-                        800
-                      </th>
-                    </tr>
-                    <tr>
-                      <th
-                        style={{
-                          border: '1px solid #e5e7eb',
-                          backgroundColor: sharedHeaderBg,
-                          padding: '10px 6px',
-                        }}
-                      />
-                      <th
-                        style={{
-                          border: '1px solid #e5e7eb',
-                          backgroundColor: sharedHeaderBg,
-                          padding: '10px 6px',
-                          color: '#57534e',
-                          fontSize: '14px',
-                        }}
-                      >
-                        월수
-                      </th>
-                      <th
-                        style={{
-                          border: '1px solid #e5e7eb',
-                          backgroundColor: sharedHeaderBg,
-                          padding: '10px 6px',
-                          color: '#57534e',
-                          fontSize: '14px',
-                        }}
-                      >
-                        화목
-                      </th>
-                      <th
-                        style={{
-                          border: '1px solid #e5e7eb',
-                          backgroundColor: sharedHeaderBg,
-                          padding: '10px 6px',
-                          color: '#57534e',
-                          fontSize: '14px',
-                        }}
-                      >
-                        월수
-                      </th>
-                      <th
-                        style={{
-                          border: '1px solid #e5e7eb',
-                          backgroundColor: sharedHeaderBg,
-                          padding: '10px 6px',
-                          color: '#57534e',
-                          fontSize: '14px',
-                        }}
-                      >
-                        화목
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {timetableItem.rows.map((row, index) => (
-                      <tr key={index}>
-                        <td
-                          style={{
-                            border: '1px solid #e5e7eb',
-                            backgroundColor: '#fafaf9',
-                            padding: '12px 6px',
-                            fontWeight: 500,
-                            color: '#57534e',
-                            fontSize: '13px',
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          {row.time}
-                        </td>
-
-                        <td
-                          style={{
-                            border: '1px solid #e5e7eb',
-                            backgroundColor: row.class600MonWed ? monWedFill : 'white',
-                            padding: '12px 6px',
-                            color: row.class600MonWed ? '#111827' : '#cbd5e1',
-                            fontSize: '14px',
-                            fontWeight: row.class600MonWed ? 600 : 400,
-                            lineHeight: 1.4,
-                            wordBreak: 'keep-all',
-                          }}
-                        >
-                          {row.class600MonWed || '-'}
-                        </td>
-
-                        <td
-                          style={{
-                            border: '1px solid #e5e7eb',
-                            backgroundColor: row.class600TueThu ? monWedFill : 'white',
-                            padding: '12px 6px',
-                            color: row.class600TueThu ? '#111827' : '#cbd5e1',
-                            fontSize: '14px',
-                            fontWeight: row.class600TueThu ? 600 : 400,
-                            lineHeight: 1.4,
-                            wordBreak: 'keep-all',
-                          }}
-                        >
-                          {row.class600TueThu || '-'}
-                        </td>
-
-                        <td
-                          style={{
-                            border: '1px solid #e5e7eb',
-                            backgroundColor: row.class800MonWed ? tueThuFill : 'white',
-                            padding: '12px 6px',
-                            color: row.class800MonWed ? 'white' : '#cbd5e1',
-                            fontSize: '14px',
-                            fontWeight: row.class800MonWed ? 700 : 400,
-                            lineHeight: 1.4,
-                            wordBreak: 'keep-all',
-                          }}
-                        >
-                          {row.class800MonWed || '-'}
-                        </td>
-
-                        <td
-                          style={{
-                            border: '1px solid #e5e7eb',
-                            backgroundColor: row.class800TueThu ? tueThuFill : 'white',
-                            padding: '12px 6px',
-                            color: row.class800TueThu ? 'white' : '#cbd5e1',
-                            fontSize: '14px',
-                            fontWeight: row.class800TueThu ? 700 : 400,
-                            lineHeight: 1.4,
-                            wordBreak: 'keep-all',
-                          }}
-                        >
-                          {row.class800TueThu || '-'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : null}
-          </section>
-
-          <section style={{ ...shellCardStyle, padding: '24px', minHeight: '100%' }}>
-            <h2
-              style={{
-                marginTop: 0,
-                marginBottom: '8px',
-                fontSize: '26px',
-                color: '#111827',
-              }}
-            >
-              메모
-            </h2>
-
-            <p
-              style={{
-                marginTop: 0,
-                marginBottom: '16px',
-                color: '#64748b',
-                fontSize: '14px',
-                lineHeight: 1.7,
-              }}
-            >
-              시간표 관련 참고사항입니다.
-            </p>
-
-            <div style={singleMemoBoxStyle}>
-              {timetableItem?.memo?.trim() ? timetableItem.memo : '등록된 메모가 없습니다.'}
-            </div>
-          </section>
+        {/* 모바일 전용 - 순서 변경 */}
+        <div className="mobileOnly">
+          <div
+            style={{
+              display: 'grid',
+              gap: '24px',
+            }}
+          >
+            {renderCalendarSection()}
+            {renderTimetableSection()}
+            {renderLoginSection()}
+            {renderCalendarMemoSection()}
+            {renderTimetableMemoSection()}
+          </div>
         </div>
 
         <footer
@@ -962,6 +1018,30 @@ export default function HomePage() {
           </div>
         </footer>
       </div>
+
+      <style jsx>{`
+        .desktopOnly {
+          display: block;
+        }
+
+        .mobileOnly {
+          display: none;
+        }
+
+        @media (max-width: 768px) {
+          .desktopOnly {
+            display: none;
+          }
+
+          .mobileOnly {
+            display: block;
+          }
+
+          main {
+            padding: 22px 16px 34px !important;
+          }
+        }
+      `}</style>
     </main>
   );
 }
