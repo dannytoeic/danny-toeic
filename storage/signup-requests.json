@@ -1,0 +1,30 @@
+[
+  {
+    "requestId": "signup-1777218041202-qmd1w8",
+    "name": "홍길동",
+    "id": "hong",
+    "password": "5678",
+    "contact": "010-1234-4321",
+    "classKey": "800-monwed",
+    "classKeys": [
+      "800-monwed",
+      "800-tuthu"
+    ],
+    "status": "approved",
+    "createdAt": "2026-04-26T15:40:41.202Z"
+  },
+  {
+    "requestId": "signup-1777212990410-ee0a6l",
+    "name": "김철수",
+    "id": "chul",
+    "password": "1234",
+    "contact": "010-1234-5678",
+    "classKey": "600-monwed",
+    "classKeys": [
+      "600-monwed",
+      "600-tuthu"
+    ],
+    "status": "approved",
+    "createdAt": "2026-04-26T14:16:30.410Z"
+  }
+]

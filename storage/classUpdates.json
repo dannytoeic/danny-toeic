@@ -1,0 +1,64 @@
+{
+  "600-monwed": {
+    "globalNoticeText": "- 이번주!!! 관리반 금요일 저녁 6:30분에 진행합니다!! 우짜든둥 조금이라도 더 해드리려는 쌤의 마음을 헤아리시어 아무쪼록 빠짐없이 관리반분들은 모두 참석바랍니다!",
+    "cards": [
+      {
+        "id": "item_1776739397500_mmg9d",
+        "title": "123",
+        "description": "1",
+        "linkUrl": "",
+        "type": "material",
+        "createdAt": "2026-04-21T02:43:17.500Z",
+        "isPinned": true,
+        "dayLabel": "[월수공지] Day 1",
+        "noticeText": "1. LC교재 맨 뒤 51페이지 문장암기장을 많이 듣고 암기하시고 53페이지의 빈칸을 채워오시기 바랍니다! \n2. RC교재 명사 문제 나머지 다 풀어오기! (7페이지)\n3. RC 부록2 치트키(스펠링) 암기!\n4. RC교재 뒤쪽 49페이지 실전 Day - 1 풀어오기! \n(수업시간에 공지 안해드렸죠? 독해는 해석도 달아오셔야 해요)\n5. LC 교재 3페이지 워밍업문제 풀어오기! \n6. LC 배운 표현들 모두 암기 + 오답패턴 5가지 암기",
+        "dateLabel": "260401",
+        "memoText": "---------------------------------\n첫날 리스닝쉅 표현정리\n---------------------------------\n* Where can I 패턴 기억해오기\n\n* ~을 책임지고 있다/담당이다\nbe responsible for\nbe in charge of\nbe charged with\n\n* ~를 주최하다/진행하다\norganize + 이벤트 \n\nplumber 배관공\n\nget to 장소: ~에 도착하다\n\n* leave \n1. leave + 사물    두다/남겨두다/내버려두다\n2. leave + 장소   떠나다/출발하다\n\nby + 교통수단\n\nmake it: 도착해내다/참석해내다/해내다\nreplace A with B      A를 B로 교체하다/대체하다\n\ntake place 발생하다/열리다\n\nbranch 지점\n\nthe one은 정답이다!!\n\nbe held 개최되다/열리다\nplace an order 주문을 하다\n\n\nwould you like? = do you want?\n\ndepart 동 출발하다\ndeprture 명 출발\narrive 동 도착하다\narrival 명 도착\n\ngo to school 학교에 가다\ngo to work 직장에 가다\n\n의문사 의문문에 대한 오답패턴을 기억해 올 것 (5가지)\n--------------------------",
+        "audioTitlesText": "수업음원",
+        "videoUrlsText": "https://youtu.be/KOymlUacBvc\n\n\nhttps://youtu.be/AYxFwDvi7IA",
+        "videoTitlesText": "오늘 수업영상"
+      },
+      {
+        "id": "item_1776743219913_8li1g",
+        "title": "12345",
+        "description": "Yo!",
+        "linkUrl": "",
+        "type": "notice",
+        "createdAt": "2026-04-21T03:46:59.913Z",
+        "isPinned": false
+      }
+    ]
+  },
+  "600-tuthu": {
+    "globalNoticeText": "!!!!!",
+    "cards": [
+      {
+        "id": "day_1777166139595_wggx7",
+        "dayLabel": "Dany - 3",
+        "dateLabel": "5월 20일",
+        "noticeText": "오늘 RC 테스트진행 / 단어시험 실시!",
+        "materialTitle": "Day 3",
+        "materialUrl": "",
+        "audioTitle": "Day 3음원",
+        "audioUrl": "",
+        "linkTitle": "",
+        "linkUrl": "",
+        "homeworkText": "!",
+        "isPinned": false,
+        "createdAt": "2026-04-26T01:15:39.595Z",
+        "audioTitlesText": "!!!!",
+        "videoTitlesText": "!!!!",
+        "extraMaterialTitlesText": "!!!!!",
+        "memoText": "!!!!"
+      }
+    ]
+  },
+  "800-monwed": {
+    "globalNoticeText": "",
+    "cards": []
+  },
+  "800-tuthu": {
+    "globalNoticeText": "",
+    "cards": []
+  }
+}

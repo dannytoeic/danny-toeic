@@ -1,0 +1,131 @@
+[
+  {
+    "id": "hong",
+    "name": "홍길동",
+    "username": "hong",
+    "password": "5678",
+    "contact": "010-1234-4321",
+    "classKey": "800-monwed",
+    "classKeys": [
+      "800-monwed",
+      "800-tuthu"
+    ],
+    "monthKey": "2026-04",
+    "expiresAt": "2026-06-26T15:41:13.028Z",
+    "isActive": true,
+    "createdAt": "2026-04-26T15:41:13.028Z"
+  },
+  {
+    "studentId": "stu001",
+    "id": "minsu600",
+    "username": "minsu600",
+    "name": "김민수",
+    "password": "4321",
+    "contact": "",
+    "classKey": "600-monwed",
+    "classKeys": [
+      "600-monwed"
+    ],
+    "monthKey": "2026-04",
+    "expiresAt": "2026-05-07",
+    "isActive": true,
+    "createdAt": "2026-04-26T15:20:15.800Z"
+  },
+  {
+    "studentId": "stu002",
+    "id": "seoyeon600",
+    "username": "seoyeon600",
+    "name": "이서연",
+    "password": "1234",
+    "contact": "",
+    "classKey": "600-tuthu",
+    "classKeys": [
+      "600-tuthu"
+    ],
+    "monthKey": "2026-04",
+    "expiresAt": "2026-05-08",
+    "isActive": true,
+    "createdAt": "2026-04-26T15:20:15.801Z"
+  },
+  {
+    "studentId": "stu003",
+    "id": "junho800",
+    "username": "junho800",
+    "name": "박준호",
+    "password": "1234",
+    "contact": "",
+    "classKey": "800-monwed",
+    "classKeys": [
+      "800-monwed"
+    ],
+    "monthKey": "2026-04",
+    "expiresAt": "2026-05-07",
+    "isActive": true,
+    "createdAt": "2026-04-26T15:20:15.801Z"
+  },
+  {
+    "studentId": "stu004",
+    "id": "jiwoo800",
+    "username": "jiwoo800",
+    "name": "최지우",
+    "password": "1234",
+    "contact": "",
+    "classKey": "800-tuthu",
+    "classKeys": [
+      "800-tuthu"
+    ],
+    "monthKey": "2026-04",
+    "expiresAt": "2026-05-08",
+    "isActive": true,
+    "createdAt": "2026-04-26T15:20:15.801Z"
+  },
+  {
+    "studentId": "stu005",
+    "id": "danny1",
+    "username": "danny1",
+    "name": "데니성",
+    "password": "1234",
+    "contact": "",
+    "classKey": "800-tuthu",
+    "classKeys": [
+      "800-tuthu"
+    ],
+    "monthKey": "2026-04",
+    "expiresAt": "2026-05-20",
+    "isActive": true,
+    "createdAt": "2026-04-26T15:20:15.801Z"
+  },
+  {
+    "studentId": "stu006",
+    "id": "danny",
+    "username": "danny",
+    "name": "데니성",
+    "password": "1234",
+    "contact": "",
+    "classKey": "800-monwed",
+    "classKeys": [
+      "800-monwed"
+    ],
+    "monthKey": "2026-04",
+    "expiresAt": "2026-05-20",
+    "isActive": true,
+    "createdAt": "2026-04-26T15:20:15.801Z"
+  },
+  {
+    "studentId": "stu001",
+    "id": "chul",
+    "username": "chul",
+    "name": "김철수",
+    "password": "4321",
+    "contact": "010-1234-5678",
+    "classKey": "600-monwed",
+    "classKeys": [
+      "600-monwed",
+      "600-tuthu"
+    ],
+    "monthKey": "2026-04",
+    "expiresAt": "2026-06-26T14:37:41.271Z",
+    "isActive": true,
+    "createdAt": "2026-04-26T14:37:41.271Z"
+  }
+]

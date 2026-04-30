@@ -1,0 +1,68 @@
+{
+  "currentKey": "2026-05",
+  "items": {
+    "2026-05": {
+      "yearMonth": "2026-05",
+      "title": "5 May",
+      "rows": [
+        {
+          "time": "9:30-11:10",
+          "class600MonWed": "",
+          "class600TueThu": "",
+          "class800MonWed": "800 RC + LC",
+          "class800TueThu": "800 RC + LC"
+        },
+        {
+          "time": "11:20-12:10",
+          "class600MonWed": "",
+          "class600TueThu": "",
+          "class800MonWed": "",
+          "class800TueThu": ""
+        },
+        {
+          "time": "12:20-13:10",
+          "class600MonWed": "",
+          "class600TueThu": "",
+          "class800MonWed": "",
+          "class800TueThu": ""
+        },
+        {
+          "time": "14:30-15:20",
+          "class600MonWed": "600 RC A",
+          "class600TueThu": "600 RC B",
+          "class800MonWed": "",
+          "class800TueThu": ""
+        },
+        {
+          "time": "15:30-16:20",
+          "class600MonWed": "600 LC A",
+          "class600TueThu": "600 LC B",
+          "class800MonWed": "",
+          "class800TueThu": ""
+        },
+        {
+          "time": "17:40-19:20",
+          "class600MonWed": "",
+          "class600TueThu": "",
+          "class800MonWed": "800 RC + LC",
+          "class800TueThu": "800 RC + LC"
+        },
+        {
+          "time": "19:30-20:20",
+          "class600MonWed": "600 RC A",
+          "class600TueThu": "600 RC B",
+          "class800MonWed": "",
+          "class800TueThu": ""
+        },
+        {
+          "time": "20:30-21:20",
+          "class600MonWed": "600 LC A",
+          "class600TueThu": "600 LC B",
+          "class800MonWed": "",
+          "class800TueThu": ""
+        }
+      ],
+      "memo": "5월 변경사항: 저녁타임 10분씩 뒤로!\n\n800 오후반: 5시40분시작 - 7시20분 종료!\n600 저녁반: 7시30분시작 - 9시20분 종료!"
+    }
+  }
+}

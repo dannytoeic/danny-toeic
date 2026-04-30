@@ -1,0 +1,35 @@
+[
+  {
+    "id": "req_1777211390592_gxam1g",
+    "name": "김민수",
+    "username": "minsu600",
+    "password": "1234",
+    "classKey": "600-tuthu",
+    "monthKey": "2026-04",
+    "phone": "",
+    "status": "rejected",
+    "requestedAt": "2026-04-26T13:49:50.592Z"
+  },
+  {
+    "id": "req_1776654895517_wqg94u",
+    "name": "데니성",
+    "username": "danny1",
+    "password": "1234",
+    "classKey": "800-tuthu",
+    "monthKey": "2026-04",
+    "phone": "",
+    "status": "approved",
+    "requestedAt": "2026-04-20T03:14:55.517Z"
+  },
+  {
+    "id": "req_1776649261929_d95n37",
+    "name": "데니성",
+    "username": "danny",
+    "password": "1234",
+    "classKey": "800-monwed",
+    "monthKey": "2026-04",
+    "phone": "",
+    "status": "approved",
+    "requestedAt": "2026-04-20T01:41:01.929Z"
+  }
+]
