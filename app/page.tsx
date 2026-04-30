@@ -233,7 +233,7 @@ export default function HomePage() {
     fontSize: '14px',
     lineHeight: 1.8,
     whiteSpace: 'pre-wrap',
-    minHeight: '260px',
+    minHeight: '220px',
   };
 
   const monWedFill = '#cbbfb0';
@@ -245,15 +245,15 @@ export default function HomePage() {
       <section
         style={{
           ...shellCardStyle,
-          padding: isMobile ? '18px' : '26px',
+          padding: isMobile ? '14px' : '26px',
         }}
       >
-        <div style={{ marginBottom: isMobile ? '10px' : '14px' }}>
+        <div style={{ marginBottom: isMobile ? '8px' : '14px' }}>
           <div
             style={{
-              fontSize: isMobile ? '14px' : '18px',
+              fontSize: isMobile ? '12px' : '18px',
               color: '#78716c',
-              marginBottom: '8px',
+              marginBottom: '6px',
             }}
           >
             {calendarItem?.year ?? ''}
@@ -261,7 +261,7 @@ export default function HomePage() {
 
           <div
             style={{
-              fontSize: isMobile ? '40px' : '62px',
+              fontSize: isMobile ? '34px' : '62px',
               fontWeight: 700,
               lineHeight: 1,
               color: '#44403c',
@@ -282,20 +282,20 @@ export default function HomePage() {
           style={{
             display: 'flex',
             justifyContent: 'flex-end',
-            gap: isMobile ? '12px' : '18px',
+            gap: isMobile ? '10px' : '18px',
             alignItems: 'center',
-            marginBottom: isMobile ? '8px' : '10px',
+            marginBottom: isMobile ? '6px' : '10px',
             color: '#57534e',
-            fontSize: isMobile ? '11px' : '14px',
-            fontWeight: 500,
+            fontSize: isMobile ? '10px' : '14px',
+            fontWeight: 600,
             flexWrap: 'wrap',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <span
               style={{
-                width: isMobile ? '10px' : '14px',
-                height: isMobile ? '10px' : '14px',
+                width: isMobile ? '9px' : '14px',
+                height: isMobile ? '9px' : '14px',
                 borderRadius: '999px',
                 backgroundColor: monWedFill,
                 display: 'inline-block',
@@ -304,11 +304,11 @@ export default function HomePage() {
             월수반
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <span
               style={{
-                width: isMobile ? '10px' : '14px',
-                height: isMobile ? '10px' : '14px',
+                width: isMobile ? '9px' : '14px',
+                height: isMobile ? '9px' : '14px',
                 borderRadius: '999px',
                 backgroundColor: tueThuFill,
                 display: 'inline-block',
@@ -332,135 +332,132 @@ export default function HomePage() {
         ) : calendarItem ? (
           <div
             style={{
-              overflowX: 'auto',
-              overflowY: 'hidden',
-              borderRadius: '20px',
+              overflow: 'hidden',
+              borderRadius: '16px',
               border: '1px solid #e5e7eb',
-              WebkitOverflowScrolling: 'touch',
             }}
           >
-            <div style={{ minWidth: isMobile ? '560px' : '760px' }}>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(7, 1fr)',
-                  backgroundColor: '#fafaf9',
-                  borderBottom: '1px solid #e5e7eb',
-                }}
-              >
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                  <div
-                    key={day}
-                    style={{
-                      padding: isMobile ? '8px 4px' : '12px 8px',
-                      textAlign: 'center',
-                      fontWeight: 700,
-                      color: '#57534e',
-                      fontSize: isMobile ? '11px' : '15px',
-                    }}
-                  >
-                    {day}
-                  </div>
-                ))}
-              </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(7, 1fr)',
+                backgroundColor: '#fafaf9',
+                borderBottom: '1px solid #e5e7eb',
+              }}
+            >
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                <div
+                  key={day}
+                  style={{
+                    padding: isMobile ? '5px 2px' : '12px 8px',
+                    textAlign: 'center',
+                    fontWeight: 700,
+                    color: '#57534e',
+                    fontSize: isMobile ? '10px' : '15px',
+                  }}
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
 
-              <div style={{ display: 'grid', gap: '0' }}>
-                {calendarWeeks.map((week, weekIndex) => (
-                  <div
-                    key={weekIndex}
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(7, 1fr)',
-                      borderBottom:
-                        weekIndex === calendarWeeks.length - 1 ? 'none' : '1px solid #e5e7eb',
-                    }}
-                  >
-                    {week.map((cell, index) => {
-                      const isMonWed =
-                        cell.isCurrentMonth &&
-                        (calendarItem.monWedDates ?? []).includes(cell.day);
-                      const isTueThu =
-                        cell.isCurrentMonth &&
-                        (calendarItem.tueThuDates ?? []).includes(cell.day);
-                      const labels = cell.isCurrentMonth ? specialMap.get(cell.day) ?? [] : [];
-                      const isSpecial = labels.some((label) => !label.includes('토익'));
-                      const isToeic = labels.some((label) => label.includes('토익'));
+            <div style={{ display: 'grid', gap: '0' }}>
+              {calendarWeeks.map((week, weekIndex) => (
+                <div
+                  key={weekIndex}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(7, 1fr)',
+                    borderBottom:
+                      weekIndex === calendarWeeks.length - 1 ? 'none' : '1px solid #e5e7eb',
+                  }}
+                >
+                  {week.map((cell, index) => {
+                    const isMonWed =
+                      cell.isCurrentMonth &&
+                      (calendarItem.monWedDates ?? []).includes(cell.day);
+                    const isTueThu =
+                      cell.isCurrentMonth &&
+                      (calendarItem.tueThuDates ?? []).includes(cell.day);
+                    const labels = cell.isCurrentMonth ? specialMap.get(cell.day) ?? [] : [];
+                    const isSpecial = labels.some((label) => !label.includes('토익'));
+                    const isToeic = labels.some((label) => label.includes('토익'));
 
-                      let backgroundColor = 'transparent';
-                      let textColor = '#44403c';
-                      let border = '1px solid transparent';
+                    let backgroundColor = 'transparent';
+                    let textColor = '#44403c';
+                    let border = '1px solid transparent';
 
-                      if (!cell.isCurrentMonth) {
-                        textColor = '#d6d3d1';
-                      } else if (isTueThu) {
-                        backgroundColor = tueThuFill;
-                        textColor = 'white';
-                      } else if (isMonWed) {
-                        backgroundColor = monWedFill;
-                        textColor = '#111827';
-                      }
+                    if (!cell.isCurrentMonth) {
+                      textColor = '#d6d3d1';
+                    } else if (isTueThu) {
+                      backgroundColor = tueThuFill;
+                      textColor = 'white';
+                    } else if (isMonWed) {
+                      backgroundColor = monWedFill;
+                      textColor = '#111827';
+                    }
 
-                      if (cell.isCurrentMonth && isSpecial) {
-                        border = `3px solid ${tueThuFill}`;
+                    if (cell.isCurrentMonth && isSpecial) {
+                      border = isMobile ? `2px solid ${tueThuFill}` : `3px solid ${tueThuFill}`;
+                      backgroundColor = 'transparent';
+                      textColor = tueThuFill;
+                    } else if (cell.isCurrentMonth && isToeic) {
+                      border = isMobile ? '1.5px solid #cbd5e1' : '2px solid #cbd5e1';
+                      if (!isMonWed && !isTueThu) {
                         backgroundColor = 'transparent';
-                        textColor = tueThuFill;
-                      } else if (cell.isCurrentMonth && isToeic) {
-                        border = '2px solid #cbd5e1';
-                        if (!isMonWed && !isTueThu) {
-                          backgroundColor = 'transparent';
-                          textColor = '#64748b';
-                        }
+                        textColor = '#64748b';
                       }
+                    }
 
-                      return (
+                    return (
+                      <div
+                        key={`${weekIndex}-${index}`}
+                        style={{
+                          minHeight: isMobile ? '52px' : '98px',
+                          borderRight: index === 6 ? 'none' : '1px solid #e5e7eb',
+                          padding: isMobile ? '3px 2px' : '10px 8px',
+                        }}
+                      >
                         <div
-                          key={`${weekIndex}-${index}`}
                           style={{
-                            minHeight: isMobile ? '62px' : '98px',
-                            borderRight: index === 6 ? 'none' : '1px solid #e5e7eb',
-                            padding: isMobile ? '4px 3px' : '10px 8px',
+                            width: isMobile ? '24px' : '44px',
+                            height: isMobile ? '24px' : '44px',
+                            borderRadius: '999px',
+                            margin: '0 auto',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: isMobile ? '11px' : '17px',
+                            fontWeight: 700,
+                            color: textColor,
+                            backgroundColor,
+                            border,
                           }}
                         >
+                          {cell.day}
+                        </div>
+
+                        {cell.isCurrentMonth && labels.length > 0 && (
                           <div
                             style={{
-                              width: isMobile ? '28px' : '44px',
-                              height: isMobile ? '28px' : '44px',
-                              borderRadius: '999px',
-                              margin: '0 auto',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: isMobile ? '12px' : '17px',
-                              fontWeight: 700,
-                              color: textColor,
-                              backgroundColor,
-                              border,
+                              marginTop: isMobile ? '3px' : '8px',
+                              textAlign: 'center',
+                              fontSize: isMobile ? '8px' : '12px',
+                              color: '#57534e',
+                              lineHeight: isMobile ? 1.05 : 1.45,
+                              whiteSpace: 'pre-wrap',
+                              fontWeight: 600,
+                              letterSpacing: '-0.02em',
                             }}
                           >
-                            {cell.day}
+                            {labels.join('\n')}
                           </div>
-
-                          {cell.isCurrentMonth && labels.length > 0 && (
-                            <div
-                              style={{
-                                marginTop: isMobile ? '4px' : '8px',
-                                textAlign: 'center',
-                                fontSize: isMobile ? '9px' : '12px',
-                                color: '#57534e',
-                                lineHeight: isMobile ? 1.2 : 1.45,
-                                whiteSpace: 'pre-wrap',
-                                fontWeight: 500,
-                              }}
-                            >
-                              {labels.join('\n')}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           </div>
         ) : null}
@@ -473,15 +470,15 @@ export default function HomePage() {
       <section
         style={{
           ...shellCardStyle,
-          padding: isMobile ? '18px' : '26px',
+          padding: isMobile ? '14px' : '26px',
         }}
       >
-        <div style={{ marginBottom: isMobile ? '12px' : '18px' }}>
+        <div style={{ marginBottom: isMobile ? '10px' : '18px' }}>
           <div
             style={{
-              fontSize: isMobile ? '13px' : '16px',
+              fontSize: isMobile ? '12px' : '16px',
               color: '#78716c',
-              marginBottom: '8px',
+              marginBottom: '6px',
             }}
           >
             시간표
@@ -489,7 +486,7 @@ export default function HomePage() {
 
           <div
             style={{
-              fontSize: isMobile ? '40px' : '52px',
+              fontSize: isMobile ? '34px' : '52px',
               fontWeight: 700,
               lineHeight: 1,
               color: '#44403c',
@@ -514,17 +511,14 @@ export default function HomePage() {
         ) : timetableItem ? (
           <div
             style={{
-              borderRadius: '20px',
+              borderRadius: '16px',
               border: '1px solid #e5e7eb',
-              overflowX: 'auto',
-              overflowY: 'hidden',
-              WebkitOverflowScrolling: 'touch',
+              overflow: 'hidden',
             }}
           >
             <table
               style={{
                 width: '100%',
-                minWidth: isMobile ? '560px' : '760px',
                 borderCollapse: 'collapse',
                 tableLayout: 'fixed',
                 textAlign: 'center',
@@ -536,7 +530,7 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: sharedHeaderBg,
-                      padding: isMobile ? '7px 4px' : '10px 6px',
+                      padding: isMobile ? '5px 2px' : '10px 6px',
                     }}
                   />
                   <th
@@ -544,8 +538,8 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: sharedHeaderBg,
-                      padding: isMobile ? '7px 4px' : '10px 6px',
-                      fontSize: isMobile ? '14px' : '17px',
+                      padding: isMobile ? '5px 2px' : '10px 6px',
+                      fontSize: isMobile ? '11px' : '17px',
                       color: '#44403c',
                     }}
                   >
@@ -556,8 +550,8 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: sharedHeaderBg,
-                      padding: isMobile ? '7px 4px' : '10px 6px',
-                      fontSize: isMobile ? '14px' : '17px',
+                      padding: isMobile ? '5px 2px' : '10px 6px',
+                      fontSize: isMobile ? '11px' : '17px',
                       color: '#44403c',
                     }}
                   >
@@ -569,16 +563,17 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: sharedHeaderBg,
-                      padding: isMobile ? '7px 4px' : '10px 6px',
+                      padding: isMobile ? '5px 2px' : '10px 6px',
                     }}
                   />
                   <th
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: sharedHeaderBg,
-                      padding: isMobile ? '7px 4px' : '10px 6px',
+                      padding: isMobile ? '5px 2px' : '10px 6px',
                       color: '#57534e',
-                      fontSize: isMobile ? '11px' : '14px',
+                      fontSize: isMobile ? '9px' : '14px',
+                      fontWeight: 700,
                     }}
                   >
                     월수
@@ -587,9 +582,10 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: sharedHeaderBg,
-                      padding: isMobile ? '7px 4px' : '10px 6px',
+                      padding: isMobile ? '5px 2px' : '10px 6px',
                       color: '#57534e',
-                      fontSize: isMobile ? '11px' : '14px',
+                      fontSize: isMobile ? '9px' : '14px',
+                      fontWeight: 700,
                     }}
                   >
                     화목
@@ -598,9 +594,10 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: sharedHeaderBg,
-                      padding: isMobile ? '7px 4px' : '10px 6px',
+                      padding: isMobile ? '5px 2px' : '10px 6px',
                       color: '#57534e',
-                      fontSize: isMobile ? '11px' : '14px',
+                      fontSize: isMobile ? '9px' : '14px',
+                      fontWeight: 700,
                     }}
                   >
                     월수
@@ -609,9 +606,10 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: sharedHeaderBg,
-                      padding: isMobile ? '7px 4px' : '10px 6px',
+                      padding: isMobile ? '5px 2px' : '10px 6px',
                       color: '#57534e',
-                      fontSize: isMobile ? '11px' : '14px',
+                      fontSize: isMobile ? '9px' : '14px',
+                      fontWeight: 700,
                     }}
                   >
                     화목
@@ -626,11 +624,12 @@ export default function HomePage() {
                       style={{
                         border: '1px solid #e5e7eb',
                         backgroundColor: '#fafaf9',
-                        padding: isMobile ? '8px 4px' : '12px 6px',
-                        fontWeight: 500,
+                        padding: isMobile ? '6px 2px' : '12px 6px',
+                        fontWeight: 600,
                         color: '#57534e',
-                        fontSize: isMobile ? '10px' : '13px',
-                        lineHeight: 1.25,
+                        fontSize: isMobile ? '8.5px' : '13px',
+                        lineHeight: isMobile ? 1.05 : 1.4,
+                        letterSpacing: '-0.02em',
                       }}
                     >
                       {row.time}
@@ -640,12 +639,13 @@ export default function HomePage() {
                       style={{
                         border: '1px solid #e5e7eb',
                         backgroundColor: row.class600MonWed ? monWedFill : 'white',
-                        padding: isMobile ? '8px 4px' : '12px 6px',
+                        padding: isMobile ? '6px 2px' : '12px 6px',
                         color: row.class600MonWed ? '#111827' : '#cbd5e1',
-                        fontSize: isMobile ? '11px' : '14px',
-                        fontWeight: row.class600MonWed ? 600 : 400,
-                        lineHeight: isMobile ? 1.2 : 1.4,
+                        fontSize: isMobile ? '9.5px' : '14px',
+                        fontWeight: row.class600MonWed ? 700 : 400,
+                        lineHeight: isMobile ? 1.05 : 1.4,
                         wordBreak: 'keep-all',
+                        letterSpacing: '-0.03em',
                       }}
                     >
                       {row.class600MonWed || '-'}
@@ -655,12 +655,13 @@ export default function HomePage() {
                       style={{
                         border: '1px solid #e5e7eb',
                         backgroundColor: row.class600TueThu ? monWedFill : 'white',
-                        padding: isMobile ? '8px 4px' : '12px 6px',
+                        padding: isMobile ? '6px 2px' : '12px 6px',
                         color: row.class600TueThu ? '#111827' : '#cbd5e1',
-                        fontSize: isMobile ? '11px' : '14px',
-                        fontWeight: row.class600TueThu ? 600 : 400,
-                        lineHeight: isMobile ? 1.2 : 1.4,
+                        fontSize: isMobile ? '9.5px' : '14px',
+                        fontWeight: row.class600TueThu ? 700 : 400,
+                        lineHeight: isMobile ? 1.05 : 1.4,
                         wordBreak: 'keep-all',
+                        letterSpacing: '-0.03em',
                       }}
                     >
                       {row.class600TueThu || '-'}
@@ -670,12 +671,13 @@ export default function HomePage() {
                       style={{
                         border: '1px solid #e5e7eb',
                         backgroundColor: row.class800MonWed ? tueThuFill : 'white',
-                        padding: isMobile ? '8px 4px' : '12px 6px',
+                        padding: isMobile ? '6px 2px' : '12px 6px',
                         color: row.class800MonWed ? 'white' : '#cbd5e1',
-                        fontSize: isMobile ? '11px' : '14px',
+                        fontSize: isMobile ? '9.5px' : '14px',
                         fontWeight: row.class800MonWed ? 700 : 400,
-                        lineHeight: isMobile ? 1.2 : 1.4,
+                        lineHeight: isMobile ? 1.05 : 1.4,
                         wordBreak: 'keep-all',
+                        letterSpacing: '-0.03em',
                       }}
                     >
                       {row.class800MonWed || '-'}
@@ -685,12 +687,13 @@ export default function HomePage() {
                       style={{
                         border: '1px solid #e5e7eb',
                         backgroundColor: row.class800TueThu ? tueThuFill : 'white',
-                        padding: isMobile ? '8px 4px' : '12px 6px',
+                        padding: isMobile ? '6px 2px' : '12px 6px',
                         color: row.class800TueThu ? 'white' : '#cbd5e1',
-                        fontSize: isMobile ? '11px' : '14px',
+                        fontSize: isMobile ? '9.5px' : '14px',
                         fontWeight: row.class800TueThu ? 700 : 400,
-                        lineHeight: isMobile ? 1.2 : 1.4,
+                        lineHeight: isMobile ? 1.05 : 1.4,
                         wordBreak: 'keep-all',
+                        letterSpacing: '-0.03em',
                       }}
                     >
                       {row.class800TueThu || '-'}
@@ -969,7 +972,7 @@ export default function HomePage() {
           <div
             style={{
               display: 'grid',
-              gap: '20px',
+              gap: '18px',
             }}
           >
             {renderCalendarSection(true)}
@@ -1046,7 +1049,7 @@ export default function HomePage() {
           }
 
           main {
-            padding: 20px 14px 30px !important;
+            padding: 18px 12px 28px !important;
           }
         }
       `}</style>
