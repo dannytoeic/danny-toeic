@@ -228,12 +228,13 @@ export default function HomePage() {
     backgroundColor: '#fafaf9',
     border: '1px solid #e7e5e4',
     borderRadius: '16px',
-    padding: '18px',
-    color: '#57534e',
-    fontSize: '14px',
-    lineHeight: 1.8,
+    padding: '22px',
+    color: '#44403c',
+    fontSize: '18px',
+    fontWeight: 500,
+    lineHeight: 1.9,
     whiteSpace: 'pre-wrap',
-    minHeight: '220px',
+    minHeight: '240px',
   };
 
   const monWedFill = '#cbbfb0';
@@ -846,9 +847,11 @@ export default function HomePage() {
         <h2
           style={{
             marginTop: 0,
-            marginBottom: '8px',
-            fontSize: '26px',
+            marginBottom: '12px',
+            fontSize: '40px',
+            fontWeight: 800,
             color: '#111827',
+            letterSpacing: '-0.03em',
           }}
         >
           메모
@@ -857,9 +860,10 @@ export default function HomePage() {
         <p
           style={{
             marginTop: 0,
-            marginBottom: '16px',
+            marginBottom: '18px',
             color: '#64748b',
-            fontSize: '14px',
+            fontSize: '20px',
+            fontWeight: 600,
             lineHeight: 1.7,
           }}
         >
@@ -879,9 +883,11 @@ export default function HomePage() {
         <h2
           style={{
             marginTop: 0,
-            marginBottom: '8px',
-            fontSize: '26px',
+            marginBottom: '12px',
+            fontSize: '40px',
+            fontWeight: 800,
             color: '#111827',
+            letterSpacing: '-0.03em',
           }}
         >
           메모
@@ -890,9 +896,10 @@ export default function HomePage() {
         <p
           style={{
             marginTop: 0,
-            marginBottom: '16px',
+            marginBottom: '18px',
             color: '#64748b',
-            fontSize: '14px',
+            fontSize: '20px',
+            fontWeight: 600,
             lineHeight: 1.7,
           }}
         >
