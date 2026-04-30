@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -240,13 +240,18 @@ export default function HomePage() {
   const tueThuFill = '#57534e';
   const sharedHeaderBg = '#f3f0e8';
 
-  function renderCalendarSection() {
+  function renderCalendarSection(isMobile: boolean) {
     return (
-      <section style={{ ...shellCardStyle, padding: '26px' }}>
-        <div style={{ marginBottom: '14px' }}>
+      <section
+        style={{
+          ...shellCardStyle,
+          padding: isMobile ? '18px' : '26px',
+        }}
+      >
+        <div style={{ marginBottom: isMobile ? '10px' : '14px' }}>
           <div
             style={{
-              fontSize: '18px',
+              fontSize: isMobile ? '14px' : '18px',
               color: '#78716c',
               marginBottom: '8px',
             }}
@@ -256,7 +261,7 @@ export default function HomePage() {
 
           <div
             style={{
-              fontSize: '62px',
+              fontSize: isMobile ? '40px' : '62px',
               fontWeight: 700,
               lineHeight: 1,
               color: '#44403c',
@@ -277,20 +282,20 @@ export default function HomePage() {
           style={{
             display: 'flex',
             justifyContent: 'flex-end',
-            gap: '18px',
+            gap: isMobile ? '12px' : '18px',
             alignItems: 'center',
-            marginBottom: '10px',
+            marginBottom: isMobile ? '8px' : '10px',
             color: '#57534e',
-            fontSize: '14px',
+            fontSize: isMobile ? '11px' : '14px',
             fontWeight: 500,
             flexWrap: 'wrap',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span
               style={{
-                width: '14px',
-                height: '14px',
+                width: isMobile ? '10px' : '14px',
+                height: isMobile ? '10px' : '14px',
                 borderRadius: '999px',
                 backgroundColor: monWedFill,
                 display: 'inline-block',
@@ -299,11 +304,11 @@ export default function HomePage() {
             월수반
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span
               style={{
-                width: '14px',
-                height: '14px',
+                width: isMobile ? '10px' : '14px',
+                height: isMobile ? '10px' : '14px',
                 borderRadius: '999px',
                 backgroundColor: tueThuFill,
                 display: 'inline-block',
@@ -334,7 +339,7 @@ export default function HomePage() {
               WebkitOverflowScrolling: 'touch',
             }}
           >
-            <div style={{ minWidth: '760px' }}>
+            <div style={{ minWidth: isMobile ? '560px' : '760px' }}>
               <div
                 style={{
                   display: 'grid',
@@ -347,11 +352,11 @@ export default function HomePage() {
                   <div
                     key={day}
                     style={{
-                      padding: '12px 8px',
+                      padding: isMobile ? '8px 4px' : '12px 8px',
                       textAlign: 'center',
                       fontWeight: 700,
                       color: '#57534e',
-                      fontSize: '15px',
+                      fontSize: isMobile ? '11px' : '15px',
                     }}
                   >
                     {day}
@@ -411,21 +416,21 @@ export default function HomePage() {
                         <div
                           key={`${weekIndex}-${index}`}
                           style={{
-                            minHeight: '98px',
+                            minHeight: isMobile ? '62px' : '98px',
                             borderRight: index === 6 ? 'none' : '1px solid #e5e7eb',
-                            padding: '10px 8px',
+                            padding: isMobile ? '4px 3px' : '10px 8px',
                           }}
                         >
                           <div
                             style={{
-                              width: '44px',
-                              height: '44px',
+                              width: isMobile ? '28px' : '44px',
+                              height: isMobile ? '28px' : '44px',
                               borderRadius: '999px',
                               margin: '0 auto',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              fontSize: '17px',
+                              fontSize: isMobile ? '12px' : '17px',
                               fontWeight: 700,
                               color: textColor,
                               backgroundColor,
@@ -438,11 +443,11 @@ export default function HomePage() {
                           {cell.isCurrentMonth && labels.length > 0 && (
                             <div
                               style={{
-                                marginTop: '8px',
+                                marginTop: isMobile ? '4px' : '8px',
                                 textAlign: 'center',
-                                fontSize: '12px',
+                                fontSize: isMobile ? '9px' : '12px',
                                 color: '#57534e',
-                                lineHeight: 1.45,
+                                lineHeight: isMobile ? 1.2 : 1.45,
                                 whiteSpace: 'pre-wrap',
                                 fontWeight: 500,
                               }}
@@ -463,13 +468,18 @@ export default function HomePage() {
     );
   }
 
-  function renderTimetableSection() {
+  function renderTimetableSection(isMobile: boolean) {
     return (
-      <section style={{ ...shellCardStyle, padding: '26px' }}>
-        <div style={{ marginBottom: '18px' }}>
+      <section
+        style={{
+          ...shellCardStyle,
+          padding: isMobile ? '18px' : '26px',
+        }}
+      >
+        <div style={{ marginBottom: isMobile ? '12px' : '18px' }}>
           <div
             style={{
-              fontSize: '16px',
+              fontSize: isMobile ? '13px' : '16px',
               color: '#78716c',
               marginBottom: '8px',
             }}
@@ -479,7 +489,7 @@ export default function HomePage() {
 
           <div
             style={{
-              fontSize: '52px',
+              fontSize: isMobile ? '40px' : '52px',
               fontWeight: 700,
               lineHeight: 1,
               color: '#44403c',
@@ -514,7 +524,7 @@ export default function HomePage() {
             <table
               style={{
                 width: '100%',
-                minWidth: '760px',
+                minWidth: isMobile ? '560px' : '760px',
                 borderCollapse: 'collapse',
                 tableLayout: 'fixed',
                 textAlign: 'center',
@@ -526,7 +536,7 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: sharedHeaderBg,
-                      padding: '10px 6px',
+                      padding: isMobile ? '7px 4px' : '10px 6px',
                     }}
                   />
                   <th
@@ -534,8 +544,8 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: sharedHeaderBg,
-                      padding: '10px 6px',
-                      fontSize: '17px',
+                      padding: isMobile ? '7px 4px' : '10px 6px',
+                      fontSize: isMobile ? '14px' : '17px',
                       color: '#44403c',
                     }}
                   >
@@ -546,8 +556,8 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: sharedHeaderBg,
-                      padding: '10px 6px',
-                      fontSize: '17px',
+                      padding: isMobile ? '7px 4px' : '10px 6px',
+                      fontSize: isMobile ? '14px' : '17px',
                       color: '#44403c',
                     }}
                   >
@@ -559,16 +569,16 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: sharedHeaderBg,
-                      padding: '10px 6px',
+                      padding: isMobile ? '7px 4px' : '10px 6px',
                     }}
                   />
                   <th
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: sharedHeaderBg,
-                      padding: '10px 6px',
+                      padding: isMobile ? '7px 4px' : '10px 6px',
                       color: '#57534e',
-                      fontSize: '14px',
+                      fontSize: isMobile ? '11px' : '14px',
                     }}
                   >
                     월수
@@ -577,9 +587,9 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: sharedHeaderBg,
-                      padding: '10px 6px',
+                      padding: isMobile ? '7px 4px' : '10px 6px',
                       color: '#57534e',
-                      fontSize: '14px',
+                      fontSize: isMobile ? '11px' : '14px',
                     }}
                   >
                     화목
@@ -588,9 +598,9 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: sharedHeaderBg,
-                      padding: '10px 6px',
+                      padding: isMobile ? '7px 4px' : '10px 6px',
                       color: '#57534e',
-                      fontSize: '14px',
+                      fontSize: isMobile ? '11px' : '14px',
                     }}
                   >
                     월수
@@ -599,9 +609,9 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: sharedHeaderBg,
-                      padding: '10px 6px',
+                      padding: isMobile ? '7px 4px' : '10px 6px',
                       color: '#57534e',
-                      fontSize: '14px',
+                      fontSize: isMobile ? '11px' : '14px',
                     }}
                   >
                     화목
@@ -616,11 +626,11 @@ export default function HomePage() {
                       style={{
                         border: '1px solid #e5e7eb',
                         backgroundColor: '#fafaf9',
-                        padding: '12px 6px',
+                        padding: isMobile ? '8px 4px' : '12px 6px',
                         fontWeight: 500,
                         color: '#57534e',
-                        fontSize: '13px',
-                        lineHeight: 1.4,
+                        fontSize: isMobile ? '10px' : '13px',
+                        lineHeight: 1.25,
                       }}
                     >
                       {row.time}
@@ -630,11 +640,11 @@ export default function HomePage() {
                       style={{
                         border: '1px solid #e5e7eb',
                         backgroundColor: row.class600MonWed ? monWedFill : 'white',
-                        padding: '12px 6px',
+                        padding: isMobile ? '8px 4px' : '12px 6px',
                         color: row.class600MonWed ? '#111827' : '#cbd5e1',
-                        fontSize: '14px',
+                        fontSize: isMobile ? '11px' : '14px',
                         fontWeight: row.class600MonWed ? 600 : 400,
-                        lineHeight: 1.4,
+                        lineHeight: isMobile ? 1.2 : 1.4,
                         wordBreak: 'keep-all',
                       }}
                     >
@@ -645,11 +655,11 @@ export default function HomePage() {
                       style={{
                         border: '1px solid #e5e7eb',
                         backgroundColor: row.class600TueThu ? monWedFill : 'white',
-                        padding: '12px 6px',
+                        padding: isMobile ? '8px 4px' : '12px 6px',
                         color: row.class600TueThu ? '#111827' : '#cbd5e1',
-                        fontSize: '14px',
+                        fontSize: isMobile ? '11px' : '14px',
                         fontWeight: row.class600TueThu ? 600 : 400,
-                        lineHeight: 1.4,
+                        lineHeight: isMobile ? 1.2 : 1.4,
                         wordBreak: 'keep-all',
                       }}
                     >
@@ -660,11 +670,11 @@ export default function HomePage() {
                       style={{
                         border: '1px solid #e5e7eb',
                         backgroundColor: row.class800MonWed ? tueThuFill : 'white',
-                        padding: '12px 6px',
+                        padding: isMobile ? '8px 4px' : '12px 6px',
                         color: row.class800MonWed ? 'white' : '#cbd5e1',
-                        fontSize: '14px',
+                        fontSize: isMobile ? '11px' : '14px',
                         fontWeight: row.class800MonWed ? 700 : 400,
-                        lineHeight: 1.4,
+                        lineHeight: isMobile ? 1.2 : 1.4,
                         wordBreak: 'keep-all',
                       }}
                     >
@@ -675,11 +685,11 @@ export default function HomePage() {
                       style={{
                         border: '1px solid #e5e7eb',
                         backgroundColor: row.class800TueThu ? tueThuFill : 'white',
-                        padding: '12px 6px',
+                        padding: isMobile ? '8px 4px' : '12px 6px',
                         color: row.class800TueThu ? 'white' : '#cbd5e1',
-                        fontSize: '14px',
+                        fontSize: isMobile ? '11px' : '14px',
                         fontWeight: row.class800TueThu ? 700 : 400,
-                        lineHeight: 1.4,
+                        lineHeight: isMobile ? 1.2 : 1.4,
                         wordBreak: 'keep-all',
                       }}
                     >
@@ -917,7 +927,6 @@ export default function HomePage() {
           </p>
         </header>
 
-        {/* PC 전용 - 기존 구조 유지 */}
         <div className="desktopOnly">
           <div
             style={{
@@ -927,7 +936,7 @@ export default function HomePage() {
               alignItems: 'stretch',
             }}
           >
-            {renderCalendarSection()}
+            {renderCalendarSection(false)}
 
             <div
               style={{
@@ -951,21 +960,20 @@ export default function HomePage() {
               marginTop: '24px',
             }}
           >
-            {renderTimetableSection()}
+            {renderTimetableSection(false)}
             {renderTimetableMemoSection()}
           </div>
         </div>
 
-        {/* 모바일 전용 - 순서 변경 */}
         <div className="mobileOnly">
           <div
             style={{
               display: 'grid',
-              gap: '24px',
+              gap: '20px',
             }}
           >
-            {renderCalendarSection()}
-            {renderTimetableSection()}
+            {renderCalendarSection(true)}
+            {renderTimetableSection(true)}
             {renderLoginSection()}
             {renderCalendarMemoSection()}
             {renderTimetableMemoSection()}
@@ -1038,7 +1046,7 @@ export default function HomePage() {
           }
 
           main {
-            padding: 22px 16px 34px !important;
+            padding: 20px 14px 30px !important;
           }
         }
       `}</style>
