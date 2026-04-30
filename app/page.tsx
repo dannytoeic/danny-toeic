@@ -241,6 +241,141 @@ export default function HomePage() {
   const sharedHeaderBg = '#f3f0e8';
 
   function renderCalendarSection(isMobile: boolean) {
+    const board = (
+      <div
+        className={isMobile ? 'mobileCalendarScaleWrap' : undefined}
+        style={{
+          overflow: 'hidden',
+          borderRadius: '16px',
+          border: '1px solid #e5e7eb',
+        }}
+      >
+        <div className={isMobile ? 'mobileCalendarScaleInner' : undefined}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              backgroundColor: '#fafaf9',
+              borderBottom: '1px solid #e5e7eb',
+            }}
+          >
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+              <div
+                key={day}
+                style={{
+                  padding: '12px 8px',
+                  textAlign: 'center',
+                  fontWeight: 700,
+                  color: '#57534e',
+                  fontSize: '15px',
+                }}
+              >
+                {day}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'grid', gap: '0' }}>
+            {calendarWeeks.map((week, weekIndex) => (
+              <div
+                key={weekIndex}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, 1fr)',
+                  borderBottom:
+                    weekIndex === calendarWeeks.length - 1 ? 'none' : '1px solid #e5e7eb',
+                }}
+              >
+                {week.map((cell, index) => {
+                  const isMonWed =
+                    cell.isCurrentMonth &&
+                    (calendarItem?.monWedDates ?? []).includes(cell.day);
+                  const isTueThu =
+                    cell.isCurrentMonth &&
+                    (calendarItem?.tueThuDates ?? []).includes(cell.day);
+                  const labels = cell.isCurrentMonth ? specialMap.get(cell.day) ?? [] : [];
+                  const isSpecial = labels.some((label) => !label.includes('토익'));
+                  const isToeic = labels.some((label) => label.includes('토익'));
+
+                  let backgroundColor = 'transparent';
+                  let textColor = '#44403c';
+                  let border = '1px solid transparent';
+
+                  if (!cell.isCurrentMonth) {
+                    textColor = '#d6d3d1';
+                  } else if (isTueThu) {
+                    backgroundColor = tueThuFill;
+                    textColor = 'white';
+                  } else if (isMonWed) {
+                    backgroundColor = monWedFill;
+                    textColor = '#111827';
+                  }
+
+                  if (cell.isCurrentMonth && isSpecial) {
+                    border = `3px solid ${tueThuFill}`;
+                    backgroundColor = 'transparent';
+                    textColor = tueThuFill;
+                  } else if (cell.isCurrentMonth && isToeic) {
+                    border = '2px solid #cbd5e1';
+                    if (!isMonWed && !isTueThu) {
+                      backgroundColor = 'transparent';
+                      textColor = '#64748b';
+                    }
+                  }
+
+                  return (
+                    <div
+                      key={`${weekIndex}-${index}`}
+                      style={{
+                        minHeight: '98px',
+                        borderRight: index === 6 ? 'none' : '1px solid #e5e7eb',
+                        padding: '10px 8px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '44px',
+                          height: '44px',
+                          borderRadius: '999px',
+                          margin: '0 auto',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '17px',
+                          fontWeight: 700,
+                          color: textColor,
+                          backgroundColor,
+                          border,
+                        }}
+                      >
+                        {cell.day}
+                      </div>
+
+                      {cell.isCurrentMonth && labels.length > 0 && (
+                        <div
+                          style={{
+                            marginTop: '8px',
+                            textAlign: 'center',
+                            fontSize: '12px',
+                            color: '#57534e',
+                            lineHeight: 1.45,
+                            whiteSpace: 'pre-wrap',
+                            fontWeight: 500,
+                          }}
+                        >
+                          {labels.join('\n')}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+
     return (
       <section
         style={{
@@ -330,142 +465,208 @@ export default function HomePage() {
             {calendarMessage}
           </div>
         ) : calendarItem ? (
-          <div
-            style={{
-              overflow: 'hidden',
-              borderRadius: '16px',
-              border: '1px solid #e5e7eb',
-            }}
-          >
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(7, 1fr)',
-                backgroundColor: '#fafaf9',
-                borderBottom: '1px solid #e5e7eb',
-              }}
-            >
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                <div
-                  key={day}
-                  style={{
-                    padding: isMobile ? '5px 2px' : '12px 8px',
-                    textAlign: 'center',
-                    fontWeight: 700,
-                    color: '#57534e',
-                    fontSize: isMobile ? '10px' : '15px',
-                  }}
-                >
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display: 'grid', gap: '0' }}>
-              {calendarWeeks.map((week, weekIndex) => (
-                <div
-                  key={weekIndex}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(7, 1fr)',
-                    borderBottom:
-                      weekIndex === calendarWeeks.length - 1 ? 'none' : '1px solid #e5e7eb',
-                  }}
-                >
-                  {week.map((cell, index) => {
-                    const isMonWed =
-                      cell.isCurrentMonth &&
-                      (calendarItem.monWedDates ?? []).includes(cell.day);
-                    const isTueThu =
-                      cell.isCurrentMonth &&
-                      (calendarItem.tueThuDates ?? []).includes(cell.day);
-                    const labels = cell.isCurrentMonth ? specialMap.get(cell.day) ?? [] : [];
-                    const isSpecial = labels.some((label) => !label.includes('토익'));
-                    const isToeic = labels.some((label) => label.includes('토익'));
-
-                    let backgroundColor = 'transparent';
-                    let textColor = '#44403c';
-                    let border = '1px solid transparent';
-
-                    if (!cell.isCurrentMonth) {
-                      textColor = '#d6d3d1';
-                    } else if (isTueThu) {
-                      backgroundColor = tueThuFill;
-                      textColor = 'white';
-                    } else if (isMonWed) {
-                      backgroundColor = monWedFill;
-                      textColor = '#111827';
-                    }
-
-                    if (cell.isCurrentMonth && isSpecial) {
-                      border = isMobile ? `2px solid ${tueThuFill}` : `3px solid ${tueThuFill}`;
-                      backgroundColor = 'transparent';
-                      textColor = tueThuFill;
-                    } else if (cell.isCurrentMonth && isToeic) {
-                      border = isMobile ? '1.5px solid #cbd5e1' : '2px solid #cbd5e1';
-                      if (!isMonWed && !isTueThu) {
-                        backgroundColor = 'transparent';
-                        textColor = '#64748b';
-                      }
-                    }
-
-                    return (
-                      <div
-                        key={`${weekIndex}-${index}`}
-                        style={{
-                          minHeight: isMobile ? '52px' : '98px',
-                          borderRight: index === 6 ? 'none' : '1px solid #e5e7eb',
-                          padding: isMobile ? '3px 2px' : '10px 8px',
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: isMobile ? '24px' : '44px',
-                            height: isMobile ? '24px' : '44px',
-                            borderRadius: '999px',
-                            margin: '0 auto',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: isMobile ? '11px' : '17px',
-                            fontWeight: 700,
-                            color: textColor,
-                            backgroundColor,
-                            border,
-                          }}
-                        >
-                          {cell.day}
-                        </div>
-
-                        {cell.isCurrentMonth && labels.length > 0 && (
-                          <div
-                            style={{
-                              marginTop: isMobile ? '3px' : '8px',
-                              textAlign: 'center',
-                              fontSize: isMobile ? '8px' : '12px',
-                              color: '#57534e',
-                              lineHeight: isMobile ? 1.05 : 1.45,
-                              whiteSpace: 'pre-wrap',
-                              fontWeight: 600,
-                              letterSpacing: '-0.02em',
-                            }}
-                          >
-                            {labels.join('\n')}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
+          board
         ) : null}
       </section>
     );
   }
 
   function renderTimetableSection(isMobile: boolean) {
+    const board = (
+      <div
+        className={isMobile ? 'mobileTimetableScaleWrap' : undefined}
+        style={{
+          borderRadius: '16px',
+          border: '1px solid #e5e7eb',
+          overflow: 'hidden',
+        }}
+      >
+        <div className={isMobile ? 'mobileTimetableScaleInner' : undefined}>
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              tableLayout: 'fixed',
+              textAlign: 'center',
+            }}
+          >
+            <thead>
+              <tr>
+                <th
+                  style={{
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: sharedHeaderBg,
+                    padding: '10px 6px',
+                  }}
+                />
+                <th
+                  colSpan={2}
+                  style={{
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: sharedHeaderBg,
+                    padding: '10px 6px',
+                    fontSize: '17px',
+                    color: '#44403c',
+                  }}
+                >
+                  600
+                </th>
+                <th
+                  colSpan={2}
+                  style={{
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: sharedHeaderBg,
+                    padding: '10px 6px',
+                    fontSize: '17px',
+                    color: '#44403c',
+                  }}
+                >
+                  800
+                </th>
+              </tr>
+              <tr>
+                <th
+                  style={{
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: sharedHeaderBg,
+                    padding: '10px 6px',
+                  }}
+                />
+                <th
+                  style={{
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: sharedHeaderBg,
+                    padding: '10px 6px',
+                    color: '#57534e',
+                    fontSize: '14px',
+                    fontWeight: 700,
+                  }}
+                >
+                  월수
+                </th>
+                <th
+                  style={{
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: sharedHeaderBg,
+                    padding: '10px 6px',
+                    color: '#57534e',
+                    fontSize: '14px',
+                    fontWeight: 700,
+                  }}
+                >
+                  화목
+                </th>
+                <th
+                  style={{
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: sharedHeaderBg,
+                    padding: '10px 6px',
+                    color: '#57534e',
+                    fontSize: '14px',
+                    fontWeight: 700,
+                  }}
+                >
+                  월수
+                </th>
+                <th
+                  style={{
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: sharedHeaderBg,
+                    padding: '10px 6px',
+                    color: '#57534e',
+                    fontSize: '14px',
+                    fontWeight: 700,
+                  }}
+                >
+                  화목
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {timetableItem?.rows.map((row, index) => (
+                <tr key={index}>
+                  <td
+                    style={{
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: '#fafaf9',
+                      padding: '12px 6px',
+                      fontWeight: 600,
+                      color: '#57534e',
+                      fontSize: '13px',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {row.time}
+                  </td>
+
+                  <td
+                    style={{
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: row.class600MonWed ? monWedFill : 'white',
+                      padding: '12px 6px',
+                      color: row.class600MonWed ? '#111827' : '#cbd5e1',
+                      fontSize: '14px',
+                      fontWeight: row.class600MonWed ? 700 : 400,
+                      lineHeight: 1.4,
+                      wordBreak: 'keep-all',
+                    }}
+                  >
+                    {row.class600MonWed || '-'}
+                  </td>
+
+                  <td
+                    style={{
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: row.class600TueThu ? monWedFill : 'white',
+                      padding: '12px 6px',
+                      color: row.class600TueThu ? '#111827' : '#cbd5e1',
+                      fontSize: '14px',
+                      fontWeight: row.class600TueThu ? 700 : 400,
+                      lineHeight: 1.4,
+                      wordBreak: 'keep-all',
+                    }}
+                  >
+                    {row.class600TueThu || '-'}
+                  </td>
+
+                  <td
+                    style={{
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: row.class800MonWed ? tueThuFill : 'white',
+                      padding: '12px 6px',
+                      color: row.class800MonWed ? 'white' : '#cbd5e1',
+                      fontSize: '14px',
+                      fontWeight: row.class800MonWed ? 700 : 400,
+                      lineHeight: 1.4,
+                      wordBreak: 'keep-all',
+                    }}
+                  >
+                    {row.class800MonWed || '-'}
+                  </td>
+
+                  <td
+                    style={{
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: row.class800TueThu ? tueThuFill : 'white',
+                      padding: '12px 6px',
+                      color: row.class800TueThu ? 'white' : '#cbd5e1',
+                      fontSize: '14px',
+                      fontWeight: row.class800TueThu ? 700 : 400,
+                      lineHeight: 1.4,
+                      wordBreak: 'keep-all',
+                    }}
+                  >
+                    {row.class800TueThu || '-'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+
     return (
       <section
         style={{
@@ -509,200 +710,7 @@ export default function HomePage() {
             {timetableMessage}
           </div>
         ) : timetableItem ? (
-          <div
-            style={{
-              borderRadius: '16px',
-              border: '1px solid #e5e7eb',
-              overflow: 'hidden',
-            }}
-          >
-            <table
-              style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                tableLayout: 'fixed',
-                textAlign: 'center',
-              }}
-            >
-              <thead>
-                <tr>
-                  <th
-                    style={{
-                      border: '1px solid #e5e7eb',
-                      backgroundColor: sharedHeaderBg,
-                      padding: isMobile ? '5px 2px' : '10px 6px',
-                    }}
-                  />
-                  <th
-                    colSpan={2}
-                    style={{
-                      border: '1px solid #e5e7eb',
-                      backgroundColor: sharedHeaderBg,
-                      padding: isMobile ? '5px 2px' : '10px 6px',
-                      fontSize: isMobile ? '11px' : '17px',
-                      color: '#44403c',
-                    }}
-                  >
-                    600
-                  </th>
-                  <th
-                    colSpan={2}
-                    style={{
-                      border: '1px solid #e5e7eb',
-                      backgroundColor: sharedHeaderBg,
-                      padding: isMobile ? '5px 2px' : '10px 6px',
-                      fontSize: isMobile ? '11px' : '17px',
-                      color: '#44403c',
-                    }}
-                  >
-                    800
-                  </th>
-                </tr>
-                <tr>
-                  <th
-                    style={{
-                      border: '1px solid #e5e7eb',
-                      backgroundColor: sharedHeaderBg,
-                      padding: isMobile ? '5px 2px' : '10px 6px',
-                    }}
-                  />
-                  <th
-                    style={{
-                      border: '1px solid #e5e7eb',
-                      backgroundColor: sharedHeaderBg,
-                      padding: isMobile ? '5px 2px' : '10px 6px',
-                      color: '#57534e',
-                      fontSize: isMobile ? '9px' : '14px',
-                      fontWeight: 700,
-                    }}
-                  >
-                    월수
-                  </th>
-                  <th
-                    style={{
-                      border: '1px solid #e5e7eb',
-                      backgroundColor: sharedHeaderBg,
-                      padding: isMobile ? '5px 2px' : '10px 6px',
-                      color: '#57534e',
-                      fontSize: isMobile ? '9px' : '14px',
-                      fontWeight: 700,
-                    }}
-                  >
-                    화목
-                  </th>
-                  <th
-                    style={{
-                      border: '1px solid #e5e7eb',
-                      backgroundColor: sharedHeaderBg,
-                      padding: isMobile ? '5px 2px' : '10px 6px',
-                      color: '#57534e',
-                      fontSize: isMobile ? '9px' : '14px',
-                      fontWeight: 700,
-                    }}
-                  >
-                    월수
-                  </th>
-                  <th
-                    style={{
-                      border: '1px solid #e5e7eb',
-                      backgroundColor: sharedHeaderBg,
-                      padding: isMobile ? '5px 2px' : '10px 6px',
-                      color: '#57534e',
-                      fontSize: isMobile ? '9px' : '14px',
-                      fontWeight: 700,
-                    }}
-                  >
-                    화목
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {timetableItem.rows.map((row, index) => (
-                  <tr key={index}>
-                    <td
-                      style={{
-                        border: '1px solid #e5e7eb',
-                        backgroundColor: '#fafaf9',
-                        padding: isMobile ? '6px 2px' : '12px 6px',
-                        fontWeight: 600,
-                        color: '#57534e',
-                        fontSize: isMobile ? '8.5px' : '13px',
-                        lineHeight: isMobile ? 1.05 : 1.4,
-                        letterSpacing: '-0.02em',
-                      }}
-                    >
-                      {row.time}
-                    </td>
-
-                    <td
-                      style={{
-                        border: '1px solid #e5e7eb',
-                        backgroundColor: row.class600MonWed ? monWedFill : 'white',
-                        padding: isMobile ? '6px 2px' : '12px 6px',
-                        color: row.class600MonWed ? '#111827' : '#cbd5e1',
-                        fontSize: isMobile ? '9.5px' : '14px',
-                        fontWeight: row.class600MonWed ? 700 : 400,
-                        lineHeight: isMobile ? 1.05 : 1.4,
-                        wordBreak: 'keep-all',
-                        letterSpacing: '-0.03em',
-                      }}
-                    >
-                      {row.class600MonWed || '-'}
-                    </td>
-
-                    <td
-                      style={{
-                        border: '1px solid #e5e7eb',
-                        backgroundColor: row.class600TueThu ? monWedFill : 'white',
-                        padding: isMobile ? '6px 2px' : '12px 6px',
-                        color: row.class600TueThu ? '#111827' : '#cbd5e1',
-                        fontSize: isMobile ? '9.5px' : '14px',
-                        fontWeight: row.class600TueThu ? 700 : 400,
-                        lineHeight: isMobile ? 1.05 : 1.4,
-                        wordBreak: 'keep-all',
-                        letterSpacing: '-0.03em',
-                      }}
-                    >
-                      {row.class600TueThu || '-'}
-                    </td>
-
-                    <td
-                      style={{
-                        border: '1px solid #e5e7eb',
-                        backgroundColor: row.class800MonWed ? tueThuFill : 'white',
-                        padding: isMobile ? '6px 2px' : '12px 6px',
-                        color: row.class800MonWed ? 'white' : '#cbd5e1',
-                        fontSize: isMobile ? '9.5px' : '14px',
-                        fontWeight: row.class800MonWed ? 700 : 400,
-                        lineHeight: isMobile ? 1.05 : 1.4,
-                        wordBreak: 'keep-all',
-                        letterSpacing: '-0.03em',
-                      }}
-                    >
-                      {row.class800MonWed || '-'}
-                    </td>
-
-                    <td
-                      style={{
-                        border: '1px solid #e5e7eb',
-                        backgroundColor: row.class800TueThu ? tueThuFill : 'white',
-                        padding: isMobile ? '6px 2px' : '12px 6px',
-                        color: row.class800TueThu ? 'white' : '#cbd5e1',
-                        fontSize: isMobile ? '9.5px' : '14px',
-                        fontWeight: row.class800TueThu ? 700 : 400,
-                        lineHeight: isMobile ? 1.05 : 1.4,
-                        wordBreak: 'keep-all',
-                        letterSpacing: '-0.03em',
-                      }}
-                    >
-                      {row.class800TueThu || '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          board
         ) : null}
       </section>
     );
@@ -1037,6 +1045,28 @@ export default function HomePage() {
 
         .mobileOnly {
           display: none;
+        }
+
+        .mobileCalendarScaleWrap {
+          width: 100%;
+        }
+
+        .mobileCalendarScaleInner {
+          width: 124%;
+          transform: scale(0.81);
+          transform-origin: top left;
+          margin-bottom: -18%;
+        }
+
+        .mobileTimetableScaleWrap {
+          width: 100%;
+        }
+
+        .mobileTimetableScaleInner {
+          width: 124%;
+          transform: scale(0.81);
+          transform-origin: top left;
+          margin-bottom: -18%;
         }
 
         @media (max-width: 768px) {
