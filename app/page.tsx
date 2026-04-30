@@ -240,6 +240,12 @@ export default function HomePage() {
   const tueThuFill = '#57534e';
   const sharedHeaderBg = '#f3f0e8';
 
+  function compactTimetableText(text: string, isMobile: boolean) {
+    if (!isMobile) return text;
+    if (text === '800 RC + LC') return '800 R+L';
+    return text;
+  }
+
   function renderCalendarSection(isMobile: boolean) {
     const board = (
       <div
@@ -610,9 +616,10 @@ export default function HomePage() {
                       fontWeight: row.class600MonWed ? 700 : 400,
                       lineHeight: 1.4,
                       wordBreak: 'keep-all',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    {row.class600MonWed || '-'}
+                    {compactTimetableText(row.class600MonWed || '-', isMobile)}
                   </td>
 
                   <td
@@ -625,9 +632,10 @@ export default function HomePage() {
                       fontWeight: row.class600TueThu ? 700 : 400,
                       lineHeight: 1.4,
                       wordBreak: 'keep-all',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    {row.class600TueThu || '-'}
+                    {compactTimetableText(row.class600TueThu || '-', isMobile)}
                   </td>
 
                   <td
@@ -636,13 +644,14 @@ export default function HomePage() {
                       backgroundColor: row.class800MonWed ? tueThuFill : 'white',
                       padding: '12px 6px',
                       color: row.class800MonWed ? 'white' : '#cbd5e1',
-                      fontSize: '14px',
+                      fontSize: isMobile ? '13px' : '14px',
                       fontWeight: row.class800MonWed ? 700 : 400,
                       lineHeight: 1.4,
                       wordBreak: 'keep-all',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    {row.class800MonWed || '-'}
+                    {compactTimetableText(row.class800MonWed || '-', isMobile)}
                   </td>
 
                   <td
@@ -651,13 +660,14 @@ export default function HomePage() {
                       backgroundColor: row.class800TueThu ? tueThuFill : 'white',
                       padding: '12px 6px',
                       color: row.class800TueThu ? 'white' : '#cbd5e1',
-                      fontSize: '14px',
+                      fontSize: isMobile ? '13px' : '14px',
                       fontWeight: row.class800TueThu ? 700 : 400,
                       lineHeight: 1.4,
                       wordBreak: 'keep-all',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    {row.class800TueThu || '-'}
+                    {compactTimetableText(row.class800TueThu || '-', isMobile)}
                   </td>
                 </tr>
               ))}
