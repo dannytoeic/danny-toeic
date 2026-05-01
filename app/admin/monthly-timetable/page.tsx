@@ -43,10 +43,21 @@ export default function MonthlyTimetableAdminPage() {
   const [message, setMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
   const monWedFill = '#cbbfb0';
   const eightHundredFill = '#dce8cf';
   const sharedHeaderBg = '#f3f0e8';
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     async function loadItem() {
@@ -120,12 +131,36 @@ export default function MonthlyTimetableAdminPage() {
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
     padding: '10px 12px',
     borderRadius: '10px',
     border: '1px solid #cbd5e1',
     boxSizing: 'border-box',
     fontSize: '14px',
     backgroundColor: 'white',
+  };
+
+  const formCardStyle: React.CSSProperties = {
+    backgroundColor: 'white',
+    border: '1px solid #e2e8f0',
+    borderRadius: '20px',
+    padding: isMobile ? '14px' : '24px',
+    display: 'grid',
+    gap: '18px',
+    width: '100%',
+    minWidth: 0,
+    overflow: 'hidden',
+  };
+
+  const previewCardStyle: React.CSSProperties = {
+    backgroundColor: 'white',
+    border: '1px solid #e2e8f0',
+    borderRadius: '20px',
+    padding: isMobile ? '14px' : '24px',
+    width: '100%',
+    minWidth: 0,
+    overflow: 'hidden',
   };
 
   if (isLoading) {
@@ -138,21 +173,35 @@ export default function MonthlyTimetableAdminPage() {
 
   return (
     <AdminShell title="월간 시간표 관리" description="월간 시간표를 등록하고 미리보기를 확인합니다.">
-      <div style={{ display: 'grid', gap: '20px' }}>
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            backgroundColor: 'white',
-            border: '1px solid #e2e8f0',
-            borderRadius: '20px',
-            padding: '24px',
-            display: 'grid',
-            gap: '18px',
-          }}
-        >
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+      <div
+        style={{
+          display: 'grid',
+          gap: '20px',
+          width: '100%',
+          minWidth: 0,
+        }}
+      >
+        <form onSubmit={handleSubmit} style={formCardStyle}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+              gap: '16px',
+              width: '100%',
+              minWidth: 0,
+            }}
+          >
             <div>
-              <div style={{ marginBottom: '6px', fontWeight: 700 }}>기준 월</div>
+              <div
+                style={{
+                  marginBottom: '6px',
+                  fontWeight: 700,
+                  wordBreak: 'keep-all',
+                  overflowWrap: 'break-word',
+                }}
+              >
+                기준 월
+              </div>
               <input
                 value={item.yearMonth}
                 onChange={(e) => setItem((prev) => ({ ...prev, yearMonth: e.target.value }))}
@@ -162,7 +211,16 @@ export default function MonthlyTimetableAdminPage() {
             </div>
 
             <div>
-              <div style={{ marginBottom: '6px', fontWeight: 700 }}>표시 제목</div>
+              <div
+                style={{
+                  marginBottom: '6px',
+                  fontWeight: 700,
+                  wordBreak: 'keep-all',
+                  overflowWrap: 'break-word',
+                }}
+              >
+                표시 제목
+              </div>
               <input
                 value={item.title}
                 onChange={(e) => setItem((prev) => ({ ...prev, title: e.target.value }))}
@@ -172,14 +230,16 @@ export default function MonthlyTimetableAdminPage() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gap: '12px' }}>
+          <div style={{ display: 'grid', gap: '12px', width: '100%', minWidth: 0 }}>
             {item.rows.map((row, index) => (
               <div
                 key={index}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
+                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr 1fr 1fr',
                   gap: '10px',
+                  width: '100%',
+                  minWidth: 0,
                 }}
               >
                 <input
@@ -216,7 +276,16 @@ export default function MonthlyTimetableAdminPage() {
           </div>
 
           <div>
-            <div style={{ marginBottom: '6px', fontWeight: 700 }}>오른쪽 메모</div>
+            <div
+              style={{
+                marginBottom: '6px',
+                fontWeight: 700,
+                wordBreak: 'keep-all',
+                overflowWrap: 'break-word',
+              }}
+            >
+              오른쪽 메모
+            </div>
             <textarea
               value={item.memo}
               onChange={(e) => setItem((prev) => ({ ...prev, memo: e.target.value }))}
@@ -226,6 +295,7 @@ export default function MonthlyTimetableAdminPage() {
                 resize: 'vertical',
                 lineHeight: 1.7,
                 whiteSpace: 'pre-wrap',
+                minHeight: '140px',
               }}
             />
           </div>
@@ -235,6 +305,7 @@ export default function MonthlyTimetableAdminPage() {
               type="submit"
               disabled={isSaving}
               style={{
+                width: isMobile ? '100%' : 'auto',
                 padding: '12px 18px',
                 borderRadius: '12px',
                 border: 'none',
@@ -254,6 +325,9 @@ export default function MonthlyTimetableAdminPage() {
               style={{
                 color: '#475569',
                 fontWeight: 700,
+                wordBreak: 'keep-all',
+                overflowWrap: 'break-word',
+                lineHeight: 1.6,
               }}
             >
               {message}
@@ -264,30 +338,34 @@ export default function MonthlyTimetableAdminPage() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.6fr) minmax(320px, 0.85fr)',
+            gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1.6fr) minmax(320px, 0.85fr)',
             gap: '24px',
+            width: '100%',
+            minWidth: 0,
           }}
         >
-          <section
-            style={{
-              backgroundColor: 'white',
-              border: '1px solid #e2e8f0',
-              borderRadius: '20px',
-              padding: '24px',
-            }}
-          >
-            <div style={{ fontSize: '18px', color: '#78716c', marginBottom: '8px' }}>
+          <section style={previewCardStyle}>
+            <div
+              style={{
+                fontSize: isMobile ? '14px' : '18px',
+                color: '#78716c',
+                marginBottom: '8px',
+                wordBreak: 'keep-all',
+              }}
+            >
               {item.yearMonth ? item.yearMonth.slice(0, 4) : '2026'}
             </div>
 
             <div
               style={{
-                fontSize: '62px',
+                fontSize: isMobile ? '38px' : '62px',
                 fontWeight: 700,
                 lineHeight: 1,
                 color: '#44403c',
                 letterSpacing: '-0.04em',
                 marginBottom: '18px',
+                wordBreak: 'keep-all',
+                overflowWrap: 'break-word',
               }}
             >
               {item.title || '5 May'}
@@ -297,185 +375,193 @@ export default function MonthlyTimetableAdminPage() {
               style={{
                 borderRadius: '20px',
                 border: '1px solid #e5e7eb',
-                overflow: 'hidden',
+                overflowX: isMobile ? 'auto' : 'hidden',
+                overflowY: 'hidden',
+                WebkitOverflowScrolling: 'touch',
               }}
             >
-              <table
-                style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  tableLayout: 'fixed',
-                  textAlign: 'center',
-                }}
-              >
-                <thead>
-                  <tr>
-                    <th
-                      style={{
-                        border: '1px solid #d6d3d1',
-                        backgroundColor: sharedHeaderBg,
-                        padding: '12px 6px',
-                      }}
-                    />
-                    <th
-                      colSpan={2}
-                      style={{
-                        border: '1px solid #d6d3d1',
-                        backgroundColor: sharedHeaderBg,
-                        padding: '12px 6px',
-                        fontSize: '17px',
-                        color: '#44403c',
-                      }}
-                    >
-                      600
-                    </th>
-                    <th
-                      colSpan={2}
-                      style={{
-                        border: '1px solid #d6d3d1',
-                        backgroundColor: sharedHeaderBg,
-                        padding: '12px 6px',
-                        fontSize: '17px',
-                        color: '#44403c',
-                      }}
-                    >
-                      800
-                    </th>
-                  </tr>
-                  <tr>
-                    <th
-                      style={{
-                        border: '1px solid #e5e7eb',
-                        backgroundColor: '#fafaf9',
-                        padding: '10px 6px',
-                      }}
-                    />
-                    <th
-                      style={{
-                        border: '1px solid #e5e7eb',
-                        backgroundColor: 'white',
-                        padding: '10px 6px',
-                        fontSize: '14px',
-                      }}
-                    >
-                      월수
-                    </th>
-                    <th
-                      style={{
-                        border: '1px solid #e5e7eb',
-                        backgroundColor: 'white',
-                        padding: '10px 6px',
-                        fontSize: '14px',
-                      }}
-                    >
-                      화목
-                    </th>
-                    <th
-                      style={{
-                        border: '1px solid #e5e7eb',
-                        backgroundColor: 'white',
-                        padding: '10px 6px',
-                        fontSize: '14px',
-                      }}
-                    >
-                      월수
-                    </th>
-                    <th
-                      style={{
-                        border: '1px solid #e5e7eb',
-                        backgroundColor: 'white',
-                        padding: '10px 6px',
-                        fontSize: '14px',
-                      }}
-                    >
-                      화목
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {item.rows.map((row, index) => (
-                    <tr key={index}>
-                      <td
+              <div style={{ minWidth: isMobile ? '760px' : 'auto' }}>
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    tableLayout: 'fixed',
+                    textAlign: 'center',
+                  }}
+                >
+                  <thead>
+                    <tr>
+                      <th
+                        style={{
+                          border: '1px solid #d6d3d1',
+                          backgroundColor: sharedHeaderBg,
+                          padding: isMobile ? '10px 6px' : '12px 6px',
+                        }}
+                      />
+                      <th
+                        colSpan={2}
+                        style={{
+                          border: '1px solid #d6d3d1',
+                          backgroundColor: sharedHeaderBg,
+                          padding: isMobile ? '10px 6px' : '12px 6px',
+                          fontSize: isMobile ? '15px' : '17px',
+                          color: '#44403c',
+                        }}
+                      >
+                        600
+                      </th>
+                      <th
+                        colSpan={2}
+                        style={{
+                          border: '1px solid #d6d3d1',
+                          backgroundColor: sharedHeaderBg,
+                          padding: isMobile ? '10px 6px' : '12px 6px',
+                          fontSize: isMobile ? '15px' : '17px',
+                          color: '#44403c',
+                        }}
+                      >
+                        800
+                      </th>
+                    </tr>
+                    <tr>
+                      <th
                         style={{
                           border: '1px solid #e5e7eb',
                           backgroundColor: '#fafaf9',
-                          padding: '12px 6px',
-                          fontSize: '13px',
-                          color: '#57534e',
+                          padding: isMobile ? '9px 6px' : '10px 6px',
                         }}
-                      >
-                        {row.time}
-                      </td>
-
-                      <td
+                      />
+                      <th
                         style={{
                           border: '1px solid #e5e7eb',
-                          backgroundColor: row.class600MonWed ? monWedFill : 'white',
-                          color: row.class600MonWed ? '#111827' : '#cbd5e1',
-                          padding: '12px 6px',
-                          fontWeight: row.class600MonWed ? 600 : 400,
+                          backgroundColor: 'white',
+                          padding: isMobile ? '9px 6px' : '10px 6px',
+                          fontSize: isMobile ? '13px' : '14px',
                         }}
                       >
-                        {row.class600MonWed || ''}
-                      </td>
-
-                      <td
+                        월수
+                      </th>
+                      <th
                         style={{
                           border: '1px solid #e5e7eb',
-                          backgroundColor: row.class600TueThu ? monWedFill : 'white',
-                          color: row.class600TueThu ? '#111827' : '#cbd5e1',
-                          padding: '12px 6px',
-                          fontWeight: row.class600TueThu ? 600 : 400,
+                          backgroundColor: 'white',
+                          padding: isMobile ? '9px 6px' : '10px 6px',
+                          fontSize: isMobile ? '13px' : '14px',
                         }}
                       >
-                        {row.class600TueThu || ''}
-                      </td>
-
-                      <td
+                        화목
+                      </th>
+                      <th
                         style={{
                           border: '1px solid #e5e7eb',
-                          backgroundColor: row.class800MonWed ? eightHundredFill : 'white',
-                          color: row.class800MonWed ? '#111827' : '#cbd5e1',
-                          padding: '12px 6px',
-                          fontWeight: row.class800MonWed ? 600 : 400,
+                          backgroundColor: 'white',
+                          padding: isMobile ? '9px 6px' : '10px 6px',
+                          fontSize: isMobile ? '13px' : '14px',
                         }}
                       >
-                        {row.class800MonWed || ''}
-                      </td>
-
-                      <td
+                        월수
+                      </th>
+                      <th
                         style={{
                           border: '1px solid #e5e7eb',
-                          backgroundColor: row.class800TueThu ? eightHundredFill : 'white',
-                          color: row.class800TueThu ? '#111827' : '#cbd5e1',
-                          padding: '12px 6px',
-                          fontWeight: row.class800TueThu ? 600 : 400,
+                          backgroundColor: 'white',
+                          padding: isMobile ? '9px 6px' : '10px 6px',
+                          fontSize: isMobile ? '13px' : '14px',
                         }}
                       >
-                        {row.class800TueThu || ''}
-                      </td>
+                        화목
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+
+                  <tbody>
+                    {item.rows.map((row, index) => (
+                      <tr key={index}>
+                        <td
+                          style={{
+                            border: '1px solid #e5e7eb',
+                            backgroundColor: '#fafaf9',
+                            padding: isMobile ? '10px 6px' : '12px 6px',
+                            fontSize: isMobile ? '12px' : '13px',
+                            color: '#57534e',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {row.time}
+                        </td>
+
+                        <td
+                          style={{
+                            border: '1px solid #e5e7eb',
+                            backgroundColor: row.class600MonWed ? monWedFill : 'white',
+                            color: row.class600MonWed ? '#111827' : '#cbd5e1',
+                            padding: isMobile ? '10px 6px' : '12px 6px',
+                            fontWeight: row.class600MonWed ? 600 : 400,
+                            fontSize: isMobile ? '13px' : '14px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {row.class600MonWed || ''}
+                        </td>
+
+                        <td
+                          style={{
+                            border: '1px solid #e5e7eb',
+                            backgroundColor: row.class600TueThu ? monWedFill : 'white',
+                            color: row.class600TueThu ? '#111827' : '#cbd5e1',
+                            padding: isMobile ? '10px 6px' : '12px 6px',
+                            fontWeight: row.class600TueThu ? 600 : 400,
+                            fontSize: isMobile ? '13px' : '14px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {row.class600TueThu || ''}
+                        </td>
+
+                        <td
+                          style={{
+                            border: '1px solid #e5e7eb',
+                            backgroundColor: row.class800MonWed ? eightHundredFill : 'white',
+                            color: row.class800MonWed ? '#111827' : '#cbd5e1',
+                            padding: isMobile ? '10px 6px' : '12px 6px',
+                            fontWeight: row.class800MonWed ? 600 : 400,
+                            fontSize: isMobile ? '13px' : '14px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {row.class800MonWed || ''}
+                        </td>
+
+                        <td
+                          style={{
+                            border: '1px solid #e5e7eb',
+                            backgroundColor: row.class800TueThu ? eightHundredFill : 'white',
+                            color: row.class800TueThu ? '#111827' : '#cbd5e1',
+                            padding: isMobile ? '10px 6px' : '12px 6px',
+                            fontWeight: row.class800TueThu ? 600 : 400,
+                            fontSize: isMobile ? '13px' : '14px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {row.class800TueThu || ''}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </section>
 
-          <section
-            style={{
-              backgroundColor: 'white',
-              border: '1px solid #e2e8f0',
-              borderRadius: '20px',
-              padding: '24px',
-            }}
-          >
+          <section style={previewCardStyle}>
             <h2
               style={{
                 marginTop: 0,
                 marginBottom: '8px',
-                fontSize: '26px',
+                fontSize: isMobile ? '30px' : '26px',
                 color: '#111827',
+                wordBreak: 'keep-all',
+                overflowWrap: 'break-word',
               }}
             >
               메모
@@ -486,12 +572,14 @@ export default function MonthlyTimetableAdminPage() {
                 border: '1px solid #e7e5e4',
                 borderRadius: '16px',
                 backgroundColor: '#fafaf9',
-                padding: '18px',
-                minHeight: '260px',
+                padding: isMobile ? '16px' : '18px',
+                minHeight: isMobile ? '180px' : '260px',
                 whiteSpace: 'pre-wrap',
                 lineHeight: 1.8,
                 color: '#57534e',
-                fontSize: '14px',
+                fontSize: isMobile ? '16px' : '14px',
+                wordBreak: 'keep-all',
+                overflowWrap: 'break-word',
               }}
             >
               {item.memo?.trim() ? item.memo : '등록된 메모가 없습니다.'}
