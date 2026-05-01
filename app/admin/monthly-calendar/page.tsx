@@ -101,6 +101,7 @@ export default function MonthlyCalendarAdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
 
   const [yearMonth, setYearMonth] = useState('2026-05');
   const [year, setYear] = useState(2026);
@@ -111,6 +112,16 @@ export default function MonthlyCalendarAdminPage() {
   const [d1Text, setD1Text] = useState('30: D-1 특강');
   const [toeicText, setToeicText] = useState('31');
   const [memo, setMemo] = useState('');
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const admin = getLoggedInAdmin();
@@ -244,36 +255,43 @@ export default function MonthlyCalendarAdminPage() {
     }
   }
 
-  const inputStyle = {
+  const inputStyle: React.CSSProperties = {
     width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
     padding: '10px 12px',
     borderRadius: '10px',
     border: '1px solid #cbd5e1',
     backgroundColor: 'white',
     fontSize: '14px',
-    boxSizing: 'border-box' as const,
+    boxSizing: 'border-box',
   };
 
-  const textareaStyle = {
+  const textareaStyle: React.CSSProperties = {
     ...inputStyle,
     minHeight: '110px',
-    resize: 'vertical' as const,
+    resize: 'vertical',
     lineHeight: 1.6,
   };
 
-  const labelStyle = {
+  const labelStyle: React.CSSProperties = {
     display: 'block',
     fontSize: '14px',
-    fontWeight: 'bold' as const,
+    fontWeight: 'bold',
     marginBottom: '6px',
     color: '#334155',
+    wordBreak: 'keep-all',
+    overflowWrap: 'break-word',
   };
 
-  const previewCardStyle = {
+  const previewCardStyle: React.CSSProperties = {
     backgroundColor: 'white',
     border: '1px solid #e2e8f0',
     borderRadius: '18px',
-    padding: '20px',
+    padding: isMobile ? '14px' : '20px',
+    width: '100%',
+    minWidth: 0,
+    overflow: 'hidden',
   };
 
   const monWedFill = '#cbbfb0';
@@ -290,6 +308,8 @@ export default function MonthlyCalendarAdminPage() {
           backgroundColor: 'white',
           fontFamily: 'Arial, sans-serif',
           color: '#111827',
+          textAlign: 'center',
+          padding: '20px',
         }}
       >
         월간 캘린더 불러오는 중...
@@ -302,20 +322,33 @@ export default function MonthlyCalendarAdminPage() {
       title="월간 캘린더 관리"
       description="월수반 수업일, 화목반 수업일, 특강 날짜, 토익시험일을 입력하고 학생용 한달일정을 관리합니다."
     >
-      <div style={{ maxWidth: '1200px', display: 'grid', gap: '20px' }}>
+      <div
+        style={{
+          maxWidth: '1200px',
+          width: '100%',
+          minWidth: 0,
+          display: 'grid',
+          gap: '20px',
+        }}
+      >
         <div
           style={{
             backgroundColor: 'white',
             border: '1px solid #e2e8f0',
             borderRadius: '16px',
-            padding: '20px',
+            padding: isMobile ? '14px' : '20px',
+            width: '100%',
+            minWidth: 0,
+            overflow: 'hidden',
           }}
         >
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))',
               gap: '14px 16px',
+              width: '100%',
+              minWidth: 0,
             }}
           >
             <div>
@@ -331,7 +364,7 @@ export default function MonthlyCalendarAdminPage() {
             <div
               style={{
                 display: 'flex',
-                alignItems: 'end',
+                alignItems: isMobile ? 'stretch' : 'end',
                 gap: '12px',
               }}
             >
@@ -339,6 +372,7 @@ export default function MonthlyCalendarAdminPage() {
                 onClick={handleSave}
                 disabled={isSaving}
                 style={{
+                  width: isMobile ? '100%' : 'auto',
                   padding: '12px 18px',
                   backgroundColor: '#111827',
                   color: 'white',
@@ -427,6 +461,9 @@ export default function MonthlyCalendarAdminPage() {
                 marginBottom: 0,
                 color: message.includes('저장') ? '#0f766e' : '#475569',
                 fontWeight: 600,
+                lineHeight: 1.6,
+                wordBreak: 'keep-all',
+                overflowWrap: 'break-word',
               }}
             >
               {message}
@@ -437,32 +474,42 @@ export default function MonthlyCalendarAdminPage() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'minmax(0, 2fr) minmax(280px, 1fr)',
+            gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 2fr) minmax(280px, 1fr)',
             gap: '18px',
+            width: '100%',
+            minWidth: 0,
           }}
         >
           <div style={previewCardStyle}>
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
+                display: 'grid',
+                gridTemplateColumns: '1fr',
                 marginBottom: '18px',
-                flexWrap: 'wrap',
                 gap: '12px',
               }}
             >
-              <div>
-                <div style={{ fontSize: '16px', color: '#64748b' }}>{year}</div>
+              <div style={{ minWidth: 0 }}>
                 <div
                   style={{
-                    fontSize: '54px',
+                    fontSize: isMobile ? '14px' : '16px',
+                    color: '#64748b',
+                    wordBreak: 'keep-all',
+                  }}
+                >
+                  {year}
+                </div>
+                <div
+                  style={{
+                    fontSize: isMobile ? '34px' : '54px',
                     fontWeight: 700,
                     lineHeight: 1,
                     color: '#334155',
+                    wordBreak: 'keep-all',
                   }}
                 >
-                  {month} {new Date(year, month - 1, 1).toLocaleString('en-US', {
+                  {month}{' '}
+                  {new Date(year, month - 1, 1).toLocaleString('en-US', {
                     month: 'long',
                   })}
                 </div>
@@ -472,10 +519,10 @@ export default function MonthlyCalendarAdminPage() {
                 style={{
                   display: 'flex',
                   flexWrap: 'wrap',
-                  gap: '12px 18px',
+                  gap: '10px 16px',
                   alignItems: 'center',
                   color: '#57534e',
-                  fontSize: '13px',
+                  fontSize: isMobile ? '12px' : '13px',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -537,11 +584,11 @@ export default function MonthlyCalendarAdminPage() {
                 display: 'grid',
                 gridTemplateColumns: 'repeat(7, 1fr)',
                 marginBottom: '8px',
-                gap: '6px',
+                gap: isMobile ? '4px' : '6px',
                 fontWeight: 700,
                 color: '#475569',
-                fontSize: '14px',
-                textAlign: 'center' as const,
+                fontSize: isMobile ? '11px' : '14px',
+                textAlign: 'center',
               }}
             >
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
@@ -549,14 +596,15 @@ export default function MonthlyCalendarAdminPage() {
               ))}
             </div>
 
-            <div style={{ display: 'grid', gap: '8px' }}>
+            <div style={{ display: 'grid', gap: isMobile ? '4px' : '8px', minWidth: 0 }}>
               {weeks.map((week, weekIndex) => (
                 <div
                   key={weekIndex}
                   style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(7, 1fr)',
-                    gap: '6px',
+                    gap: isMobile ? '4px' : '6px',
+                    minWidth: 0,
                   }}
                 >
                   {week.map((cell, index) => {
@@ -581,11 +629,11 @@ export default function MonthlyCalendarAdminPage() {
                     }
 
                     if (cell.isCurrentMonth && isSpecial) {
-                      border = `3px solid ${tueThuFill}`;
+                      border = isMobile ? `2px solid ${tueThuFill}` : `3px solid ${tueThuFill}`;
                       backgroundColor = 'transparent';
                       textColor = tueThuFill;
                     } else if (cell.isCurrentMonth && isToeic) {
-                      border = '2px solid #cbd5e1';
+                      border = isMobile ? '1.5px solid #cbd5e1' : '2px solid #cbd5e1';
                       if (!isMonWed && !isTueThu) {
                         backgroundColor = 'transparent';
                         textColor = '#64748b';
@@ -596,23 +644,25 @@ export default function MonthlyCalendarAdminPage() {
                       <div
                         key={`${weekIndex}-${index}`}
                         style={{
-                          minHeight: '86px',
+                          minHeight: isMobile ? '56px' : '86px',
                           border: '1px solid #e5e7eb',
-                          borderRadius: '12px',
-                          padding: '8px',
+                          borderRadius: isMobile ? '8px' : '12px',
+                          padding: isMobile ? '4px' : '8px',
                           backgroundColor: 'white',
+                          overflow: 'hidden',
+                          minWidth: 0,
                         }}
                       >
                         <div
                           style={{
-                            width: '40px',
-                            height: '40px',
+                            width: isMobile ? '24px' : '40px',
+                            height: isMobile ? '24px' : '40px',
                             borderRadius: '999px',
                             margin: '0 auto',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '16px',
+                            fontSize: isMobile ? '11px' : '16px',
                             fontWeight: 700,
                             color: textColor,
                             backgroundColor,
@@ -625,12 +675,14 @@ export default function MonthlyCalendarAdminPage() {
                         {cell.isCurrentMonth && labels.length > 0 && (
                           <div
                             style={{
-                              marginTop: '6px',
+                              marginTop: isMobile ? '4px' : '6px',
                               textAlign: 'center',
-                              fontSize: '12px',
+                              fontSize: isMobile ? '8px' : '12px',
                               color: '#475569',
-                              lineHeight: 1.4,
+                              lineHeight: 1.25,
                               whiteSpace: 'pre-wrap',
+                              wordBreak: 'keep-all',
+                              overflowWrap: 'break-word',
                             }}
                           >
                             {labels.join('\n')}
@@ -645,7 +697,14 @@ export default function MonthlyCalendarAdminPage() {
           </div>
 
           <div style={previewCardStyle}>
-            <h2 style={{ marginTop: 0, fontSize: '24px', marginBottom: '12px' }}>
+            <h2
+              style={{
+                marginTop: 0,
+                fontSize: isMobile ? '28px' : '24px',
+                marginBottom: '12px',
+                wordBreak: 'keep-all',
+              }}
+            >
               메모
             </h2>
             <div
@@ -653,11 +712,14 @@ export default function MonthlyCalendarAdminPage() {
                 backgroundColor: '#f8fafc',
                 border: '1px solid #e2e8f0',
                 borderRadius: '14px',
-                padding: '14px',
+                padding: isMobile ? '16px' : '14px',
                 color: '#475569',
                 lineHeight: 1.7,
-                minHeight: '220px',
+                minHeight: isMobile ? '180px' : '220px',
                 whiteSpace: 'pre-wrap',
+                wordBreak: 'keep-all',
+                overflowWrap: 'break-word',
+                fontSize: isMobile ? '16px' : '14px',
               }}
             >
               {memo || '등록된 메모가 없습니다.'}
