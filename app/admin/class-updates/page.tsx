@@ -308,11 +308,22 @@ export default function ClassUpdatesAdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
 
   const [selectedClassKey, setSelectedClassKey] = useState<ClassKey>('600-monwed');
   const [dataMap, setDataMap] = useState<ClassUpdateMap>(buildEmptyData());
   const [collapsedCardIds, setCollapsedCardIds] = useState<string[]>([]);
   const [savedSnapshot, setSavedSnapshot] = useState('');
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const admin = getLoggedInAdmin();
@@ -619,6 +630,8 @@ export default function ClassUpdatesAdminPage() {
 
   const pageWrapStyle: React.CSSProperties = {
     maxWidth: '1240px',
+    width: '100%',
+    minWidth: 0,
     display: 'grid',
     gap: '18px',
   };
@@ -627,19 +640,26 @@ export default function ClassUpdatesAdminPage() {
     backgroundColor: '#ffffff',
     border: '1px solid #e5e7eb',
     borderRadius: '18px',
-    padding: '18px',
+    padding: isMobile ? '14px' : '18px',
     boxShadow: '0 6px 16px rgba(15, 23, 42, 0.04)',
+    width: '100%',
+    minWidth: 0,
+    overflow: 'hidden',
   };
 
   const boxStyle: React.CSSProperties = {
     backgroundColor: '#fafaf9',
     border: '1px solid #e5e7eb',
     borderRadius: '15px',
-    padding: '14px',
+    padding: isMobile ? '12px' : '14px',
+    width: '100%',
+    minWidth: 0,
   };
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
     padding: '10px 12px',
     borderRadius: '10px',
     border: '1px solid #cbd5e1',
@@ -653,14 +673,14 @@ export default function ClassUpdatesAdminPage() {
   const textareaStyle: React.CSSProperties = {
     ...inputStyle,
     minHeight: '92px',
-    resize: 'vertical',
+    resize: 'vertical' as const,
     lineHeight: 1.55,
   };
 
   const tallTextareaStyle: React.CSSProperties = {
     ...inputStyle,
     minHeight: '128px',
-    resize: 'vertical',
+    resize: 'vertical' as const,
     lineHeight: 1.6,
   };
 
@@ -672,20 +692,23 @@ export default function ClassUpdatesAdminPage() {
   };
 
   const sectionTitleStyle: React.CSSProperties = {
-    fontSize: '17px',
+    fontSize: isMobile ? '16px' : '17px',
     fontWeight: 800,
     color: '#111827',
     letterSpacing: '-0.01em',
+    wordBreak: 'keep-all',
   };
 
   const helperStyle: React.CSSProperties = {
     color: '#6b7280',
     fontSize: '13px',
     lineHeight: 1.55,
+    wordBreak: 'keep-all',
+    overflowWrap: 'break-word',
   };
 
   const normalButtonStyle: React.CSSProperties = {
-    padding: '10px 13px',
+    padding: isMobile ? '10px 12px' : '10px 13px',
     borderRadius: '10px',
     border: '1px solid #d1d5db',
     backgroundColor: '#ffffff',
@@ -693,10 +716,12 @@ export default function ClassUpdatesAdminPage() {
     cursor: 'pointer',
     fontWeight: 700,
     fontSize: '13px',
+    minWidth: isMobile ? '0' : undefined,
+    width: isMobile ? '100%' : undefined,
   };
 
   const primaryButtonStyle: React.CSSProperties = {
-    padding: '10px 16px',
+    padding: isMobile ? '10px 14px' : '10px 16px',
     borderRadius: '10px',
     border: 'none',
     backgroundColor: '#111827',
@@ -705,6 +730,7 @@ export default function ClassUpdatesAdminPage() {
     fontWeight: 800,
     fontSize: '13px',
     boxShadow: '0 6px 16px rgba(17, 24, 39, 0.12)',
+    width: isMobile ? '100%' : undefined,
   };
 
   const dangerButtonStyle: React.CSSProperties = {
@@ -716,7 +742,32 @@ export default function ClassUpdatesAdminPage() {
     cursor: 'pointer',
     fontWeight: 700,
     fontSize: '12px',
+    width: isMobile ? '100%' : undefined,
   };
+
+  function softEmptyStyle(): React.CSSProperties {
+    return {
+      border: '1px dashed #d1d5db',
+      borderRadius: '13px',
+      padding: '12px 14px',
+      backgroundColor: '#ffffff',
+      color: '#6b7280',
+      fontSize: '13px',
+      width: '100%',
+      minWidth: 0,
+    };
+  }
+
+  function softItemStyle(): React.CSSProperties {
+    return {
+      border: '1px solid #e5e7eb',
+      borderRadius: '13px',
+      padding: '12px',
+      backgroundColor: '#ffffff',
+      width: '100%',
+      minWidth: 0,
+    };
+  }
 
   if (isChecking || isLoading) {
     return (
@@ -729,6 +780,8 @@ export default function ClassUpdatesAdminPage() {
           backgroundColor: '#ffffff',
           fontFamily: 'Arial, sans-serif',
           color: '#111827',
+          padding: '20px',
+          textAlign: 'center',
         }}
       >
         반별 자료 불러오는 중...
@@ -752,6 +805,8 @@ export default function ClassUpdatesAdminPage() {
               color: '#475569',
               fontWeight: 700,
               fontSize: '13px',
+              width: '100%',
+              minWidth: 0,
             }}
           >
             {message}
@@ -768,6 +823,8 @@ export default function ClassUpdatesAdminPage() {
               color: '#9a3412',
               fontWeight: 800,
               fontSize: '13px',
+              width: '100%',
+              minWidth: 0,
             }}
           >
             저장되지 않은 변경사항이 있습니다. 저장 후 이동하거나 새로고침하세요.
@@ -778,13 +835,21 @@ export default function ClassUpdatesAdminPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr auto',
+              gridTemplateColumns: isMobile ? '1fr' : '1fr auto',
               gap: '14px',
-              alignItems: 'end',
+              alignItems: isMobile ? 'stretch' : 'end',
             }}
           >
-            <div style={{ display: 'grid', gap: '6px' }}>
-              <div style={{ fontSize: '20px', fontWeight: 800, color: '#111827' }}>
+            <div style={{ display: 'grid', gap: '6px', minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: isMobile ? '18px' : '20px',
+                  fontWeight: 800,
+                  color: '#111827',
+                  wordBreak: 'keep-all',
+                  overflowWrap: 'break-word',
+                }}
+              >
                 현재 편집 반
               </div>
               <div style={helperStyle}>
@@ -794,17 +859,19 @@ export default function ClassUpdatesAdminPage() {
 
             <div
               style={{
-                display: 'flex',
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(5, auto)',
                 gap: '8px',
-                flexWrap: 'wrap',
                 alignItems: 'center',
-                justifyContent: 'flex-end',
+                justifyContent: 'stretch',
+                width: '100%',
+                minWidth: 0,
               }}
             >
               <select
                 value={selectedClassKey}
                 onChange={(e) => setSelectedClassKey(e.target.value as ClassKey)}
-                style={{ ...inputStyle, minWidth: '210px' }}
+                style={{ ...inputStyle, minWidth: 0 }}
               >
                 {CLASS_OPTIONS.map((option) => (
                   <option key={option.key} value={option.key}>
@@ -852,7 +919,7 @@ export default function ClassUpdatesAdminPage() {
         {sortedCards.length === 0 ? (
           <section style={panelStyle}>아직 등록된 하루치 수업 카드가 없습니다.</section>
         ) : (
-          <div style={{ display: 'grid', gap: '16px' }}>
+          <div style={{ display: 'grid', gap: '16px', width: '100%', minWidth: 0 }}>
             {sortedCards.map((card, index) => {
               const videos = card.videos ?? [];
               const audios = card.audios ?? [];
@@ -874,7 +941,7 @@ export default function ClassUpdatesAdminPage() {
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr auto',
+                      gridTemplateColumns: '1fr',
                       gap: '12px',
                       alignItems: 'center',
                       marginBottom: collapsed ? '0' : '16px',
@@ -882,8 +949,17 @@ export default function ClassUpdatesAdminPage() {
                       borderBottom: collapsed ? 'none' : '1px solid #eceff3',
                     }}
                   >
-                    <div style={{ display: 'grid', gap: '3px' }}>
-                      <div style={{ fontSize: '22px', fontWeight: 800, color: '#111827' }}>
+                    <div style={{ display: 'grid', gap: '3px', minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: isMobile ? '20px' : '22px',
+                          fontWeight: 800,
+                          color: '#111827',
+                          wordBreak: 'keep-all',
+                          overflowWrap: 'break-word',
+                          lineHeight: 1.35,
+                        }}
+                      >
                         카드 {index + 1}
                         {card.dayLabel ? ` · ${card.dayLabel}` : ''}
                       </div>
@@ -896,11 +972,12 @@ export default function ClassUpdatesAdminPage() {
 
                     <div
                       style={{
-                        display: 'flex',
+                        display: 'grid',
+                        gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(6, auto)',
                         gap: '8px',
-                        flexWrap: 'wrap',
                         alignItems: 'center',
-                        justifyContent: 'flex-end',
+                        width: '100%',
+                        minWidth: 0,
                       }}
                     >
                       <button
@@ -939,6 +1016,7 @@ export default function ClassUpdatesAdminPage() {
                         style={{
                           display: 'flex',
                           alignItems: 'center',
+                          justifyContent: 'center',
                           gap: '7px',
                           border: '1px solid #e5e7eb',
                           borderRadius: '10px',
@@ -947,6 +1025,9 @@ export default function ClassUpdatesAdminPage() {
                           fontWeight: 700,
                           color: '#334155',
                           fontSize: '13px',
+                          minHeight: '42px',
+                          width: '100%',
+                          boxSizing: 'border-box',
                         }}
                       >
                         <input
@@ -964,13 +1045,15 @@ export default function ClassUpdatesAdminPage() {
                   </div>
 
                   {!collapsed ? (
-                    <div style={{ display: 'grid', gap: '14px' }}>
+                    <div style={{ display: 'grid', gap: '14px', width: '100%', minWidth: 0 }}>
                       <div style={boxStyle}>
                         <div
                           style={{
                             display: 'grid',
-                            gridTemplateColumns: '1fr 1fr',
+                            gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
                             gap: '14px 16px',
+                            width: '100%',
+                            minWidth: 0,
                           }}
                         >
                           <div>
@@ -1008,7 +1091,7 @@ export default function ClassUpdatesAdminPage() {
                       <div style={boxStyle}>
                         <div style={{ ...sectionTitleStyle, marginBottom: '12px' }}>수업영상</div>
 
-                        <div style={{ display: 'grid', gap: '12px' }}>
+                        <div style={{ display: 'grid', gap: '12px', width: '100%', minWidth: 0 }}>
                           {selectedMeta.mode === '600' ? (
                             <>
                               <div>
@@ -1054,12 +1137,11 @@ export default function ClassUpdatesAdminPage() {
 
                           <div
                             style={{
-                              display: 'flex',
+                              display: 'grid',
+                              gridTemplateColumns: isMobile ? '1fr' : '1fr auto',
                               justifyContent: 'space-between',
                               alignItems: 'center',
                               gap: '10px',
-                              flexWrap: 'wrap',
-                              paddingTop: '2px',
                             }}
                           >
                             <div style={{ fontWeight: 800, color: '#111827', fontSize: '14px' }}>
@@ -1102,11 +1184,11 @@ export default function ClassUpdatesAdminPage() {
                       <div style={boxStyle}>
                         <div
                           style={{
-                            display: 'flex',
+                            display: 'grid',
+                            gridTemplateColumns: isMobile ? '1fr' : '1fr auto',
                             justifyContent: 'space-between',
                             alignItems: 'center',
                             gap: '10px',
-                            flexWrap: 'wrap',
                             marginBottom: '12px',
                           }}
                         >
@@ -1125,7 +1207,7 @@ export default function ClassUpdatesAdminPage() {
                                 <div
                                   style={{
                                     display: 'grid',
-                                    gridTemplateColumns: '160px 1fr 1fr auto',
+                                    gridTemplateColumns: isMobile ? '1fr' : '160px 1fr 1fr auto',
                                     gap: '8px',
                                     alignItems: 'center',
                                   }}
@@ -1179,11 +1261,11 @@ export default function ClassUpdatesAdminPage() {
                       <div style={boxStyle}>
                         <div
                           style={{
-                            display: 'flex',
+                            display: 'grid',
+                            gridTemplateColumns: isMobile ? '1fr' : '1fr auto',
                             justifyContent: 'space-between',
                             alignItems: 'center',
                             gap: '10px',
-                            flexWrap: 'wrap',
                             marginBottom: '12px',
                           }}
                         >
@@ -1207,7 +1289,7 @@ export default function ClassUpdatesAdminPage() {
                                         type: e.target.value as ExtraItem['type'],
                                       })
                                     }
-                                    style={{ ...inputStyle, maxWidth: '220px' }}
+                                    style={inputStyle}
                                   >
                                     <option value="text">텍스트</option>
                                     <option value="image">이미지</option>
@@ -1273,7 +1355,7 @@ export default function ClassUpdatesAdminPage() {
                         <div
                           style={{
                             display: 'grid',
-                            gridTemplateColumns: '1fr 1fr',
+                            gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
                             gap: '14px 16px',
                           }}
                         >
@@ -1306,24 +1388,4 @@ export default function ClassUpdatesAdminPage() {
       </div>
     </AdminShell>
   );
-
-  function softEmptyStyle(): React.CSSProperties {
-    return {
-      border: '1px dashed #d1d5db',
-      borderRadius: '13px',
-      padding: '12px 14px',
-      backgroundColor: '#ffffff',
-      color: '#6b7280',
-      fontSize: '13px',
-    };
-  }
-
-  function softItemStyle(): React.CSSProperties {
-    return {
-      border: '1px solid #e5e7eb',
-      borderRadius: '13px',
-      padding: '12px',
-      backgroundColor: '#ffffff',
-    };
-  }
 }
