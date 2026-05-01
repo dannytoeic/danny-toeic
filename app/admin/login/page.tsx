@@ -15,7 +15,7 @@ export default function AdminLoginPage() {
     setIsLoading(true);
 
     const adminUsername = 'admin';
-    const adminPassword = '1234';
+    const adminPassword = 'sjw77120309';
 
     if (username.trim() !== adminUsername || password.trim() !== adminPassword) {
       setMessage('관리자 아이디 또는 비밀번호가 올바르지 않습니다.');
