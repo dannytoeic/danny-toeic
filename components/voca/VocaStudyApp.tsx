@@ -43,6 +43,27 @@ const STATUS_LABEL: Record<VocaKnowledgeStatus, string> = {
   known: '알아요',
 };
 
+const STATUS_STYLE: Record<
+  VocaKnowledgeStatus,
+  { backgroundColor: string; borderColor: string; color: string }
+> = {
+  confusing: {
+    backgroundColor: '#efe4cf',
+    borderColor: '#d6b98b',
+    color: '#5f431f',
+  },
+  unknown: {
+    backgroundColor: '#ead9d9',
+    borderColor: '#c99999',
+    color: '#6b2f2f',
+  },
+  known: {
+    backgroundColor: '#dbe9df',
+    borderColor: '#9dbb9f',
+    color: '#264f35',
+  },
+};
+
 const TYPE_LABEL: Record<VocaItemType, string> = {
   word: 'word',
   phrase: 'phrase',
@@ -303,8 +324,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
 
   function renderItem(item: VocaItem, compact = false) {
     const status = progress[item.id];
-    const statusColor =
-      status === 'known' ? '#dcefe5' : status === 'unknown' ? '#f1dddd' : '#f1e8d4';
+    const statusStyle = status ? STATUS_STYLE[status] : null;
 
     return (
       <article
@@ -334,7 +354,9 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               style={{
                 padding: '6px 10px',
                 borderRadius: '999px',
-                backgroundColor: statusColor,
+                backgroundColor: statusStyle?.backgroundColor,
+                border: `1px solid ${statusStyle?.borderColor}`,
+                color: statusStyle?.color,
                 fontSize: '12px',
                 fontWeight: 900,
               }}
@@ -511,12 +533,13 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               type="button"
               style={{
                 ...bigButtonStyle,
-                backgroundColor:
-                  statusKey === 'known'
-                    ? '#dcefe5'
-                    : statusKey === 'unknown'
-                    ? '#f1dddd'
-                    : '#f1e8d4',
+                backgroundColor: STATUS_STYLE[statusKey].backgroundColor,
+                borderColor: STATUS_STYLE[statusKey].borderColor,
+                color: STATUS_STYLE[statusKey].color,
+                boxShadow:
+                  status === statusKey
+                    ? `inset 0 0 0 2px ${STATUS_STYLE[statusKey].borderColor}`
+                    : 'none',
               }}
             >
               {STATUS_LABEL[statusKey]}
