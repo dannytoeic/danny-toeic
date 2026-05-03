@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createVocaSetFromRawText, extractTextFromDocx } from '@/lib/voca/parseVocaDocx';
 import {
+  deleteVocaSet,
+  getVocaSets,
   getVersionsForCourse,
   makeVocaSetId,
   makeVocaDisplayTitle,
@@ -50,6 +52,7 @@ export default function VocaUploadPreview() {
   const [message, setMessage] = useState('');
   const [isParsing, setIsParsing] = useState(false);
   const [savedSetId, setSavedSetId] = useState('');
+  const [savedSets, setSavedSets] = useState<VocaSet[]>([]);
 
   const availableVersions = getVersionsForCourse(course);
   const displayTitle = makeVocaDisplayTitle(course, track, version, day);
@@ -64,6 +67,14 @@ export default function VocaUploadPreview() {
       misc: countByType(items, 'misc'),
     };
   }, [vocaSet]);
+
+  function refreshSavedSets() {
+    setSavedSets(getVocaSets());
+  }
+
+  useEffect(() => {
+    window.setTimeout(refreshSavedSets, 0);
+  }, []);
 
   function buildSetFromText(text: string) {
     return createVocaSetFromRawText({
@@ -131,7 +142,35 @@ export default function VocaUploadPreview() {
     saveVocaSet(nextSet);
     setVocaSet(nextSet);
     setSavedSetId(nextSet.id);
+    refreshSavedSets();
     setMessage(`${displayTitle} 세트를 이 브라우저에 저장했습니다.`);
+  }
+
+  function handleLoadSavedSet(set: VocaSet) {
+    setCourse(set.course);
+    setTrack(set.track);
+    setVersion(set.version);
+    setDay(set.day);
+    setVocaSet(set);
+    setSavedSetId(set.id);
+    setRawText(set.items.map((item) => item.rawText).join('\n'));
+    setMessage(`${set.displayTitle || set.title} 세트를 불러왔습니다.`);
+  }
+
+  function handleDeleteSavedSet(id: string) {
+    const ok = window.confirm('이 Danny Voca 세트를 삭제하시겠습니까?');
+    if (!ok) return;
+
+    deleteVocaSet(id);
+    refreshSavedSets();
+
+    if (savedSetId === id) {
+      setSavedSetId('');
+      setVocaSet(null);
+      setRawText('');
+    }
+
+    setMessage('저장된 세트를 삭제했습니다.');
   }
 
   const inputStyle: React.CSSProperties = {
@@ -288,6 +327,111 @@ export default function VocaUploadPreview() {
         {message ? (
           <div style={{ color: '#475569', fontWeight: 900, lineHeight: 1.6 }}>{message}</div>
         ) : null}
+      </section>
+
+      <section
+        style={{
+          backgroundColor: '#ffffff',
+          border: '1px solid #e5e7eb',
+          borderRadius: '20px',
+          padding: '18px',
+          display: 'grid',
+          gap: '14px',
+        }}
+      >
+        <div>
+          <div style={{ fontSize: '22px', fontWeight: 900, color: '#111827' }}>
+            저장된 Danny Voca 세트
+          </div>
+          <div style={{ marginTop: '6px', color: '#64748b', fontWeight: 800 }}>
+            이 브라우저에 저장된 시제품 목록입니다.
+          </div>
+        </div>
+
+        {savedSets.length === 0 ? (
+          <div
+            style={{
+              borderRadius: '16px',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              padding: '16px',
+              color: '#64748b',
+              fontWeight: 800,
+              lineHeight: 1.6,
+            }}
+          >
+            저장된 세트가 없습니다. Word 파일을 업로드하고 “이 조합으로 저장”을 눌러 주세요.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: '10px' }}>
+            {savedSets.map((set) => (
+              <div
+                key={set.id}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(0, 1fr) auto auto',
+                  gap: '8px',
+                  alignItems: 'center',
+                  borderRadius: '16px',
+                  backgroundColor: savedSetId === set.id ? '#eff6ff' : '#fcfcfb',
+                  border: savedSetId === set.id ? '1px solid #bfdbfe' : '1px solid #e5e7eb',
+                  padding: '12px',
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      color: '#111827',
+                      fontSize: '16px',
+                      fontWeight: 900,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {set.displayTitle || set.title}
+                  </div>
+                  <div
+                    style={{
+                      color: '#64748b',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      marginTop: '4px',
+                    }}
+                  >
+                    전체 {set.items.length}개 · 단어 {countByType(set.items, 'word')}개 · 표현{' '}
+                    {countByType(set.items, 'phrase')}개
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleLoadSavedSet(set)}
+                  style={{
+                    ...buttonStyle,
+                    minHeight: '40px',
+                    padding: '10px 12px',
+                    fontSize: '13px',
+                  }}
+                >
+                  불러오기
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleDeleteSavedSet(set.id)}
+                  style={{
+                    ...buttonStyle,
+                    minHeight: '40px',
+                    padding: '10px 12px',
+                    fontSize: '13px',
+                    backgroundColor: '#991b1b',
+                  }}
+                >
+                  삭제
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {vocaSet ? (
