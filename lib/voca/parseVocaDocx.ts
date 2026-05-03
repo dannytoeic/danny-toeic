@@ -57,7 +57,9 @@ function isDocumentHeader(line: string) {
   return (
     /^(?:[A-Z]\s+)?Day[_\s-]*\d+$/i.test(normalized) ||
     /^(?:[A-Z]\s+)?Day[_\s-]*\d+\s+\d+\s+[A-Z]\s*-\s*\d+$/i.test(normalized) ||
-    /^\d+\s+[A-Z]\s*-\s*\d+$/i.test(normalized)
+    /^\d+\s+[A-Z]\s*-\s*\d+$/i.test(normalized) ||
+    /^[AB]\s+Day\s*-?\s*\d+$/i.test(normalized) ||
+    /^[1-5]형식(?:\/[1-5]형식)?(?:\s*관련퀴즈)?$/i.test(normalized)
   );
 }
 
@@ -74,6 +76,136 @@ function isLikelyEnglishTerm(term: string) {
   if (/^[\d\s.[\]()[\]{}:;,\-]+$/.test(trimmed)) return false;
   if (/^\d+[.)]/.test(trimmed)) return false;
   return true;
+}
+
+function stripNumberPrefix(line: string) {
+  return line.replace(/^\s*\d+\s*[.)]\s*/, '').trim();
+}
+
+function isEnglishFocused(value: string) {
+  const letters = value.match(/[A-Za-z]/g)?.length ?? 0;
+  const korean = value.match(/[가-힣]/g)?.length ?? 0;
+  return letters > 0 && letters >= korean;
+}
+
+function replaceParenAnswers(value: string) {
+  const answers = getParenGroups(value);
+  const prompt = value.replace(PAREN_GROUP_PATTERN, '____').replace(/\s+/g, ' ').trim();
+  const answerText = value.replace(PAREN_GROUP_PATTERN, (_match, answer) => answer).trim();
+  return { answers, prompt, answerText };
+}
+
+function makeDedupKey(item: VocaItem) {
+  if (item.type === 'blank') {
+    return `${item.type}|${item.prompt ?? ''}|${item.answer ?? ''}`.toLowerCase();
+  }
+  if (item.type === 'grammar') {
+    return `${item.type}|${item.prompt ?? ''}|${(item.answers ?? []).join('/')}`.toLowerCase();
+  }
+  if (item.type === 'pattern' || item.type === 'word' || item.type === 'phrase') {
+    return `${item.type}|${item.term ?? ''}|${item.meaning ?? ''}`.toLowerCase();
+  }
+  if (item.type === 'group') {
+    return `${item.type}|${item.title ?? ''}|${(item.lines ?? []).join('/')}`.toLowerCase();
+  }
+  return `${item.type}|${item.rawText}`.toLowerCase();
+}
+
+function createBlankItem(line: string, index: number): VocaItem | null {
+  const cleaned = stripNumberPrefix(line);
+  const match = cleaned.match(/^(.+?)\s*:\s*((?:\([^()]+\)\s*(?:or|\/|,)?\s*)+)$/i);
+  if (!match) return null;
+
+  const prompt = match[1].trim();
+  const answers = getParenGroups(match[2]);
+  if (!prompt || answers.length === 0) return null;
+
+  return {
+    id: makeId('blank', index),
+    type: 'blank',
+    prompt: prompt.endsWith(':') ? prompt : `${prompt} :`,
+    answer: answers.join(' / '),
+    answers,
+    rawText: line,
+    speakable: isEnglishFocused(prompt),
+  };
+}
+
+function createPatternItem(line: string, index: number): VocaItem | null {
+  const cleaned = stripNumberPrefix(line);
+  const parenGroups = getParenGroups(cleaned);
+  if (!cleaned.includes('의미') && parenGroups.length >= 2 && isLikelyPos(parenGroups[0])) {
+    return null;
+  }
+
+  const meaningMatch =
+    cleaned.match(/^(.+?)\s*의미\s*:\s*\(([^()]+)\)\s*$/) ??
+    cleaned.match(/^([A-Za-z][A-Za-z\s'/-]+(?:\s+\([^()]+\))?)\s+[^()]*\(([^()]+)\)\s*$/);
+
+  if (!meaningMatch) return null;
+
+  const term = meaningMatch[1].trim();
+  const meaning = meaningMatch[2].trim();
+
+  if (!term || !meaning || !/[A-Za-z]/.test(term)) return null;
+
+  return {
+    id: makeId('pattern', index),
+    type: 'pattern',
+    term,
+    meaning,
+    rawText: line,
+    speakable: true,
+  };
+}
+
+function createGrammarItem(lines: string[], index: number): VocaItem | null {
+  const rawText = lines.join('\n');
+  const cleaned = stripNumberPrefix(rawText).replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+  const { answers, prompt, answerText } = replaceParenAnswers(cleaned);
+
+  if (answers.length === 0) return null;
+  if (/^[A-Za-z\s'/-]+$/.test(cleaned)) return null;
+
+  return {
+    id: makeId('grammar', index),
+    type: 'grammar',
+    prompt,
+    answers,
+    answerText,
+    rawText,
+    speakable: false,
+  };
+}
+
+function isGroupLine(line: string) {
+  const cleaned = stripNumberPrefix(line);
+  return /^\([^()]+\)(?:\s*\+\s*\([^()]+\))*$/.test(cleaned) ||
+    /^\([^()]+\)\s*(?:\+|\/|\s)[A-Za-z가-힣()/+\s,-]+$/.test(cleaned);
+}
+
+function cleanGroupLine(line: string) {
+  return stripNumberPrefix(line)
+    .replace(/\(([^()]+)\)/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function createGroupItem(titleLine: string, bodyLines: string[], index: number): VocaItem | null {
+  if (bodyLines.length === 0) return null;
+
+  const title = stripNumberPrefix(titleLine);
+  const lines = bodyLines.map(cleanGroupLine).filter(Boolean);
+  if (!title || lines.length === 0) return null;
+
+  return {
+    id: makeId('group', index),
+    type: 'group',
+    title,
+    lines,
+    rawText: [titleLine, ...bodyLines].join('\n'),
+    speakable: false,
+  };
 }
 
 function createTermItem(line: string, index: number): VocaItem | null {
@@ -158,18 +290,30 @@ function createNoteItem(titleLine: string, bodyLines: string[], index: number): 
 export function parseRawVocaText(rawText: string): VocaItem[] {
   const lines = normalizeLines(rawText);
   const items: VocaItem[] = [];
+  const seen = new Set<string>();
 
   let noteTitle = '';
   let noteLines: string[] = [];
 
+  function pushItem(item: VocaItem) {
+    const key = makeDedupKey(item);
+    if (seen.has(key)) return;
+    seen.add(key);
+    items.push(item);
+  }
+
   function flushNote() {
     if (!noteTitle) return;
-    items.push(createNoteItem(noteTitle, noteLines, items.length + 1));
+    if (noteLines.length > 0) {
+      pushItem(createNoteItem(noteTitle, noteLines, items.length + 1));
+    }
     noteTitle = '';
     noteLines = [];
   }
 
-  for (const line of lines) {
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const line = lines[lineIndex];
+
     if (isDocumentHeader(line)) {
       continue;
     }
@@ -181,15 +325,33 @@ export function parseRawVocaText(rawText: string): VocaItem[] {
     }
 
     if (noteTitle) {
+      const patternItem = createPatternItem(line, items.length + 1);
+      if (patternItem) {
+        pushItem(patternItem);
+        continue;
+      }
+
+      const blankItem = createBlankItem(line, items.length + 1);
+      if (blankItem) {
+        pushItem(blankItem);
+        continue;
+      }
+
       const termItem = createTermItem(line, items.length + 1);
       if (termItem && !isNoteExampleLine(noteTitle, termItem)) {
-        items.push(termItem);
+        pushItem(termItem);
         continue;
       }
 
       const bareTermItem = createBareNoteTermItem(line, noteTitle, items.length + 1);
       if (bareTermItem) {
-        items.push(bareTermItem);
+        pushItem(bareTermItem);
+        continue;
+      }
+
+      const grammarItem = createGrammarItem([line], items.length + 1);
+      if (grammarItem && getParenGroups(line).length >= 2) {
+        pushItem(grammarItem);
         continue;
       }
 
@@ -197,13 +359,66 @@ export function parseRawVocaText(rawText: string): VocaItem[] {
       continue;
     }
 
-    const termItem = createTermItem(line, items.length + 1);
-    if (termItem) {
-      items.push(termItem);
+    const groupLines: string[] = [];
+    let groupCursor = lineIndex + 1;
+    while (groupCursor < lines.length && isGroupLine(lines[groupCursor])) {
+      groupLines.push(lines[groupCursor]);
+      groupCursor += 1;
+    }
+    if (groupLines.length > 0 && !isDocumentHeader(line)) {
+      const groupItem = createGroupItem(line, groupLines, items.length + 1);
+      if (groupItem) {
+        pushItem(groupItem);
+        lineIndex = groupCursor - 1;
+        continue;
+      }
+    }
+
+    const patternItem = createPatternItem(line, items.length + 1);
+    if (patternItem) {
+      pushItem(patternItem);
       continue;
     }
 
-    items.push({
+    const blankItem = createBlankItem(line, items.length + 1);
+    if (blankItem) {
+      pushItem(blankItem);
+      continue;
+    }
+
+    const termItem = createTermItem(line, items.length + 1);
+    if (termItem) {
+      pushItem(termItem);
+      continue;
+    }
+
+    const grammarLines = [line];
+    let grammarCursor = lineIndex + 1;
+    while (
+      getParenGroups(grammarLines.join('\n')).length > 0 &&
+      grammarCursor < lines.length &&
+      !isDocumentHeader(lines[grammarCursor]) &&
+      !lines[grammarCursor].startsWith('*') &&
+      !/^\d+\s*[.)]\s*/.test(lines[grammarCursor]) &&
+      !createTermItem(lines[grammarCursor], items.length + 1) &&
+      !createPatternItem(lines[grammarCursor], items.length + 1) &&
+      !createBlankItem(lines[grammarCursor], items.length + 1)
+    ) {
+      if (getParenGroups(lines[grammarCursor]).length === 0 && isEnglishFocused(lines[grammarCursor])) {
+        break;
+      }
+      grammarLines.push(lines[grammarCursor]);
+      grammarCursor += 1;
+    }
+
+    const grammarItem = createGrammarItem(grammarLines, items.length + 1);
+    if (grammarItem) {
+      pushItem(grammarItem);
+      lineIndex = grammarCursor - 1;
+      continue;
+    }
+
+    pushItem({
       id: makeId('misc', items.length + 1),
       type: 'misc',
       rawText: line,

@@ -15,6 +15,7 @@ import {
 import type {
   VocaCourse,
   VocaItem,
+  VocaItemType,
   VocaKnowledgeStatus,
   VocaProgressMap,
   VocaSet,
@@ -42,10 +43,41 @@ const STATUS_LABEL: Record<VocaKnowledgeStatus, string> = {
   known: '알아요',
 };
 
+const TYPE_LABEL: Record<VocaItemType, string> = {
+  word: 'word',
+  phrase: 'phrase',
+  note: 'note',
+  misc: 'misc',
+  blank: 'blank',
+  grammar: 'grammar',
+  pattern: 'pattern',
+  group: 'group',
+};
+
+const TYPE_COLOR: Record<VocaItemType, string> = {
+  word: '#dbeafe',
+  phrase: '#dcfce7',
+  note: '#fef3c7',
+  misc: '#f1f5f9',
+  blank: '#ede9fe',
+  grammar: '#ffedd5',
+  pattern: '#cffafe',
+  group: '#fae8ff',
+};
+
+function getSpeakText(item: VocaItem) {
+  if (item.term) return item.term;
+  if (item.speakable && item.prompt) {
+    return item.prompt.replace(/____/g, '').replace(/[:：]/g, '').trim();
+  }
+  return '';
+}
+
 function speak(item: VocaItem) {
-  if (typeof window === 'undefined' || !item.speakable || !item.term) return;
+  const text = getSpeakText(item);
+  if (typeof window === 'undefined' || !item.speakable || !text) return;
   window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(item.term);
+  const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'en-US';
   window.speechSynthesis.speak(utterance);
 }
@@ -290,25 +322,12 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               display: 'inline-flex',
               padding: '6px 10px',
               borderRadius: '999px',
-              backgroundColor:
-                item.type === 'word'
-                  ? '#dbeafe'
-                  : item.type === 'phrase'
-                  ? '#dcfce7'
-                  : item.type === 'note'
-                  ? '#fef3c7'
-                  : '#f1f5f9',
+              backgroundColor: TYPE_COLOR[item.type],
               fontSize: '12px',
               fontWeight: 900,
             }}
           >
-            {item.type === 'word'
-              ? 'word'
-              : item.type === 'phrase'
-              ? 'phrase'
-              : item.type === 'note'
-              ? 'note'
-              : 'misc'}
+            {TYPE_LABEL[item.type]}
           </span>
           {status ? (
             <span
@@ -325,7 +344,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           ) : null}
         </div>
 
-        {item.type === 'word' || item.type === 'phrase' ? (
+        {item.type === 'word' || item.type === 'phrase' || item.type === 'pattern' ? (
           <>
             <div
               style={{
@@ -342,7 +361,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                 <button
                   onClick={() => speak(item)}
                   type="button"
-                  aria-label={`${item.term} 발음 듣기`}
+                  aria-label={`${getSpeakText(item)} pronunciation`}
                   style={{
                     width: '50px',
                     height: '50px',
@@ -372,6 +391,91 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               }}
             >
               {hideMeaning ? '뜻 가림' : `${item.pos ? `(${item.pos}) ` : ''}${item.meaning ?? ''}`}
+            </div>
+          </>
+        ) : item.type === 'blank' ? (
+          <>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: item.speakable ? '1fr auto' : '1fr',
+                gap: '12px',
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ fontSize: compact ? '26px' : '34px', fontWeight: 900 }}>
+                {item.prompt}
+              </div>
+              {item.speakable ? (
+                <button
+                  onClick={() => speak(item)}
+                  type="button"
+                  aria-label={`${getSpeakText(item)} pronunciation`}
+                  style={{
+                    width: '50px',
+                    height: '50px',
+                    borderRadius: '999px',
+                    border: 'none',
+                    backgroundColor: '#111827',
+                    color: '#ffffff',
+                    fontSize: '22px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  🔊
+                </button>
+              ) : null}
+            </div>
+            <div
+              style={{
+                minHeight: '54px',
+                borderRadius: '16px',
+                backgroundColor: hideMeaning ? '#f3f4f6' : '#f8fafc',
+                color: '#1f2937',
+                padding: '14px',
+                fontSize: '20px',
+                lineHeight: 1.6,
+                fontWeight: 900,
+              }}
+            >
+              {hideMeaning ? '정답 가림' : item.answer}
+            </div>
+          </>
+        ) : item.type === 'grammar' ? (
+          <>
+            <div style={{ fontSize: compact ? '22px' : '28px', fontWeight: 900, lineHeight: 1.55 }}>
+              {hideMeaning ? item.prompt : item.answerText ?? item.rawText}
+            </div>
+            <div
+              style={{
+                borderRadius: '16px',
+                backgroundColor: '#f8fafc',
+                color: '#1f2937',
+                padding: '14px',
+                fontSize: '18px',
+                lineHeight: 1.6,
+                fontWeight: 900,
+              }}
+            >
+              {hideMeaning ? '정답 가림' : `정답: ${(item.answers ?? []).join(' / ')}`}
+            </div>
+          </>
+        ) : item.type === 'group' ? (
+          <>
+            <div style={{ fontSize: '28px', fontWeight: 900 }}>{item.title}</div>
+            <div
+              style={{
+                whiteSpace: 'pre-wrap',
+                lineHeight: 1.8,
+                fontSize: '17px',
+                fontWeight: 800,
+                color: '#374151',
+                borderRadius: '16px',
+                backgroundColor: hideMeaning ? '#f3f4f6' : '#f8fafc',
+                padding: '14px',
+              }}
+            >
+              {hideMeaning ? '내용 가림' : (item.lines ?? []).join('\n')}
             </div>
           </>
         ) : item.type === 'note' ? (

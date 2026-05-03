@@ -1,4 +1,12 @@
-export type VocaItemType = 'word' | 'phrase' | 'note' | 'misc';
+export type VocaItemType =
+  | 'word'
+  | 'phrase'
+  | 'note'
+  | 'misc'
+  | 'blank'
+  | 'grammar'
+  | 'pattern'
+  | 'group';
 export type VocaCourse = '600' | '800';
 export type VocaTrack = 'A' | 'B';
 export type VocaVersion = 'ver.1' | 'ver.2' | 'ver.3';
@@ -18,8 +26,12 @@ export type VocaItem = {
   id: string;
   type: VocaItemType;
   term?: string;
+  prompt?: string;
   pos?: string;
   meaning?: string;
+  answer?: string;
+  answers?: string[];
+  answerText?: string;
   title?: string;
   lines?: string[];
   rawText: string;

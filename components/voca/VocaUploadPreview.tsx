@@ -28,18 +28,37 @@ import type {
 } from '@/lib/voca/types';
 
 const TYPE_LABEL: Record<VocaItemType, string> = {
-  word: '단어형',
-  phrase: '표현형',
-  note: '정리형',
-  misc: '보존',
+  word: '단어',
+  phrase: '표현',
+  note: '정리',
+  blank: '빈칸',
+  grammar: '문법',
+  pattern: '패턴',
+  group: '묶음',
+  misc: '기타',
 };
 
 const TYPE_COLOR: Record<VocaItemType, string> = {
   word: '#dbeafe',
   phrase: '#dcfce7',
   note: '#fef3c7',
+  blank: '#ede9fe',
+  grammar: '#ffedd5',
+  pattern: '#cffafe',
+  group: '#fae8ff',
   misc: '#f1f5f9',
 };
+
+const VOCA_ITEM_TYPES: VocaItemType[] = [
+  'word',
+  'phrase',
+  'note',
+  'blank',
+  'grammar',
+  'pattern',
+  'group',
+  'misc',
+];
 
 function countByType(items: VocaItem[], type: VocaItemType) {
   return items.filter((item) => item.type === type).length;
@@ -67,6 +86,10 @@ export default function VocaUploadPreview() {
       word: countByType(items, 'word'),
       phrase: countByType(items, 'phrase'),
       note: countByType(items, 'note'),
+      blank: countByType(items, 'blank'),
+      grammar: countByType(items, 'grammar'),
+      pattern: countByType(items, 'pattern'),
+      group: countByType(items, 'group'),
       misc: countByType(items, 'misc'),
     };
   }, [vocaSet]);
@@ -480,7 +503,8 @@ export default function VocaUploadPreview() {
             </div>
             <div style={{ marginTop: '8px', color: '#475569', fontWeight: 900 }}>
               전체 {counts.all}개 · 단어 {counts.word}개 · 표현 {counts.phrase}개 · 정리{' '}
-              {counts.note}개 · 기타 {counts.misc}개
+              {counts.note}개 · 빈칸 {counts.blank}개 · 문법 {counts.grammar}개 · 패턴{' '}
+              {counts.pattern}개 · 묶음 {counts.group}개 · 기타 {counts.misc}개
             </div>
           </div>
 
@@ -491,7 +515,7 @@ export default function VocaUploadPreview() {
               gap: '10px',
             }}
           >
-            {(['word', 'phrase', 'note', 'misc'] as VocaItemType[]).map((type) => (
+            {VOCA_ITEM_TYPES.map((type) => (
               <div
                 key={type}
                 style={{
@@ -534,7 +558,7 @@ export default function VocaUploadPreview() {
                   {TYPE_LABEL[item.type]}
                 </div>
 
-                {item.type === 'word' || item.type === 'phrase' ? (
+                {item.type === 'word' || item.type === 'phrase' || item.type === 'pattern' ? (
                   <div style={{ display: 'grid', gap: '7px' }}>
                     <div style={{ fontSize: '22px', fontWeight: 900, color: '#111827' }}>
                       {item.term}
@@ -542,6 +566,31 @@ export default function VocaUploadPreview() {
                     <div style={{ color: '#475569', fontWeight: 800 }}>
                       {item.pos ? `(${item.pos}) ` : ''}
                       {item.meaning}
+                    </div>
+                  </div>
+                ) : item.type === 'blank' ? (
+                  <div style={{ display: 'grid', gap: '7px' }}>
+                    <div style={{ fontSize: '22px', fontWeight: 900, color: '#111827' }}>
+                      {item.prompt}
+                    </div>
+                    <div style={{ color: '#475569', fontWeight: 800 }}>{item.answer}</div>
+                  </div>
+                ) : item.type === 'grammar' ? (
+                  <div style={{ display: 'grid', gap: '8px' }}>
+                    <div style={{ fontSize: '18px', fontWeight: 900, color: '#111827' }}>
+                      {item.prompt}
+                    </div>
+                    <div style={{ color: '#475569', fontWeight: 800 }}>
+                      정답: {(item.answers ?? []).join(' / ')}
+                    </div>
+                  </div>
+                ) : item.type === 'group' ? (
+                  <div style={{ display: 'grid', gap: '8px' }}>
+                    <div style={{ fontSize: '20px', fontWeight: 900, color: '#111827' }}>
+                      {item.title}
+                    </div>
+                    <div style={{ color: '#374151', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
+                      {(item.lines ?? []).join('\n')}
                     </div>
                   </div>
                 ) : item.type === 'note' ? (
