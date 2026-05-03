@@ -6,13 +6,13 @@ import { createVocaSetFromRawText, extractTextFromDocx } from '@/lib/voca/parseV
 import {
   deleteVocaSet,
   deleteRemoteVocaSet,
-  fetchRemoteVocaSets,
   getVocaSets,
   getVersionsForCourse,
   makeVocaSetId,
   makeVocaDisplayTitle,
   saveRemoteVocaSet,
   saveVocaSet,
+  syncLocalVocaSetsToRemote,
   VOCA_COURSES,
   VOCA_DAYS,
   VOCA_TRACKS,
@@ -73,8 +73,8 @@ export default function VocaUploadPreview() {
 
   async function refreshSavedSets() {
     try {
-      const remoteSets = await fetchRemoteVocaSets();
-      setSavedSets(remoteSets);
+      const syncedSets = await syncLocalVocaSetsToRemote();
+      setSavedSets(syncedSets);
     } catch (error) {
       console.error(error);
       setSavedSets(getVocaSets());

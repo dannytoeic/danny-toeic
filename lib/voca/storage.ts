@@ -206,6 +206,20 @@ export async function deleteRemoteVocaSet(id: string): Promise<VocaSet[]> {
   return Array.isArray(result.sets) ? result.sets.map(normalizeStoredSet) : [];
 }
 
+export async function syncLocalVocaSetsToRemote(): Promise<VocaSet[]> {
+  const localSets = getVocaSets();
+  let remoteSets = await fetchRemoteVocaSets();
+
+  for (const localSet of localSets) {
+    const alreadyRemote = remoteSets.some((remoteSet) => remoteSet.id === localSet.id);
+    if (!alreadyRemote) {
+      remoteSets = await saveRemoteVocaSet(localSet);
+    }
+  }
+
+  return remoteSets;
+}
+
 export function getVocaSetById(id: string): VocaSet | null {
   if (typeof window === 'undefined') return null;
   const set = safeParse<VocaSet>(localStorage.getItem(makeSetStorageKey(id)));
