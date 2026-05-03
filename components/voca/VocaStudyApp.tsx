@@ -120,13 +120,29 @@ function inferCourse(student?: LoggedInStudentLike | null): VocaCourse | '' {
 }
 
 function inferTrack(student?: LoggedInStudentLike | null): VocaTrack | '' {
-  const values = [student?.vocaTrack, student?.track, student?.classGroup]
+  const values = [
+    student?.vocaTrack,
+    student?.track,
+    student?.classGroup,
+    student?.classKey,
+    ...(student?.classKeys ?? []),
+  ]
     .filter(Boolean)
     .join(' ')
     .toUpperCase();
 
-  if (/\bA\b|A진도/.test(values)) return 'A';
-  if (/\bB\b|B진도/.test(values)) return 'B';
+  if (/\bA\b|A진도|A반/.test(values)) return 'A';
+  if (/\bB\b|B진도|B반/.test(values)) return 'B';
+
+  const classKeys = [student?.classKey, ...(student?.classKeys ?? [])]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => value.toLowerCase());
+  const hasMonWed = classKeys.some((value) => value.includes('monwed'));
+  const hasTuThu = classKeys.some((value) => value.includes('tuthu'));
+
+  if (hasMonWed && !hasTuThu) return 'A';
+  if (hasTuThu && !hasMonWed) return 'B';
+
   return '';
 }
 
@@ -190,6 +206,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
   }, [inferredCourse, inferredTrack, student]);
 
   const allowedCourses = inferredCourse ? [inferredCourse] : VOCA_COURSES;
+  const allowedTracks = inferredTrack ? [inferredTrack] : VOCA_TRACKS;
   const availableVersions = getVersionsForCourse(course);
 
   const scopedSets = useMemo(() => {
@@ -605,8 +622,13 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               ))}
             </select>
 
-            <select value={track} onChange={(e) => chooseTrack(e.target.value as VocaTrack)} style={selectStyle}>
-              {VOCA_TRACKS.map((option) => (
+            <select
+              value={track}
+              onChange={(e) => chooseTrack(e.target.value as VocaTrack)}
+              style={selectStyle}
+              disabled={Boolean(inferredTrack)}
+            >
+              {allowedTracks.map((option) => (
                 <option key={option} value={option}>
                   {option}진도
                 </option>
