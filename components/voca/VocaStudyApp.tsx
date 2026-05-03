@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   getVersionsForCourse,
+  fetchRemoteVocaSets,
   getVocaSets,
   loadVocaProgress,
   sampleVocaSet,
@@ -101,26 +102,37 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
 
   useEffect(() => {
     window.setTimeout(() => {
-      const loadedSets = getVocaSets();
-      const nextCourse = inferredCourse || '800';
-      const nextTrack = inferredTrack || 'A';
-      const nextVersion = inferVersion(student, nextCourse);
+      async function loadSets() {
+        const nextCourse = inferredCourse || '800';
+        const nextTrack = inferredTrack || 'A';
+        const nextVersion = inferVersion(student, nextCourse);
+        let loadedSets: VocaSet[] = [];
 
-      setAllSets(loadedSets);
-      setCourse(nextCourse);
-      setTrack(nextTrack);
-      setVersion(nextVersion);
+        try {
+          loadedSets = await fetchRemoteVocaSets();
+        } catch (error) {
+          console.error(error);
+          loadedSets = getVocaSets();
+        }
 
-      const firstMatchingSet = loadedSets.find(
-        (set) =>
-          set.course === nextCourse &&
-          set.track === nextTrack &&
-          set.version === nextVersion
-      );
+        setAllSets(loadedSets);
+        setCourse(nextCourse);
+        setTrack(nextTrack);
+        setVersion(nextVersion);
 
-      const nextSet = firstMatchingSet ?? sampleVocaSet;
-      setSelectedSetId(firstMatchingSet?.id ?? '');
-      setProgress(loadVocaProgress(nextSet.id));
+        const firstMatchingSet = loadedSets.find(
+          (set) =>
+            set.course === nextCourse &&
+            set.track === nextTrack &&
+            set.version === nextVersion
+        );
+
+        const nextSet = firstMatchingSet ?? sampleVocaSet;
+        setSelectedSetId(firstMatchingSet?.id ?? '');
+        setProgress(loadVocaProgress(nextSet.id));
+      }
+
+      loadSets();
     }, 0);
   }, [inferredCourse, inferredTrack, student]);
 

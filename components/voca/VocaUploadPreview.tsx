@@ -5,10 +5,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { createVocaSetFromRawText, extractTextFromDocx } from '@/lib/voca/parseVocaDocx';
 import {
   deleteVocaSet,
+  deleteRemoteVocaSet,
+  fetchRemoteVocaSets,
   getVocaSets,
   getVersionsForCourse,
   makeVocaSetId,
   makeVocaDisplayTitle,
+  saveRemoteVocaSet,
   saveVocaSet,
   VOCA_COURSES,
   VOCA_DAYS,
@@ -68,12 +71,21 @@ export default function VocaUploadPreview() {
     };
   }, [vocaSet]);
 
-  function refreshSavedSets() {
-    setSavedSets(getVocaSets());
+  async function refreshSavedSets() {
+    try {
+      const remoteSets = await fetchRemoteVocaSets();
+      setSavedSets(remoteSets);
+    } catch (error) {
+      console.error(error);
+      setSavedSets(getVocaSets());
+      setMessage('서버 저장 목록을 불러오지 못해 이 브라우저의 임시 저장 목록을 표시합니다.');
+    }
   }
 
   useEffect(() => {
-    window.setTimeout(refreshSavedSets, 0);
+    window.setTimeout(() => {
+      refreshSavedSets();
+    }, 0);
   }, []);
 
   function buildSetFromText(text: string) {
@@ -122,7 +134,7 @@ export default function VocaUploadPreview() {
     setMessage('입력된 텍스트를 다시 분석했습니다.');
   }
 
-  function handleSavePrototype() {
+  async function handleSavePrototype() {
     if (!vocaSet) {
       setMessage('먼저 .docx를 업로드하거나 원문 텍스트를 입력해 주세요.');
       return;
@@ -139,11 +151,21 @@ export default function VocaUploadPreview() {
       day,
     };
 
-    saveVocaSet(nextSet);
-    setVocaSet(nextSet);
-    setSavedSetId(nextSet.id);
-    refreshSavedSets();
-    setMessage(`${displayTitle} 세트를 이 브라우저에 저장했습니다.`);
+    try {
+      const remoteSets = await saveRemoteVocaSet(nextSet);
+      saveVocaSet(nextSet);
+      setVocaSet(nextSet);
+      setSavedSetId(nextSet.id);
+      setSavedSets(remoteSets);
+      setMessage(`${displayTitle} 세트를 서버에 저장했습니다. 이제 모바일에서도 보입니다.`);
+    } catch (error) {
+      console.error(error);
+      saveVocaSet(nextSet);
+      setVocaSet(nextSet);
+      setSavedSetId(nextSet.id);
+      await refreshSavedSets();
+      setMessage(`${displayTitle} 세트를 이 브라우저에만 임시 저장했습니다.`);
+    }
   }
 
   function handleLoadSavedSet(set: VocaSet) {
@@ -157,12 +179,19 @@ export default function VocaUploadPreview() {
     setMessage(`${set.displayTitle || set.title} 세트를 불러왔습니다.`);
   }
 
-  function handleDeleteSavedSet(id: string) {
+  async function handleDeleteSavedSet(id: string) {
     const ok = window.confirm('이 Danny Voca 세트를 삭제하시겠습니까?');
     if (!ok) return;
 
-    deleteVocaSet(id);
-    refreshSavedSets();
+    try {
+      const remoteSets = await deleteRemoteVocaSet(id);
+      deleteVocaSet(id);
+      setSavedSets(remoteSets);
+    } catch (error) {
+      console.error(error);
+      deleteVocaSet(id);
+      await refreshSavedSets();
+    }
 
     if (savedSetId === id) {
       setSavedSetId('');
@@ -344,7 +373,7 @@ export default function VocaUploadPreview() {
             저장된 Danny Voca 세트
           </div>
           <div style={{ marginTop: '6px', color: '#64748b', fontWeight: 800 }}>
-            이 브라우저에 저장된 시제품 목록입니다.
+            PC와 모바일이 함께 보는 서버 저장 목록입니다.
           </div>
         </div>
 

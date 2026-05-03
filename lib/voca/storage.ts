@@ -167,6 +167,45 @@ export function getVocaSets(): VocaSet[] {
   });
 }
 
+export async function fetchRemoteVocaSets(): Promise<VocaSet[]> {
+  const response = await fetch('/api/voca-sets', { cache: 'no-store' });
+  const result = await response.json();
+
+  if (!response.ok || !result?.success) {
+    throw new Error(result?.message ?? 'Danny Voca 세트를 불러오지 못했습니다.');
+  }
+
+  return Array.isArray(result.sets) ? result.sets.map(normalizeStoredSet) : [];
+}
+
+export async function saveRemoteVocaSet(set: VocaSet): Promise<VocaSet[]> {
+  const response = await fetch('/api/voca-sets', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ set }),
+  });
+  const result = await response.json();
+
+  if (!response.ok || !result?.success) {
+    throw new Error(result?.message ?? 'Danny Voca 세트를 저장하지 못했습니다.');
+  }
+
+  return Array.isArray(result.sets) ? result.sets.map(normalizeStoredSet) : [];
+}
+
+export async function deleteRemoteVocaSet(id: string): Promise<VocaSet[]> {
+  const response = await fetch(`/api/voca-sets?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+  const result = await response.json();
+
+  if (!response.ok || !result?.success) {
+    throw new Error(result?.message ?? 'Danny Voca 세트를 삭제하지 못했습니다.');
+  }
+
+  return Array.isArray(result.sets) ? result.sets.map(normalizeStoredSet) : [];
+}
+
 export function getVocaSetById(id: string): VocaSet | null {
   if (typeof window === 'undefined') return null;
   const set = safeParse<VocaSet>(localStorage.getItem(makeSetStorageKey(id)));
