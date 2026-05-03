@@ -107,8 +107,10 @@ export default function StudentHomePage() {
 
     try {
       const parsed = JSON.parse(savedStudent) as LoggedInStudent;
-      setStudent(parsed);
-      setIsChecking(false);
+      window.setTimeout(() => {
+        setStudent(parsed);
+        setIsChecking(false);
+      }, 0);
     } catch (error) {
       console.error(error);
       localStorage.removeItem('loggedInStudent');

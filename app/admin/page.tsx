@@ -30,6 +30,12 @@ const PRIMARY_ITEMS: MenuItem[] = [
     description: '월별 시간표 표와 오른쪽 메모를 관리합니다.',
     href: '/admin/monthly-timetable',
   },
+  {
+    title: 'Danny Voca 관리',
+    description: 'Word 단어시험지를 업로드해 단어암기 카드 시제품으로 변환합니다.',
+    href: '/admin/danny-voca',
+    badge: '신규',
+  },
 ];
 
 const SECONDARY_ITEMS: MenuItem[] = [

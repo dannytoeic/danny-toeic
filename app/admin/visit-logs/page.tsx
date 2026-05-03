@@ -43,6 +43,8 @@ const classLabelMap: Record<string, string> = {
   '800-tuthu': '800 화목반',
 };
 
+const renderTime = Date.now();
+
 function formatDate(value: string) {
   if (!value) return '-';
 
@@ -69,7 +71,7 @@ export default function AdminVisitLogsPage() {
       return;
     }
 
-    setIsChecking(false);
+    window.setTimeout(() => setIsChecking(false), 0);
   }, [router]);
 
   useEffect(() => {
@@ -158,8 +160,7 @@ export default function AdminVisitLogsPage() {
     if (!row.latestVisitedAt) return false;
 
     const latestTime = new Date(row.latestVisitedAt).getTime();
-    const nowTime = Date.now();
-    const diffDays = (nowTime - latestTime) / (1000 * 60 * 60 * 24);
+    const diffDays = (renderTime - latestTime) / (1000 * 60 * 60 * 24);
 
     return diffDays >= 3;
   });

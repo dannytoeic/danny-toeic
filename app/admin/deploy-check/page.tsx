@@ -35,7 +35,7 @@ export default function AdminDeployCheckPage() {
       return;
     }
 
-    setIsChecking(false);
+    window.setTimeout(() => setIsChecking(false), 0);
   }, [router]);
 
   if (isChecking) {

@@ -3,12 +3,6 @@ import { supabaseAdmin } from '../../../lib/supabase-admin';
 
 type ClassKey = '600-monwed' | '600-tuthu' | '800-monwed' | '800-tuthu';
 
-type ClassUpdateRow = {
-  class_key: ClassKey;
-  global_notice_text: string | null;
-  cards: unknown[] | null;
-};
-
 type ClassUpdateResult = Record<
   ClassKey,
   {
