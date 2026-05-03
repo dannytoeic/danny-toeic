@@ -27,7 +27,13 @@ export const VOCA_DAYS: VocaDay[] = [
 ];
 
 export function getVersionsForCourse(course: VocaCourse): VocaVersion[] {
-  return course === '600' ? ['ver.1', 'ver.2'] : ['ver.1', 'ver.2', 'ver.3'];
+  return course === '600' ? ['ver.2', 'ver.1'] : ['ver.2', 'ver.1', 'ver.3'];
+}
+
+function getVersionSortIndex(version: VocaVersion) {
+  const versionOrder: VocaVersion[] = ['ver.2', 'ver.1', 'ver.3'];
+  const index = versionOrder.indexOf(version);
+  return index === -1 ? versionOrder.length : index;
 }
 
 export function makeVocaSetId(
@@ -161,7 +167,7 @@ export function getVocaSets(): VocaSet[] {
     if (courseOrder !== 0) return courseOrder;
     const trackOrder = a.track.localeCompare(b.track);
     if (trackOrder !== 0) return trackOrder;
-    const versionOrder = a.version.localeCompare(b.version);
+    const versionOrder = getVersionSortIndex(a.version) - getVersionSortIndex(b.version);
     if (versionOrder !== 0) return versionOrder;
     return Number(a.day.replace(/\D/g, '')) - Number(b.day.replace(/\D/g, ''));
   });
