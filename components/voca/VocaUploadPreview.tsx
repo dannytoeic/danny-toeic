@@ -39,14 +39,14 @@ const TYPE_LABEL: Record<VocaItemType, string> = {
 };
 
 const TYPE_COLOR: Record<VocaItemType, string> = {
-  word: '#dbeafe',
-  phrase: '#dcfce7',
-  note: '#fef3c7',
-  blank: '#ede9fe',
-  grammar: '#ffedd5',
-  pattern: '#cffafe',
-  group: '#fae8ff',
-  misc: '#f1f5f9',
+  word: '#e5eef9',
+  phrase: '#e5f0eb',
+  note: '#f2ede4',
+  blank: '#ece7f6',
+  grammar: '#f2eadf',
+  pattern: '#e2f0f2',
+  group: '#f0e8ef',
+  misc: '#eef0f3',
 };
 
 const VOCA_ITEM_TYPES: VocaItemType[] = [
@@ -67,7 +67,7 @@ function countByType(items: VocaItem[], type: VocaItemType) {
 export default function VocaUploadPreview() {
   const [course, setCourse] = useState<VocaCourse>('800');
   const [track, setTrack] = useState<VocaTrack>('A');
-  const [version, setVersion] = useState<VocaVersion>('ver.1');
+  const [version, setVersion] = useState<VocaVersion>(getVersionsForCourse('800')[0]);
   const [day, setDay] = useState<VocaDay>('Day 1');
   const [rawText, setRawText] = useState('');
   const [vocaSet, setVocaSet] = useState<VocaSet | null>(null);
@@ -295,7 +295,7 @@ export default function VocaUploadPreview() {
           >
             {availableVersions.map((option) => (
               <option key={option} value={option}>
-                {option}
+                {option === '통합' ? '통합본' : option}
               </option>
             ))}
           </select>

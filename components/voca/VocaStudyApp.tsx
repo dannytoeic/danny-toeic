@@ -55,14 +55,14 @@ const TYPE_LABEL: Record<VocaItemType, string> = {
 };
 
 const TYPE_COLOR: Record<VocaItemType, string> = {
-  word: '#dbeafe',
-  phrase: '#dcfce7',
-  note: '#fef3c7',
-  misc: '#f1f5f9',
-  blank: '#ede9fe',
-  grammar: '#ffedd5',
-  pattern: '#cffafe',
-  group: '#fae8ff',
+  word: '#e5eef9',
+  phrase: '#e5f0eb',
+  note: '#f2ede4',
+  misc: '#eef0f3',
+  blank: '#ece7f6',
+  grammar: '#f2eadf',
+  pattern: '#e2f0f2',
+  group: '#f0e8ef',
 };
 
 function getSpeakText(item: VocaItem) {
@@ -262,7 +262,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
 
   const pageStyle: React.CSSProperties = {
     minHeight: '100vh',
-    backgroundColor: '#fff8ed',
+    backgroundColor: '#f3f0ea',
     fontFamily: 'Arial, sans-serif',
     color: '#111827',
     padding: '18px 12px 42px',
@@ -276,18 +276,18 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
   };
 
   const panelStyle: React.CSSProperties = {
-    backgroundColor: '#ffffff',
-    border: '1px solid #eadfce',
-    borderRadius: '20px',
+    backgroundColor: '#fffefa',
+    border: '1px solid #ded6ca',
+    borderRadius: '18px',
     padding: '18px',
-    boxShadow: '0 8px 22px rgba(120, 83, 45, 0.08)',
+    boxShadow: '0 14px 34px rgba(17, 24, 39, 0.08)',
   };
 
   const bigButtonStyle: React.CSSProperties = {
     minHeight: '48px',
     borderRadius: '14px',
-    border: '1px solid #d6d3d1',
-    backgroundColor: '#ffffff',
+    border: '1px solid #cfc8bd',
+    backgroundColor: '#fffefa',
     color: '#111827',
     fontSize: '15px',
     fontWeight: 900,
@@ -304,7 +304,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
   function renderItem(item: VocaItem, compact = false) {
     const status = progress[item.id];
     const statusColor =
-      status === 'known' ? '#dcfce7' : status === 'unknown' ? '#fee2e2' : '#fef3c7';
+      status === 'known' ? '#dcefe5' : status === 'unknown' ? '#f1dddd' : '#f1e8d4';
 
     return (
       <article
@@ -313,7 +313,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           ...panelStyle,
           display: 'grid',
           gap: '13px',
-          backgroundColor: item.type === 'note' ? '#fff7d6' : '#ffffff',
+          backgroundColor: item.type === 'note' ? '#fbf6ea' : '#fffefa',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
@@ -382,7 +382,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               style={{
                 minHeight: '54px',
                 borderRadius: '16px',
-                backgroundColor: hideMeaning ? '#f3f4f6' : '#f8fafc',
+                backgroundColor: hideMeaning ? '#e8eaed' : '#f6f4ef',
                 color: '#1f2937',
                 padding: '14px',
                 fontSize: '20px',
@@ -430,7 +430,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               style={{
                 minHeight: '54px',
                 borderRadius: '16px',
-                backgroundColor: hideMeaning ? '#f3f4f6' : '#f8fafc',
+                backgroundColor: hideMeaning ? '#e8eaed' : '#f6f4ef',
                 color: '#1f2937',
                 padding: '14px',
                 fontSize: '20px',
@@ -449,7 +449,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
             <div
               style={{
                 borderRadius: '16px',
-                backgroundColor: '#f8fafc',
+                backgroundColor: '#f6f4ef',
                 color: '#1f2937',
                 padding: '14px',
                 fontSize: '18px',
@@ -471,7 +471,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                 fontWeight: 800,
                 color: '#374151',
                 borderRadius: '16px',
-                backgroundColor: hideMeaning ? '#f3f4f6' : '#f8fafc',
+                backgroundColor: hideMeaning ? '#e8eaed' : '#f6f4ef',
                 padding: '14px',
               }}
             >
@@ -513,10 +513,10 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                 ...bigButtonStyle,
                 backgroundColor:
                   statusKey === 'known'
-                    ? '#dcfce7'
+                    ? '#dcefe5'
                     : statusKey === 'unknown'
-                    ? '#fee2e2'
-                    : '#fef3c7',
+                    ? '#f1dddd'
+                    : '#f1e8d4',
               }}
             >
               {STATUS_LABEL[statusKey]}
@@ -530,7 +530,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
   return (
     <main style={pageStyle}>
       <div style={shellStyle}>
-        <header style={{ ...panelStyle, backgroundColor: '#fffef9' }}>
+        <header style={{ ...panelStyle, backgroundColor: '#111827', borderColor: '#273244' }}>
           <Link
             href="/student"
             style={{
@@ -539,8 +539,8 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               marginBottom: '14px',
               padding: '10px 13px',
               borderRadius: '12px',
-              border: '1px solid #e7d8c3',
-              backgroundColor: '#ffffff',
+              border: '1px solid #374151',
+              backgroundColor: '#f8fafc',
               color: '#1f2937',
               textDecoration: 'none',
               fontSize: '14px',
@@ -549,13 +549,13 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           >
             ← 학생 메인으로
           </Link>
-          <div style={{ color: '#92400e', fontSize: '14px', fontWeight: 900, marginBottom: '8px' }}>
+          <div style={{ color: '#d6c7ad', fontSize: '14px', fontWeight: 900, marginBottom: '8px' }}>
             Danny TOEIC Student Page
           </div>
-          <h1 style={{ margin: 0, fontSize: '34px', lineHeight: 1.15, fontWeight: 900 }}>
+          <h1 style={{ margin: 0, color: '#f8fafc', fontSize: '34px', lineHeight: 1.15, fontWeight: 900 }}>
             Danny Voca 단어암기
           </h1>
-          <p style={{ margin: '10px 0 0', color: '#57534e', lineHeight: 1.65, fontWeight: 800 }}>
+          <p style={{ margin: '10px 0 0', color: '#d1d5db', lineHeight: 1.65, fontWeight: 800 }}>
             {vocaSet.displayTitle || vocaSet.title}
           </p>
         </header>
@@ -595,11 +595,11 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               onChange={(e) => chooseVersion(e.target.value as VocaVersion)}
               style={selectStyle}
             >
-              {availableVersions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
+            {availableVersions.map((option) => (
+              <option key={option} value={option}>
+                  {option === '통합' ? '통합본' : option}
+              </option>
+            ))}
             </select>
 
             <div
@@ -607,7 +607,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                 ...bigButtonStyle,
                 display: 'flex',
                 alignItems: 'center',
-                backgroundColor: '#fef3c7',
+                backgroundColor: '#f1e8d4',
               }}
             >
               {scopedSets.length > 0 ? `${scopedSets.length}개 Day` : '업로드 없음'}
@@ -624,7 +624,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                   style={{
                     ...bigButtonStyle,
                     textAlign: 'left',
-                    backgroundColor: vocaSet.id === set.id ? '#dbeafe' : '#ffffff',
+                    backgroundColor: vocaSet.id === set.id ? '#e5eef9' : '#fffefa',
                   }}
                 >
                   {set.displayTitle || set.title}
@@ -677,7 +677,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           <button
             onClick={() => setHideMeaning((prev) => !prev)}
             type="button"
-            style={{ ...bigButtonStyle, backgroundColor: hideMeaning ? '#dbeafe' : '#ffffff' }}
+            style={{ ...bigButtonStyle, backgroundColor: hideMeaning ? '#e5eef9' : '#fffefa' }}
           >
             뜻 가리고 보기
           </button>
@@ -687,7 +687,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               setCurrentIndex(0);
             }}
             type="button"
-            style={{ ...bigButtonStyle, backgroundColor: cardMode ? '#dbeafe' : '#ffffff' }}
+            style={{ ...bigButtonStyle, backgroundColor: cardMode ? '#e5eef9' : '#fffefa' }}
           >
             카드 넘기기
           </button>
@@ -697,7 +697,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               setCurrentIndex(0);
             }}
             type="button"
-            style={{ ...bigButtonStyle, backgroundColor: reviewOnly ? '#fef3c7' : '#ffffff' }}
+            style={{ ...bigButtonStyle, backgroundColor: reviewOnly ? '#f1e8d4' : '#fffefa' }}
           >
             헷갈린 것만
           </button>

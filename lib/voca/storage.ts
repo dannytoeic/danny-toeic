@@ -27,11 +27,15 @@ export const VOCA_DAYS: VocaDay[] = [
 ];
 
 export function getVersionsForCourse(course: VocaCourse): VocaVersion[] {
-  return course === '600' ? ['ver.2', 'ver.1'] : ['ver.2', 'ver.1', 'ver.3'];
+  return course === '600' ? ['통합'] : ['ver.2', 'ver.1', 'ver.3'];
+}
+
+function normalizeVersionForCourse(course: VocaCourse, version: VocaVersion): VocaVersion {
+  return course === '600' ? '통합' : version;
 }
 
 function getVersionSortIndex(version: VocaVersion) {
-  const versionOrder: VocaVersion[] = ['ver.2', 'ver.1', 'ver.3'];
+  const versionOrder: VocaVersion[] = ['통합', 'ver.2', 'ver.1', 'ver.3'];
   const index = versionOrder.indexOf(version);
   return index === -1 ? versionOrder.length : index;
 }
@@ -42,7 +46,9 @@ export function makeVocaSetId(
   version: VocaVersion,
   day: VocaDay
 ) {
-  return `danny-voca-set-${course}-${track}-${version}-${day.replace(/\s+/g, '')}`;
+  const normalizedVersion = normalizeVersionForCourse(course, version);
+  const versionKey = normalizedVersion === '통합' ? 'unified' : normalizedVersion;
+  return `danny-voca-set-${course}-${track}-${versionKey}-${day.replace(/\s+/g, '')}`;
 }
 
 export function makeVocaDisplayTitle(
@@ -51,7 +57,10 @@ export function makeVocaDisplayTitle(
   version: VocaVersion,
   day: VocaDay
 ) {
-  return `${course}반 ${track} ${version} ${day}`;
+  const normalizedVersion = normalizeVersionForCourse(course, version);
+  return normalizedVersion === '통합'
+    ? `${course}반 ${track} ${day}`
+    : `${course}반 ${track} ${normalizedVersion} ${day}`;
 }
 
 function makeSetStorageKey(id: string) {
@@ -128,24 +137,51 @@ function saveSetIds(ids: string[]) {
 }
 
 function normalizeStoredSet(raw: VocaSet): VocaSet {
+  const version = normalizeVersionForCourse(raw.course, raw.version);
+
   return {
     ...raw,
-    id: raw.id || makeVocaSetId(raw.course, raw.track, raw.version, raw.day),
-    title: raw.title || makeVocaDisplayTitle(raw.course, raw.track, raw.version, raw.day),
-    displayTitle:
-      raw.displayTitle || makeVocaDisplayTitle(raw.course, raw.track, raw.version, raw.day),
+    version,
+    id: makeVocaSetId(raw.course, raw.track, version, raw.day),
+    title: makeVocaDisplayTitle(raw.course, raw.track, version, raw.day),
+    displayTitle: makeVocaDisplayTitle(raw.course, raw.track, version, raw.day),
   };
+}
+
+function sortVocaSets(sets: VocaSet[]) {
+  return sets.sort((a, b) => {
+    const courseOrder = a.course.localeCompare(b.course);
+    if (courseOrder !== 0) return courseOrder;
+    const trackOrder = a.track.localeCompare(b.track);
+    if (trackOrder !== 0) return trackOrder;
+    const versionOrder = getVersionSortIndex(a.version) - getVersionSortIndex(b.version);
+    if (versionOrder !== 0) return versionOrder;
+    return Number(a.day.replace(/\D/g, '')) - Number(b.day.replace(/\D/g, ''));
+  });
+}
+
+function normalizeAndDedupeSets(sets: VocaSet[]) {
+  const byId = new Map<string, VocaSet>();
+
+  for (const set of sets) {
+    const normalized = normalizeStoredSet(set);
+    byId.set(normalized.id, normalized);
+  }
+
+  return sortVocaSets(Array.from(byId.values()));
 }
 
 export function saveVocaSet(set: VocaSet) {
   if (typeof window === 'undefined') return;
 
-  const id = makeVocaSetId(set.course, set.track, set.version, set.day);
+  const version = normalizeVersionForCourse(set.course, set.version);
+  const id = makeVocaSetId(set.course, set.track, version, set.day);
   const normalized = normalizeStoredSet({
     ...set,
+    version,
     id,
-    title: set.title || makeVocaDisplayTitle(set.course, set.track, set.version, set.day),
-    displayTitle: makeVocaDisplayTitle(set.course, set.track, set.version, set.day),
+    title: makeVocaDisplayTitle(set.course, set.track, version, set.day),
+    displayTitle: makeVocaDisplayTitle(set.course, set.track, version, set.day),
   });
   const ids = loadSetIds();
 
@@ -162,15 +198,7 @@ export function getVocaSets(): VocaSet[] {
     .filter((set): set is VocaSet => Boolean(set))
     .map(normalizeStoredSet);
 
-  return sets.sort((a, b) => {
-    const courseOrder = a.course.localeCompare(b.course);
-    if (courseOrder !== 0) return courseOrder;
-    const trackOrder = a.track.localeCompare(b.track);
-    if (trackOrder !== 0) return trackOrder;
-    const versionOrder = getVersionSortIndex(a.version) - getVersionSortIndex(b.version);
-    if (versionOrder !== 0) return versionOrder;
-    return Number(a.day.replace(/\D/g, '')) - Number(b.day.replace(/\D/g, ''));
-  });
+  return normalizeAndDedupeSets(sets);
 }
 
 export async function fetchRemoteVocaSets(): Promise<VocaSet[]> {
@@ -181,14 +209,15 @@ export async function fetchRemoteVocaSets(): Promise<VocaSet[]> {
     throw new Error(result?.message ?? 'Danny Voca 세트를 불러오지 못했습니다.');
   }
 
-  return Array.isArray(result.sets) ? result.sets.map(normalizeStoredSet) : [];
+  return Array.isArray(result.sets) ? normalizeAndDedupeSets(result.sets) : [];
 }
 
 export async function saveRemoteVocaSet(set: VocaSet): Promise<VocaSet[]> {
+  const normalizedSet = normalizeStoredSet(set);
   const response = await fetch('/api/voca-sets', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ set }),
+    body: JSON.stringify({ set: normalizedSet }),
   });
   const result = await response.json();
 
@@ -196,7 +225,7 @@ export async function saveRemoteVocaSet(set: VocaSet): Promise<VocaSet[]> {
     throw new Error(result?.message ?? 'Danny Voca 세트를 저장하지 못했습니다.');
   }
 
-  return Array.isArray(result.sets) ? result.sets.map(normalizeStoredSet) : [];
+  return Array.isArray(result.sets) ? normalizeAndDedupeSets(result.sets) : [];
 }
 
 export async function deleteRemoteVocaSet(id: string): Promise<VocaSet[]> {
@@ -209,7 +238,7 @@ export async function deleteRemoteVocaSet(id: string): Promise<VocaSet[]> {
     throw new Error(result?.message ?? 'Danny Voca 세트를 삭제하지 못했습니다.');
   }
 
-  return Array.isArray(result.sets) ? result.sets.map(normalizeStoredSet) : [];
+  return Array.isArray(result.sets) ? normalizeAndDedupeSets(result.sets) : [];
 }
 
 export async function syncLocalVocaSetsToRemote(): Promise<VocaSet[]> {

@@ -9,7 +9,7 @@ export type VocaItemType =
   | 'group';
 export type VocaCourse = '600' | '800';
 export type VocaTrack = 'A' | 'B';
-export type VocaVersion = 'ver.1' | 'ver.2' | 'ver.3';
+export type VocaVersion = '통합' | 'ver.1' | 'ver.2' | 'ver.3';
 export type VocaDay =
   | 'Day 1'
   | 'Day 2'

@@ -7,13 +7,49 @@ export const dynamic = 'force-dynamic';
 
 const VOCA_NOTICE_KEY = 'danny-voca-sets';
 
+function makeServerSetId(set: VocaSet) {
+  const version = set.course === '600' ? '통합' : set.version;
+  const versionKey = version === '통합' ? 'unified' : version;
+  return `danny-voca-set-${set.course}-${set.track}-${versionKey}-${set.day.replace(/\s+/g, '')}`;
+}
+
+function makeServerDisplayTitle(set: VocaSet) {
+  const version = set.course === '600' ? '통합' : set.version;
+  return version === '통합'
+    ? `${set.course}반 ${set.track} ${set.day}`
+    : `${set.course}반 ${set.track} ${version} ${set.day}`;
+}
+
+function normalizeServerSet(set: VocaSet): VocaSet {
+  const version = set.course === '600' ? '통합' : set.version;
+  const normalized = {
+    ...set,
+    version,
+  };
+
+  return {
+    ...normalized,
+    id: makeServerSetId(normalized),
+    title: makeServerDisplayTitle(normalized),
+    displayTitle: makeServerDisplayTitle(normalized),
+  };
+}
+
 function normalizeSets(raw: unknown): VocaSet[] {
   if (!Array.isArray(raw)) return [];
 
-  return raw.filter((item): item is VocaSet => {
+  const sets = raw.filter((item): item is VocaSet => {
     const set = item as Partial<VocaSet>;
     return Boolean(set?.id && set?.course && set?.track && set?.version && set?.day);
   });
+
+  const byId = new Map<string, VocaSet>();
+  for (const set of sets) {
+    const normalized = normalizeServerSet(set);
+    byId.set(normalized.id, normalized);
+  }
+
+  return Array.from(byId.values());
 }
 
 async function readSets() {
@@ -78,13 +114,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const normalizedSet = normalizeServerSet(set);
     const currentSets = await readSets();
-    const nextSets = [...currentSets.filter((item) => item.id !== set.id), set];
+    const nextSets = [
+      ...currentSets.filter((item) => normalizeServerSet(item).id !== normalizedSet.id),
+      normalizedSet,
+    ];
     await writeSets(nextSets);
 
     return NextResponse.json({
       success: true,
-      set,
+      set: normalizedSet,
       sets: nextSets,
       message: 'Danny Voca set saved.',
     });
@@ -109,7 +149,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const currentSets = await readSets();
-    const nextSets = currentSets.filter((set) => set.id !== id);
+    const nextSets = currentSets.filter((set) => normalizeServerSet(set).id !== id);
     await writeSets(nextSets);
 
     return NextResponse.json({

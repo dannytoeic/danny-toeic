@@ -447,13 +447,15 @@ export function createVocaSetFromRawText(params: {
 }): VocaSet {
   const course = params.course ?? '800';
   const track = params.track ?? 'A';
-  const version = params.version ?? 'ver.1';
+  const version = course === '600' ? '통합' : params.version ?? 'ver.2';
   const day = params.day ?? 'Day 1';
-  const displayTitle = `${course}반 ${track} ${version} ${day}`;
+  const displayTitle =
+    version === '통합' ? `${course}반 ${track} ${day}` : `${course}반 ${track} ${version} ${day}`;
   const title = params.title?.trim() || displayTitle;
+  const versionKey = version === '통합' ? 'unified' : version;
 
   return {
-    id: `danny-voca-set-${course}-${track}-${version}-${day.replace(/\s+/g, '')}`,
+    id: `danny-voca-set-${course}-${track}-${versionKey}-${day.replace(/\s+/g, '')}`,
     title,
     displayTitle,
     course,
