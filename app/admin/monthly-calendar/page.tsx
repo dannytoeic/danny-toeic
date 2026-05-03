@@ -263,6 +263,8 @@ export default function MonthlyCalendarAdminPage() {
     borderRadius: '10px',
     border: '1px solid #cbd5e1',
     backgroundColor: 'white',
+    color: '#111827',
+    caretColor: '#111827',
     fontSize: '14px',
     boxSizing: 'border-box',
   };

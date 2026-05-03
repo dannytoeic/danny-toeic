@@ -139,6 +139,8 @@ export default function MonthlyTimetableAdminPage() {
     boxSizing: 'border-box',
     fontSize: '14px',
     backgroundColor: 'white',
+    color: '#111827',
+    caretColor: '#111827',
   };
 
   const formCardStyle: React.CSSProperties = {

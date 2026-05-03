@@ -71,6 +71,9 @@ export default function AdminNoticesPage() {
     border: '1px solid #cbd5e1',
     fontSize: '15px',
     boxSizing: 'border-box' as const,
+    backgroundColor: '#ffffff',
+    color: '#111827',
+    caretColor: '#111827',
   };
 
   if (isChecking) {

@@ -99,6 +99,18 @@ export default function AdminShell({
           width: 100%;
         }
 
+        .admin-shell-content :global(input),
+        .admin-shell-content :global(textarea) {
+          color: #111827;
+          caret-color: #111827;
+        }
+
+        .admin-shell-content :global(input::placeholder),
+        .admin-shell-content :global(textarea::placeholder) {
+          color: #64748b;
+          opacity: 1;
+        }
+
         @media (max-width: 768px) {
           .admin-shell-root {
             padding: 16px 12px 28px;
@@ -137,6 +149,20 @@ export default function AdminShell({
           .admin-shell-content :global(button) {
             font-size: 16px;
           }
+        }
+      `}</style>
+      <style jsx global>{`
+        .admin-shell-content input,
+        .admin-shell-content textarea,
+        .admin-shell-content select {
+          color: #111827 !important;
+          caret-color: #111827;
+        }
+
+        .admin-shell-content input::placeholder,
+        .admin-shell-content textarea::placeholder {
+          color: #475569 !important;
+          opacity: 1;
         }
       `}</style>
     </main>
