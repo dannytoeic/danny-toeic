@@ -419,31 +419,6 @@ export default function StudentClassPage({
     textAlign: 'center',
   };
 
-  const fixedVocaButtonStyle: React.CSSProperties = {
-    position: 'sticky',
-    top: isMobile ? '10px' : '16px',
-    zIndex: 50,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    maxWidth: '100%',
-    minHeight: isMobile ? '56px' : '54px',
-    marginBottom: isMobile ? '14px' : '18px',
-    padding: isMobile ? '15px 16px' : '14px 18px',
-    borderRadius: isMobile ? '16px' : '18px',
-    backgroundColor: '#f4e7d7',
-    color: '#1a1411',
-    border: '2px solid #e2c7aa',
-    boxShadow: '0 12px 28px rgba(0, 0, 0, 0.26)',
-    textDecoration: 'none',
-    fontSize: isMobile ? '17px' : '17px',
-    fontWeight: 900,
-    boxSizing: 'border-box',
-    wordBreak: 'keep-all',
-    textAlign: 'center',
-  };
-
   const topLabelStyle: React.CSSProperties = {
     color: '#e2c7aa',
     fontSize: isMobile ? '15px' : '18px',
@@ -579,10 +554,6 @@ export default function StudentClassPage({
   return (
     <main style={pageStyle}>
       <div style={containerStyle}>
-        <a href="/student/danny-voca" style={fixedVocaButtonStyle}>
-          Danny Voca 단어암기
-        </a>
-
         <div
           style={{
             marginBottom: isMobile ? '14px' : '18px',
@@ -596,21 +567,6 @@ export default function StudentClassPage({
           <Link href="/student" style={topButtonStyle}>
             ← 학생 메인으로
           </Link>
-
-          <a
-            href="/student/danny-voca"
-            style={{
-              ...vocaButtonStyle,
-              width: isMobile ? '100%' : 'auto',
-              minWidth: isMobile ? '100%' : '240px',
-              minHeight: isMobile ? '54px' : '48px',
-              marginTop: isMobile ? '2px' : 0,
-              padding: isMobile ? '14px 16px' : '12px 18px',
-              fontSize: isMobile ? '17px' : '16px',
-            }}
-          >
-            Danny Voca 단어암기
-          </a>
         </div>
 
         <section style={headerOuterStyle}>
