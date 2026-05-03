@@ -348,9 +348,9 @@ export default function StudentClassPage({
 
   const pageStyle: React.CSSProperties = {
     minHeight: '100vh',
-    backgroundColor: '#0b0a09',
+    backgroundColor: '#0e1116',
     fontFamily: 'Arial, sans-serif',
-    color: '#f3eee8',
+    color: '#f4f1eb',
   };
 
   const containerStyle: React.CSSProperties = {
@@ -360,27 +360,27 @@ export default function StudentClassPage({
   };
 
   const outerCardStyle: React.CSSProperties = {
-    backgroundColor: '#2a201c',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#1b222c',
+    border: '1px solid rgba(226, 232, 240, 0.10)',
     borderRadius: isMobile ? '16px' : '18px',
     padding: isMobile ? '16px' : '22px',
-    boxShadow: '0 12px 28px rgba(0, 0, 0, 0.28)',
+    boxShadow: '0 14px 34px rgba(0, 0, 0, 0.30)',
   };
 
   const innerBoxStyle: React.CSSProperties = {
-    backgroundColor: '#fbf7f1',
-    border: '1px solid #e8ded1',
+    backgroundColor: '#f8f6f1',
+    border: '1px solid #ddd7ce',
     borderRadius: isMobile ? '12px' : '14px',
     padding: isMobile ? '16px 16px' : '22px 24px',
-    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
+    boxShadow: '0 8px 18px rgba(15, 23, 42, 0.08)',
   };
 
   const headerOuterStyle: React.CSSProperties = {
-    backgroundColor: '#211815',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#151b24',
+    border: '1px solid rgba(226, 232, 240, 0.11)',
     borderRadius: isMobile ? '16px' : '18px',
     padding: isMobile ? '22px 18px' : '36px 30px',
-    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.28)',
+    boxShadow: '0 18px 42px rgba(0, 0, 0, 0.32)',
     marginBottom: isMobile ? '18px' : '26px',
   };
 
@@ -390,9 +390,9 @@ export default function StudentClassPage({
     gap: '8px',
     padding: isMobile ? '10px 13px' : '11px 15px',
     borderRadius: '12px',
-    border: '1px solid rgba(255, 255, 255, 0.09)',
-    backgroundColor: '#16120f',
-    color: '#f5efe8',
+    border: '1px solid rgba(226, 232, 240, 0.14)',
+    backgroundColor: '#11161d',
+    color: '#f5f2eb',
     textDecoration: 'none',
     fontSize: isMobile ? '13px' : '14px',
     fontWeight: 700,
@@ -407,10 +407,10 @@ export default function StudentClassPage({
     minHeight: isMobile ? '56px' : '58px',
     padding: isMobile ? '15px 16px' : '16px 20px',
     borderRadius: isMobile ? '16px' : '18px',
-    backgroundColor: '#f4e7d7',
-    color: '#1a1411',
-    border: '1px solid rgba(226, 199, 170, 0.75)',
-    boxShadow: '0 10px 24px rgba(0, 0, 0, 0.16)',
+    backgroundColor: '#e7edf2',
+    color: '#111827',
+    border: '1px solid rgba(203, 213, 225, 0.95)',
+    boxShadow: '0 12px 28px rgba(0, 0, 0, 0.20)',
     textDecoration: 'none',
     fontSize: isMobile ? '17px' : '18px',
     fontWeight: 900,
@@ -420,7 +420,7 @@ export default function StudentClassPage({
   };
 
   const topLabelStyle: React.CSSProperties = {
-    color: '#e2c7aa',
+    color: '#c8b99d',
     fontSize: isMobile ? '15px' : '18px',
     fontWeight: 700,
     letterSpacing: '-0.01em',
@@ -431,7 +431,7 @@ export default function StudentClassPage({
     margin: 0,
     fontSize: isMobile ? '34px' : '58px',
     lineHeight: isMobile ? 1.12 : 1.05,
-    color: '#fffaf5',
+    color: '#fbfaf7',
     fontWeight: 800,
     letterSpacing: '-0.03em',
     wordBreak: 'keep-all' as const,
@@ -440,7 +440,7 @@ export default function StudentClassPage({
   const descriptionStyle: React.CSSProperties = {
     marginTop: isMobile ? '12px' : '16px',
     marginBottom: 0,
-    color: '#dccdbd',
+    color: '#cfd3d8',
     fontSize: isMobile ? '16px' : '22px',
     lineHeight: isMobile ? 1.65 : 1.72,
     maxWidth: '760px',
@@ -456,11 +456,11 @@ export default function StudentClassPage({
     flexWrap: 'wrap',
     marginBottom: isMobile ? '14px' : '18px',
     paddingBottom: isMobile ? '10px' : '12px',
-    borderBottom: '1px solid rgba(236, 225, 212, 0.18)',
+    borderBottom: '1px solid rgba(226, 232, 240, 0.16)',
   };
 
   const sectionHeaderTitleStyle: React.CSSProperties = {
-    color: '#f4e7d7',
+    color: '#f2eee7',
     fontSize: isMobile ? '22px' : '30px',
     fontWeight: 800,
     letterSpacing: '-0.02em',
@@ -469,7 +469,7 @@ export default function StudentClassPage({
   };
 
   const sectionDateStyle: React.CSSProperties = {
-    color: '#d2b89d',
+    color: '#c8b99d',
     fontSize: isMobile ? '15px' : '20px',
     fontWeight: 700,
     letterSpacing: '-0.01em',
@@ -478,14 +478,14 @@ export default function StudentClassPage({
   const sectionTitleStyle: React.CSSProperties = {
     fontSize: isMobile ? '18px' : '22px',
     fontWeight: 800,
-    color: '#1a1511',
+    color: '#111827',
     marginBottom: isMobile ? '10px' : '12px',
     letterSpacing: '-0.01em',
   };
 
   const bodyTextStyle: React.CSSProperties = {
     margin: 0,
-    color: '#221c17',
+    color: '#1f2933',
     fontSize: isMobile ? '15px' : '18px',
     lineHeight: isMobile ? 1.82 : 1.95,
     whiteSpace: 'pre-line' as const,
@@ -493,18 +493,18 @@ export default function StudentClassPage({
   };
 
   const mutedTextStyle: React.CSSProperties = {
-    color: '#6a6057',
+    color: '#64707c',
     fontSize: isMobile ? '14px' : '16px',
     lineHeight: 1.7,
   };
 
   const linkRowStyle: React.CSSProperties = {
     padding: isMobile ? '8px 0 10px' : '10px 0 12px',
-    borderBottom: '1px solid rgba(34, 28, 23, 0.08)',
+    borderBottom: '1px solid rgba(31, 41, 51, 0.10)',
   };
 
   const smallMetaTextStyle: React.CSSProperties = {
-    color: '#4e453d',
+    color: '#394350',
     fontWeight: 700,
     fontSize: isMobile ? '14px' : '16px',
     marginBottom: '8px',
@@ -520,15 +520,15 @@ export default function StudentClassPage({
     width: isMobile ? '100%' : 'auto',
     maxWidth: isMobile ? '220px' : 'none',
     padding: isMobile ? '10px 14px' : '10px 16px',
-    backgroundColor: '#1a1411',
-    color: '#fffaf5',
+    backgroundColor: '#111827',
+    color: '#f8fafc',
     textDecoration: 'none',
     borderRadius: '12px',
     fontSize: isMobile ? '14px' : '15px',
     fontWeight: 700,
     marginTop: '4px',
-    boxShadow: '0 4px 10px rgba(0, 0, 0, 0.12)',
-    border: '1px solid rgba(255, 255, 255, 0.05)',
+    boxShadow: '0 8px 16px rgba(15, 23, 42, 0.18)',
+    border: '1px solid rgba(15, 23, 42, 0.10)',
   };
 
   if (isChecking) {
@@ -539,9 +539,9 @@ export default function StudentClassPage({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#0b0a09',
+          backgroundColor: '#0e1116',
           fontFamily: 'Arial, sans-serif',
-          color: '#f3eee8',
+          color: '#f4f1eb',
           padding: '20px',
           textAlign: 'center',
         }}
@@ -656,7 +656,7 @@ export default function StudentClassPage({
                                 borderBottom:
                                   index === videoRows.length - 1
                                     ? 'none'
-                                    : '1px solid rgba(34, 28, 23, 0.08)',
+                                    : '1px solid rgba(31, 41, 51, 0.10)',
                               }}
                             >
                               <div style={smallMetaTextStyle}>{row.title}</div>
@@ -687,7 +687,7 @@ export default function StudentClassPage({
                                 borderBottom:
                                   index === audioRows.length - 1
                                     ? 'none'
-                                    : '1px solid rgba(34, 28, 23, 0.08)',
+                                    : '1px solid rgba(31, 41, 51, 0.10)',
                               }}
                             >
                               <div style={smallMetaTextStyle}>{row.title}</div>
@@ -725,7 +725,7 @@ export default function StudentClassPage({
                                 borderBottom:
                                   index === extraLinks.length - 1
                                     ? 'none'
-                                    : '1px solid rgba(34, 28, 23, 0.08)',
+                                    : '1px solid rgba(31, 41, 51, 0.10)',
                               }}
                             >
                               <div style={smallMetaTextStyle}>{row.title}</div>
@@ -756,7 +756,7 @@ export default function StudentClassPage({
                                 width: '100%',
                                 display: 'block',
                                 borderRadius: '12px',
-                                border: '1px solid #e2dacf',
+                                border: '1px solid #d6dce3',
                               }}
                             />
                           ))}
