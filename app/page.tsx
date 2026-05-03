@@ -222,6 +222,9 @@ export default function HomePage() {
     border: '1px solid #e2e8f0',
     borderRadius: '20px',
     boxShadow: '0 6px 24px rgba(15, 23, 42, 0.05)',
+    maxWidth: '100%',
+    minWidth: 0,
+    overflow: 'hidden',
   };
 
   const singleMemoBoxStyle: React.CSSProperties = {
@@ -250,14 +253,16 @@ export default function HomePage() {
   function renderCalendarSection(isMobile: boolean) {
     const board = (
       <div
-        className={isMobile ? 'mobileCalendarScaleWrap' : undefined}
         style={{
           overflow: 'hidden',
           borderRadius: '16px',
           border: '1px solid #e5e7eb',
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0,
         }}
       >
-        <div className={isMobile ? 'mobileCalendarScaleInner' : undefined}>
+        <div style={{ width: '100%', maxWidth: '100%', minWidth: 0 }}>
           <div
             style={{
               display: 'grid',
@@ -270,11 +275,12 @@ export default function HomePage() {
               <div
                 key={day}
                 style={{
-                  padding: '12px 8px',
+                  padding: isMobile ? '8px 2px' : '12px 8px',
                   textAlign: 'center',
                   fontWeight: 700,
                   color: '#57534e',
-                  fontSize: '15px',
+                  fontSize: isMobile ? '11px' : '15px',
+                  minWidth: 0,
                 }}
               >
                 {day}
@@ -289,6 +295,7 @@ export default function HomePage() {
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(7, 1fr)',
+                  minWidth: 0,
                   borderBottom:
                     weekIndex === calendarWeeks.length - 1 ? 'none' : '1px solid #e5e7eb',
                 }}
@@ -334,21 +341,23 @@ export default function HomePage() {
                     <div
                       key={`${weekIndex}-${index}`}
                       style={{
-                        minHeight: '98px',
+                        minHeight: isMobile ? '62px' : '98px',
                         borderRight: index === 6 ? 'none' : '1px solid #e5e7eb',
-                        padding: '10px 8px',
+                        padding: isMobile ? '5px 2px' : '10px 8px',
+                        minWidth: 0,
+                        overflow: 'hidden',
                       }}
                     >
                       <div
                         style={{
-                          width: '44px',
-                          height: '44px',
+                          width: isMobile ? '30px' : '44px',
+                          height: isMobile ? '30px' : '44px',
                           borderRadius: '999px',
                           margin: '0 auto',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '17px',
+                          fontSize: isMobile ? '13px' : '17px',
                           fontWeight: 700,
                           color: textColor,
                           backgroundColor,
@@ -363,11 +372,12 @@ export default function HomePage() {
                           style={{
                             marginTop: '8px',
                             textAlign: 'center',
-                            fontSize: '12px',
+                            fontSize: isMobile ? '9px' : '12px',
                             color: '#57534e',
-                            lineHeight: 1.45,
+                            lineHeight: isMobile ? 1.25 : 1.45,
                             whiteSpace: 'pre-wrap',
                             fontWeight: 500,
+                            overflowWrap: 'anywhere',
                           }}
                         >
                           {labels.join('\n')}
@@ -481,17 +491,20 @@ export default function HomePage() {
   function renderTimetableSection(isMobile: boolean) {
     const board = (
       <div
-        className={isMobile ? 'mobileTimetableScaleWrap' : undefined}
         style={{
           borderRadius: '16px',
           border: '1px solid #e5e7eb',
           overflow: 'hidden',
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0,
         }}
       >
-        <div className={isMobile ? 'mobileTimetableScaleInner' : undefined}>
+        <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
           <table
             style={{
               width: '100%',
+              maxWidth: '100%',
               borderCollapse: 'collapse',
               tableLayout: 'fixed',
               textAlign: 'center',
@@ -503,7 +516,7 @@ export default function HomePage() {
                   style={{
                     border: '1px solid #e5e7eb',
                     backgroundColor: sharedHeaderBg,
-                    padding: '10px 6px',
+                    padding: isMobile ? '7px 2px' : '10px 6px',
                   }}
                 />
                 <th
@@ -511,8 +524,8 @@ export default function HomePage() {
                   style={{
                     border: '1px solid #e5e7eb',
                     backgroundColor: sharedHeaderBg,
-                    padding: '10px 6px',
-                    fontSize: '17px',
+                    padding: isMobile ? '7px 2px' : '10px 6px',
+                    fontSize: isMobile ? '13px' : '17px',
                     color: '#44403c',
                   }}
                 >
@@ -523,8 +536,8 @@ export default function HomePage() {
                   style={{
                     border: '1px solid #e5e7eb',
                     backgroundColor: sharedHeaderBg,
-                    padding: '10px 6px',
-                    fontSize: '17px',
+                    padding: isMobile ? '7px 2px' : '10px 6px',
+                    fontSize: isMobile ? '13px' : '17px',
                     color: '#44403c',
                   }}
                 >
@@ -536,16 +549,16 @@ export default function HomePage() {
                   style={{
                     border: '1px solid #e5e7eb',
                     backgroundColor: sharedHeaderBg,
-                    padding: '10px 6px',
+                    padding: isMobile ? '7px 2px' : '10px 6px',
                   }}
                 />
                 <th
                   style={{
                     border: '1px solid #e5e7eb',
                     backgroundColor: sharedHeaderBg,
-                    padding: '10px 6px',
+                    padding: isMobile ? '7px 2px' : '10px 6px',
                     color: '#57534e',
-                    fontSize: '14px',
+                    fontSize: isMobile ? '11px' : '14px',
                     fontWeight: 700,
                   }}
                 >
@@ -555,9 +568,9 @@ export default function HomePage() {
                   style={{
                     border: '1px solid #e5e7eb',
                     backgroundColor: sharedHeaderBg,
-                    padding: '10px 6px',
+                    padding: isMobile ? '7px 2px' : '10px 6px',
                     color: '#57534e',
-                    fontSize: '14px',
+                    fontSize: isMobile ? '11px' : '14px',
                     fontWeight: 700,
                   }}
                 >
@@ -567,9 +580,9 @@ export default function HomePage() {
                   style={{
                     border: '1px solid #e5e7eb',
                     backgroundColor: sharedHeaderBg,
-                    padding: '10px 6px',
+                    padding: isMobile ? '7px 2px' : '10px 6px',
                     color: '#57534e',
-                    fontSize: '14px',
+                    fontSize: isMobile ? '11px' : '14px',
                     fontWeight: 700,
                   }}
                 >
@@ -579,9 +592,9 @@ export default function HomePage() {
                   style={{
                     border: '1px solid #e5e7eb',
                     backgroundColor: sharedHeaderBg,
-                    padding: '10px 6px',
+                    padding: isMobile ? '7px 2px' : '10px 6px',
                     color: '#57534e',
-                    fontSize: '14px',
+                    fontSize: isMobile ? '11px' : '14px',
                     fontWeight: 700,
                   }}
                 >
@@ -597,11 +610,13 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: '#fafaf9',
-                      padding: '12px 6px',
+                      padding: isMobile ? '8px 2px' : '12px 6px',
                       fontWeight: 600,
                       color: '#57534e',
-                      fontSize: '13px',
+                      fontSize: isMobile ? '10px' : '13px',
                       lineHeight: 1.4,
+                      overflow: 'hidden',
+                      overflowWrap: 'anywhere',
                     }}
                   >
                     {row.time}
@@ -611,13 +626,14 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: row.class600MonWed ? monWedFill : 'white',
-                      padding: '12px 6px',
+                      padding: isMobile ? '8px 2px' : '12px 6px',
                       color: row.class600MonWed ? '#111827' : '#cbd5e1',
-                      fontSize: '14px',
+                      fontSize: isMobile ? '10px' : '14px',
                       fontWeight: row.class600MonWed ? 700 : 400,
                       lineHeight: 1.4,
                       wordBreak: 'keep-all',
-                      whiteSpace: 'nowrap',
+                      whiteSpace: isMobile ? 'normal' : 'nowrap',
+                      overflow: 'hidden',
                     }}
                   >
                     {compactTimetableText(row.class600MonWed || '-', isMobile)}
@@ -627,13 +643,14 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: row.class600TueThu ? monWedFill : 'white',
-                      padding: '12px 6px',
+                      padding: isMobile ? '8px 2px' : '12px 6px',
                       color: row.class600TueThu ? '#111827' : '#cbd5e1',
-                      fontSize: '14px',
+                      fontSize: isMobile ? '10px' : '14px',
                       fontWeight: row.class600TueThu ? 700 : 400,
                       lineHeight: 1.4,
                       wordBreak: 'keep-all',
-                      whiteSpace: 'nowrap',
+                      whiteSpace: isMobile ? 'normal' : 'nowrap',
+                      overflow: 'hidden',
                     }}
                   >
                     {compactTimetableText(row.class600TueThu || '-', isMobile)}
@@ -643,13 +660,14 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: row.class800MonWed ? tueThuFill : 'white',
-                      padding: '12px 6px',
+                      padding: isMobile ? '8px 2px' : '12px 6px',
                       color: row.class800MonWed ? 'white' : '#cbd5e1',
-                      fontSize: isMobile ? '13px' : '14px',
+                      fontSize: isMobile ? '10px' : '14px',
                       fontWeight: row.class800MonWed ? 700 : 400,
                       lineHeight: 1.4,
                       wordBreak: 'keep-all',
-                      whiteSpace: 'nowrap',
+                      whiteSpace: isMobile ? 'normal' : 'nowrap',
+                      overflow: 'hidden',
                     }}
                   >
                     {compactTimetableText(row.class800MonWed || '-', isMobile)}
@@ -659,13 +677,14 @@ export default function HomePage() {
                     style={{
                       border: '1px solid #e5e7eb',
                       backgroundColor: row.class800TueThu ? tueThuFill : 'white',
-                      padding: '12px 6px',
+                      padding: isMobile ? '8px 2px' : '12px 6px',
                       color: row.class800TueThu ? 'white' : '#cbd5e1',
-                      fontSize: isMobile ? '13px' : '14px',
+                      fontSize: isMobile ? '10px' : '14px',
                       fontWeight: row.class800TueThu ? 700 : 400,
                       lineHeight: 1.4,
                       wordBreak: 'keep-all',
-                      whiteSpace: 'nowrap',
+                      whiteSpace: isMobile ? 'normal' : 'nowrap',
+                      overflow: 'hidden',
                     }}
                   >
                     {compactTimetableText(row.class800TueThu || '-', isMobile)}
@@ -729,7 +748,7 @@ export default function HomePage() {
 
   function renderLoginSection() {
     return (
-      <section style={{ ...shellCardStyle, padding: '24px' }}>
+      <section style={{ ...shellCardStyle, width: '100%', maxWidth: '100%', padding: '24px' }}>
         <h2
           style={{
             marginTop: 0,
@@ -921,14 +940,21 @@ export default function HomePage() {
         fontFamily: 'Arial, sans-serif',
         color: '#111827',
         padding: '28px 24px 40px',
+        width: '100%',
+        maxWidth: '100%',
+        overflowX: 'hidden',
+        boxSizing: 'border-box',
       }}
     >
       <div
         style={{
           maxWidth: '1320px',
+          width: '100%',
+          minWidth: 0,
           margin: '0 auto',
           display: 'grid',
           gap: '24px',
+          boxSizing: 'border-box',
         }}
       >
         <header>
@@ -998,6 +1024,8 @@ export default function HomePage() {
             style={{
               display: 'grid',
               gap: '18px',
+              width: '100%',
+              minWidth: 0,
             }}
           >
             {renderCalendarSection(true)}
@@ -1056,34 +1084,24 @@ export default function HomePage() {
       </div>
 
       <style jsx>{`
+        :global(html),
+        :global(body) {
+          width: 100%;
+          max-width: 100%;
+          margin: 0;
+          overflow-x: hidden;
+        }
+
+        :global(*) {
+          box-sizing: border-box;
+        }
+
         .desktopOnly {
           display: block;
         }
 
         .mobileOnly {
           display: none;
-        }
-
-        .mobileCalendarScaleWrap {
-          width: 100%;
-        }
-
-        .mobileCalendarScaleInner {
-          width: 124%;
-          transform: scale(0.81);
-          transform-origin: top left;
-          margin-bottom: -18%;
-        }
-
-        .mobileTimetableScaleWrap {
-          width: 100%;
-        }
-
-        .mobileTimetableScaleInner {
-          width: 124%;
-          transform: scale(0.81);
-          transform-origin: top left;
-          margin-bottom: -18%;
         }
 
         @media (max-width: 768px) {
@@ -1097,6 +1115,16 @@ export default function HomePage() {
 
           main {
             padding: 18px 12px 28px !important;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+          }
+        }
+
+        @media (max-width: 380px) {
+          main {
+            padding-left: 10px !important;
+            padding-right: 10px !important;
           }
         }
       `}</style>
