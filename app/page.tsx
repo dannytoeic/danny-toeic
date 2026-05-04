@@ -958,6 +958,9 @@ export default function HomePage() {
         }}
       >
         <header>
+          <p className="heroTagline">
+            답답해서 쌤이 직접 만든 홈페이지
+          </p>
           <h1
             style={{
               margin: 0,
@@ -1104,6 +1107,15 @@ export default function HomePage() {
           display: none;
         }
 
+        .heroTagline {
+          margin: 0 0 6px;
+          color: #8b98a8;
+          font-size: 16px;
+          line-height: 1.35;
+          font-weight: 500;
+          letter-spacing: 0;
+        }
+
         @media (max-width: 768px) {
           .desktopOnly {
             display: none;
@@ -1118,6 +1130,11 @@ export default function HomePage() {
             width: 100%;
             max-width: 100%;
             overflow-x: hidden;
+          }
+
+          .heroTagline {
+            margin-bottom: 4px;
+            font-size: 15px;
           }
         }
 
