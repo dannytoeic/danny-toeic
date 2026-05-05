@@ -38,7 +38,7 @@ type VocaStudyAppProps = {
 };
 
 const STATUS_LABEL: Record<VocaKnowledgeStatus, string> = {
-  confusing: '헷갈려요',
+  confusing: '헷갈림',
   unknown: '몰라요',
   known: '알아요',
 };
@@ -559,7 +559,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '8px',
+            gap: '6px',
           }}
         >
           {(['confusing', 'unknown', 'known'] as VocaKnowledgeStatus[]).map((statusKey) => (
@@ -572,10 +572,14 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
+                gap: '5px',
+                minWidth: 0,
+                whiteSpace: 'nowrap',
                 backgroundColor: STATUS_STYLE[statusKey].backgroundColor,
                 borderColor: STATUS_STYLE[statusKey].borderColor,
                 color: STATUS_STYLE[statusKey].color,
+                fontSize: '14px',
+                padding: '12px 8px',
                 boxShadow:
                   status === statusKey
                     ? `inset 0 0 0 2px ${STATUS_STYLE[statusKey].borderColor}`
@@ -602,7 +606,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               >
                 {STATUS_ICON[statusKey]}
               </span>
-              {STATUS_LABEL[statusKey]}
+              <span style={{ whiteSpace: 'nowrap' }}>{STATUS_LABEL[statusKey]}</span>
             </button>
           ))}
         </div>
