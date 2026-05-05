@@ -9,8 +9,6 @@ import {
   loadVocaProgress,
   sampleVocaSet,
   saveVocaProgress,
-  VOCA_COURSES,
-  VOCA_TRACKS,
 } from '@/lib/voca/storage';
 import type {
   VocaCourse,
@@ -28,6 +26,9 @@ type LoggedInStudentLike = {
   classKeys?: string[];
   classGroup?: string;
   course?: string;
+  courseName?: string;
+  enrolledClasses?: string[];
+  groupName?: string;
   track?: string;
   vocaTrack?: string;
   vocaVersion?: string;
@@ -35,6 +36,11 @@ type LoggedInStudentLike = {
 
 type VocaStudyAppProps = {
   student?: LoggedInStudentLike | null;
+};
+
+type StudentVocaScope = {
+  course: VocaCourse | null;
+  track: VocaTrack | null;
 };
 
 const STATUS_LABEL: Record<VocaKnowledgeStatus, string> = {
@@ -125,47 +131,59 @@ function speak(item: VocaItem) {
   window.speechSynthesis.speak(utterance);
 }
 
-function inferCourse(student?: LoggedInStudentLike | null): VocaCourse | '' {
-  const values = [
+function getStudentScopeText(student?: LoggedInStudentLike | null) {
+  return [
     student?.course,
+    student?.courseName,
     student?.classGroup,
+    student?.groupName,
+    student?.track,
+    student?.vocaTrack,
     student?.classKey,
     ...(student?.classKeys ?? []),
+    ...(student?.enrolledClasses ?? []),
   ]
     .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
+    .join(' ');
+}
+
+function inferCourse(student?: LoggedInStudentLike | null): VocaCourse | null {
+  const values = getStudentScopeText(student).toLowerCase();
 
   if (values.includes('600')) return '600';
   if (values.includes('800')) return '800';
-  return '';
+  return null;
 }
 
-function inferTrack(student?: LoggedInStudentLike | null): VocaTrack | '' {
-  const values = [
-    student?.vocaTrack,
-    student?.track,
-    student?.classGroup,
+function inferExplicitTrack(student?: LoggedInStudentLike | null): VocaTrack | null {
+  const values = getStudentScopeText(student).toUpperCase();
+
+  if (/\bA\b|600A|800A|A진도|A반|A班|A TRACK|TRACK A/.test(values)) return 'A';
+  if (/\bB\b|600B|800B|B진도|B반|B班|B TRACK|TRACK B/.test(values)) return 'B';
+  return null;
+}
+
+function inferStudentVocaScope(student?: LoggedInStudentLike | null): StudentVocaScope {
+  const classKeys = [
     student?.classKey,
     ...(student?.classKeys ?? []),
+    ...(student?.enrolledClasses ?? []),
   ]
-    .filter(Boolean)
-    .join(' ')
-    .toUpperCase();
-
-  if (/\bA\b|A진도|A반/.test(values)) return 'A';
-  if (/\bB\b|B진도|B반/.test(values)) return 'B';
-
-  const classKeys = [student?.classKey, ...(student?.classKeys ?? [])]
     .filter((value): value is string => Boolean(value))
     .map((value) => value.toLowerCase());
+  const values = getStudentScopeText(student).toLowerCase();
+  const course = inferCourse(student);
   const hasMonWed = classKeys.some((value) => value.includes('monwed'));
   const hasTuThu = classKeys.some((value) => value.includes('tuthu'));
+  const has800 = course === '800' || values.includes('800');
 
-  if (hasMonWed && !hasTuThu) return 'A';
-  if (hasTuThu && !hasMonWed) return 'B';
+  if (has800 && hasMonWed && !hasTuThu) return { course: '800', track: 'A' };
+  if (has800 && hasTuThu && !hasMonWed) return { course: '800', track: 'B' };
 
-  return '';
+  return {
+    course,
+    track: inferExplicitTrack(student),
+  };
 }
 
 function inferVersion(student: LoggedInStudentLike | null | undefined, course: VocaCourse): VocaVersion {
@@ -175,14 +193,15 @@ function inferVersion(student: LoggedInStudentLike | null | undefined, course: V
 }
 
 export default function VocaStudyApp({ student }: VocaStudyAppProps) {
-  const inferredCourse = inferCourse(student);
-  const inferredTrack = inferTrack(student);
+  const studentScope = useMemo(() => inferStudentVocaScope(student), [student]);
+  const inferredCourse = studentScope.course;
+  const inferredTrack = studentScope.track;
+  const hasStudentScope = Boolean(inferredCourse && inferredTrack);
 
   const [allSets, setAllSets] = useState<VocaSet[]>([]);
-  const [course, setCourse] = useState<VocaCourse>(inferredCourse || '800');
-  const [track, setTrack] = useState<VocaTrack>(inferredTrack || 'A');
+  const [course, setCourse] = useState<VocaCourse>(inferredCourse ?? '800');
   const [version, setVersion] = useState<VocaVersion>(
-    inferVersion(student, inferredCourse || '800')
+    inferVersion(student, inferredCourse ?? '800')
   );
   const [selectedSetId, setSelectedSetId] = useState('');
   const [progress, setProgress] = useState<VocaProgressMap>({});
@@ -194,9 +213,10 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
   useEffect(() => {
     window.setTimeout(() => {
       async function loadSets() {
-        const nextCourse = inferredCourse || '800';
-        const nextTrack = inferredTrack || 'A';
-        const nextVersion = inferVersion(student, nextCourse);
+        const nextCourse = inferredCourse;
+        const nextTrack = inferredTrack;
+        const versionCourse = nextCourse ?? '800';
+        const nextVersion = inferVersion(student, versionCourse);
         let loadedSets: VocaSet[] = [];
 
         try {
@@ -207,9 +227,15 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
         }
 
         setAllSets(loadedSets);
-        setCourse(nextCourse);
-        setTrack(nextTrack);
+        setCourse(versionCourse);
         setVersion(nextVersion);
+
+        if (!nextCourse || !nextTrack) {
+          setSelectedSetId('');
+          setProgress({});
+          setCurrentIndex(0);
+          return;
+        }
 
         const firstMatchingSet = loadedSets.find(
           (set) =>
@@ -227,15 +253,18 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
     }, 0);
   }, [inferredCourse, inferredTrack, student]);
 
-  const allowedCourses = inferredCourse ? [inferredCourse] : VOCA_COURSES;
-  const allowedTracks = inferredTrack ? [inferredTrack] : VOCA_TRACKS;
   const availableVersions = getVersionsForCourse(course);
 
   const scopedSets = useMemo(() => {
+    if (!inferredCourse || !inferredTrack) return [];
+
     return allSets.filter(
-      (set) => set.course === course && set.track === track && set.version === version
+      (set) =>
+        set.course === inferredCourse &&
+        set.track === inferredTrack &&
+        set.version === version
     );
-  }, [allSets, course, track, version]);
+  }, [allSets, inferredCourse, inferredTrack, version]);
 
   const vocaSet = useMemo(() => {
     return scopedSets.find((set) => set.id === selectedSetId) ?? scopedSets[0] ?? sampleVocaSet;
@@ -267,23 +296,6 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
     const status = progress[item.id];
     return status === 'confusing' || status === 'unknown';
   }).length;
-
-  function chooseCourse(nextCourse: VocaCourse) {
-    setCourse(nextCourse);
-    const versions = getVersionsForCourse(nextCourse);
-    const nextVersion = versions.includes(version) ? version : versions[0];
-    setVersion(nextVersion);
-    setSelectedSetId('');
-    setProgress({});
-    setCurrentIndex(0);
-  }
-
-  function chooseTrack(nextTrack: VocaTrack) {
-    setTrack(nextTrack);
-    setSelectedSetId('');
-    setProgress({});
-    setCurrentIndex(0);
-  }
 
   function chooseVersion(nextVersion: VocaVersion) {
     setVersion(nextVersion);
@@ -658,10 +670,21 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
             Danny Voca 단어암기
           </h1>
           <p style={{ margin: '10px 0 0', color: '#C9D2DD', lineHeight: 1.65, fontWeight: 800 }}>
-            {vocaSet.displayTitle || vocaSet.title}
+            {hasStudentScope ? vocaSet.displayTitle || vocaSet.title : '계정 진도 확인 필요'}
           </p>
         </header>
 
+        {!hasStudentScope ? (
+          <section style={{ ...panelStyle, display: 'grid', gap: '10px' }}>
+            <div style={{ color: '#F7F8FA', fontSize: '20px', fontWeight: 900 }}>
+              진도 정보 확인 필요
+            </div>
+            <div style={{ color: '#C9D2DD', fontSize: '15px', fontWeight: 800, lineHeight: 1.7 }}>
+              현재 계정의 진도 정보가 확인되지 않습니다. 관리자에게 문의해 주세요.
+            </div>
+          </section>
+        ) : (
+          <>
         <section style={{ ...panelStyle, display: 'grid', gap: '12px' }}>
           <div style={{ color: '#F4F4F2', fontSize: '20px', fontWeight: 900 }}>내 단어 세트 선택</div>
           <div
@@ -671,31 +694,31 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               gap: '10px',
             }}
           >
-            <select
-              value={course}
-              onChange={(e) => chooseCourse(e.target.value as VocaCourse)}
-              style={selectStyle}
-              disabled={Boolean(inferredCourse)}
+            <div
+              style={{
+                ...bigButtonStyle,
+                display: 'flex',
+                alignItems: 'center',
+                backgroundColor: '#E7EDF2',
+                borderColor: '#CBD5E1',
+                color: '#394350',
+              }}
             >
-              {allowedCourses.map((option) => (
-                <option key={option} value={option}>
-                  {option}반
-                </option>
-              ))}
-            </select>
+              {inferredCourse}반
+            </div>
 
-            <select
-              value={track}
-              onChange={(e) => chooseTrack(e.target.value as VocaTrack)}
-              style={selectStyle}
-              disabled={Boolean(inferredTrack)}
+            <div
+              style={{
+                ...bigButtonStyle,
+                display: 'flex',
+                alignItems: 'center',
+                backgroundColor: '#E7EDF2',
+                borderColor: '#CBD5E1',
+                color: '#394350',
+              }}
             >
-              {allowedTracks.map((option) => (
-                <option key={option} value={option}>
-                  {option}진도
-                </option>
-              ))}
-            </select>
+              {inferredTrack}진도
+            </div>
 
             <select
               value={version}
@@ -851,6 +874,8 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           <section style={{ display: 'grid', gap: '14px' }}>
             {visibleItems.map((item) => renderItem(item, true))}
           </section>
+        )}
+          </>
         )}
       </div>
     </main>
