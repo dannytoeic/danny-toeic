@@ -55,24 +55,24 @@ const STATUS_STYLE: Record<
   }
 > = {
   confusing: {
-    backgroundColor: '#F8E5C3',
-    borderColor: '#E5A94D',
+    backgroundColor: '#F4E1BC',
+    borderColor: '#DBA54F',
     color: '#8A5A12',
     iconBackgroundColor: 'transparent',
     iconBorderColor: '#8A5A12',
     iconColor: '#8A5A12',
   },
   unknown: {
-    backgroundColor: '#FFB3A6',
-    borderColor: '#F26F61',
-    color: '#8C1F16',
+    backgroundColor: '#F6B0A4',
+    borderColor: '#F06F62',
+    color: '#8D2018',
     iconBackgroundColor: '#F45145',
     iconBorderColor: '#F45145',
     iconColor: '#FFFFFF',
   },
   known: {
-    backgroundColor: '#BFEAF0',
-    borderColor: '#58B8C5',
+    backgroundColor: '#B9E3EA',
+    borderColor: '#55B6C4',
     color: '#075C70',
     iconBackgroundColor: '#087F95',
     iconBorderColor: '#087F95',
@@ -98,14 +98,14 @@ const TYPE_LABEL: Record<VocaItemType, string> = {
 };
 
 const TYPE_COLOR: Record<VocaItemType, string> = {
-  word: '#E5F0FA',
-  phrase: '#E5F0FA',
-  note: '#E5F0FA',
-  misc: '#E5F0FA',
-  blank: '#E5F0FA',
-  grammar: '#E5F0FA',
-  pattern: '#E5F0FA',
-  group: '#E5F0FA',
+  word: '#E4EDF7',
+  phrase: '#E4EDF7',
+  note: '#E4EDF7',
+  misc: '#E4EDF7',
+  blank: '#E4EDF7',
+  grammar: '#E4EDF7',
+  pattern: '#E4EDF7',
+  group: '#E4EDF7',
 };
 
 function getSpeakText(item: VocaItem) {
@@ -322,9 +322,9 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
 
   const pageStyle: React.CSSProperties = {
     minHeight: '100vh',
-    backgroundColor: '#F3F7FB',
+    backgroundColor: '#050C18',
     fontFamily: 'Arial, sans-serif',
-    color: '#07162F',
+    color: '#F4F4F2',
     padding: '18px 12px 42px',
   };
 
@@ -336,25 +336,34 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
   };
 
   const panelStyle: React.CSSProperties = {
-    backgroundColor: '#FFFFFF',
-    border: '1px solid #E0E8F1',
-    borderRadius: '24px',
+    backgroundColor: '#101C2E',
+    border: '1px solid #283447',
+    borderRadius: '28px',
     padding: '20px',
-    boxShadow: '0 10px 24px rgba(15, 35, 60, 0.08)',
+    boxShadow: '0 14px 34px rgba(0, 0, 0, 0.28)',
+  };
+
+  const itemCardStyle: React.CSSProperties = {
+    backgroundColor: '#FAFAF8',
+    border: '1px solid #D7DEE7',
+    borderRadius: '28px',
+    padding: '20px',
+    boxShadow: '0 10px 30px rgba(4, 10, 20, 0.10)',
   };
 
   const bigButtonStyle: React.CSSProperties = {
     minHeight: '48px',
-    borderRadius: '18px',
-    border: '1px solid #5A78A0',
-    backgroundColor: '#FFFFFF',
-    color: '#2E4B70',
+    borderRadius: '22px',
+    border: '1.5px solid #5E7EAB',
+    backgroundColor: '#F4F5F7',
+    color: '#35527B',
     fontSize: '15px',
     fontWeight: 900,
     cursor: 'pointer',
     padding: '12px 14px',
-    boxShadow: '0 5px 14px rgba(15, 35, 60, 0.06)',
+    boxShadow: '0 8px 18px rgba(4, 10, 20, 0.12)',
     maxWidth: '100%',
+    boxSizing: 'border-box',
   };
 
   const selectStyle: React.CSSProperties = {
@@ -368,18 +377,18 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
     height: '50px',
     borderRadius: '999px',
     border: 'none',
-    backgroundColor: '#4F6F9D',
+    backgroundColor: '#5D82B4',
     color: '#FFFFFF',
     fontSize: '22px',
     cursor: 'pointer',
-    boxShadow: '0 8px 18px rgba(30, 60, 100, 0.20)',
+    boxShadow: '0 8px 20px rgba(38, 70, 120, 0.20)',
   };
 
   const meaningBoxStyle: React.CSSProperties = {
     minHeight: '54px',
     borderRadius: '18px',
-    backgroundColor: hideMeaning ? '#EEF4FA' : '#F1F6FB',
-    border: '1px solid #DDE8F3',
+    backgroundColor: '#EEF3F8',
+    border: '1px solid #D9E3EE',
     color: '#07162F',
     padding: '15px',
     fontSize: '20px',
@@ -390,13 +399,18 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
   function modeButtonStyle(active: boolean): React.CSSProperties {
     return {
       ...bigButtonStyle,
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
       width: '100%',
-      backgroundColor: active ? '#4F75A3' : '#FFFFFF',
-      borderColor: active ? '#466C9A' : '#5A78A0',
+      minHeight: '50px',
+      backgroundColor: active ? '#5C84B8' : '#F4F5F7',
+      borderColor: active ? '#5C84B8' : '#5E7EAB',
       color: active ? '#FFFFFF' : '#2E4B70',
+      whiteSpace: 'nowrap',
       boxShadow: active
-        ? '0 8px 18px rgba(30, 60, 100, 0.18)'
-        : '0 5px 14px rgba(15, 35, 60, 0.06)',
+        ? '0 10px 22px rgba(38, 70, 120, 0.24)'
+        : '0 8px 18px rgba(4, 10, 20, 0.12)',
     };
   }
 
@@ -408,10 +422,10 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
       <article
         key={item.id}
         style={{
-          ...panelStyle,
+          ...itemCardStyle,
           display: 'grid',
           gap: '14px',
-          backgroundColor: '#FFFFFF',
+          backgroundColor: '#FAFAF8',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
@@ -421,9 +435,9 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               padding: '6px 10px',
               borderRadius: '999px',
               backgroundColor: TYPE_COLOR[item.type],
-              color: '#2E5B86',
+              color: '#355B84',
               fontSize: '12px',
-              fontWeight: 900,
+              fontWeight: 800,
             }}
           >
             {TYPE_LABEL[item.type]}
@@ -528,8 +542,8 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                 fontWeight: 800,
                 color: '#07162F',
                 borderRadius: '18px',
-                backgroundColor: hideMeaning ? '#EEF4FA' : '#F1F6FB',
-                border: '1px solid #DDE8F3',
+                backgroundColor: '#EEF3F8',
+                border: '1px solid #D9E3EE',
                 padding: '15px',
               }}
             >
@@ -580,6 +594,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                 color: STATUS_STYLE[statusKey].color,
                 fontSize: '14px',
                 padding: '12px 8px',
+                minHeight: '48px',
                 boxShadow:
                   status === statusKey
                     ? `inset 0 0 0 2px ${STATUS_STYLE[statusKey].borderColor}`
@@ -617,7 +632,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
   return (
     <main style={pageStyle}>
       <div style={shellStyle}>
-        <header style={{ ...panelStyle, backgroundColor: '#07162F', borderColor: '#1F3A5C' }}>
+        <header style={{ ...panelStyle, backgroundColor: '#151B24', borderColor: 'rgba(226, 232, 240, 0.11)' }}>
           <Link
             href="/student"
             style={{
@@ -626,9 +641,9 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               marginBottom: '14px',
               padding: '10px 13px',
               borderRadius: '12px',
-              border: '1px solid #DDE8F3',
-              backgroundColor: '#F3F7FB',
-              color: '#2E4B70',
+              border: '1px solid rgba(226, 232, 240, 0.14)',
+              backgroundColor: '#11161D',
+              color: '#F5F2EB',
               textDecoration: 'none',
               fontSize: '14px',
               fontWeight: 900,
@@ -636,19 +651,19 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           >
             ← 학생 메인으로
           </Link>
-          <div style={{ color: '#9FBCD8', fontSize: '14px', fontWeight: 900, marginBottom: '8px' }}>
+          <div style={{ color: '#C8B99D', fontSize: '14px', fontWeight: 900, marginBottom: '8px' }}>
             Danny TOEIC Student Page
           </div>
-          <h1 style={{ margin: 0, color: '#f8fafc', fontSize: '34px', lineHeight: 1.15, fontWeight: 900 }}>
+          <h1 style={{ margin: 0, color: '#F7F8FA', fontSize: '34px', lineHeight: 1.15, fontWeight: 900 }}>
             Danny Voca 단어암기
           </h1>
-          <p style={{ margin: '10px 0 0', color: '#D9E7F5', lineHeight: 1.65, fontWeight: 800 }}>
+          <p style={{ margin: '10px 0 0', color: '#C9D2DD', lineHeight: 1.65, fontWeight: 800 }}>
             {vocaSet.displayTitle || vocaSet.title}
           </p>
         </header>
 
         <section style={{ ...panelStyle, display: 'grid', gap: '12px' }}>
-          <div style={{ fontSize: '20px', fontWeight: 900 }}>내 단어 세트 선택</div>
+          <div style={{ color: '#F4F4F2', fontSize: '20px', fontWeight: 900 }}>내 단어 세트 선택</div>
           <div
             style={{
               display: 'grid',
@@ -699,9 +714,9 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                 ...bigButtonStyle,
                 display: 'flex',
                 alignItems: 'center',
-                backgroundColor: '#EEF4FA',
-                borderColor: '#DDE8F3',
-                color: '#3F5878',
+                backgroundColor: '#E7EDF2',
+                borderColor: '#CBD5E1',
+                color: '#394350',
               }}
             >
               {scopedSets.length > 0 ? `${scopedSets.length}개 Day` : '업로드 없음'}
@@ -718,8 +733,8 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                   style={{
                     ...bigButtonStyle,
                     textAlign: 'left',
-                    backgroundColor: vocaSet.id === set.id ? '#4F75A3' : '#FFFFFF',
-                    borderColor: vocaSet.id === set.id ? '#466C9A' : '#5A78A0',
+                    backgroundColor: vocaSet.id === set.id ? '#5C84B8' : '#F4F5F7',
+                    borderColor: vocaSet.id === set.id ? '#5C84B8' : '#5E7EAB',
                     color: vocaSet.id === set.id ? '#FFFFFF' : '#2E4B70',
                   }}
                 >
@@ -728,13 +743,13 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               ))}
             </div>
           ) : (
-            <div style={{ color: '#3F5878', fontWeight: 900, lineHeight: 1.6 }}>
+            <div style={{ color: '#C9D2DD', fontWeight: 900, lineHeight: 1.6 }}>
               선택한 반/진도/버전으로 업로드된 세트가 없어 샘플 세트를 표시합니다.
             </div>
           )}
 
           {isSampleMode ? null : (
-            <div style={{ color: '#3F5878', fontSize: '13px', fontWeight: 900 }}>
+            <div style={{ color: '#D5C8A9', fontSize: '13px', fontWeight: 900 }}>
               현재 선택: {vocaSet.displayTitle || vocaSet.title}
             </div>
           )}
@@ -750,16 +765,16 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           }}
         >
           <div>
-            <div style={{ fontSize: '24px', fontWeight: 900 }}>{vocaSet.items.length}</div>
-            <div style={{ color: '#3F5878', fontSize: '12px', fontWeight: 900 }}>전체</div>
+            <div style={{ color: '#F7F8FA', fontSize: '24px', fontWeight: 900 }}>{vocaSet.items.length}</div>
+            <div style={{ color: '#C9D2DD', fontSize: '12px', fontWeight: 900 }}>전체</div>
           </div>
           <div>
-            <div style={{ fontSize: '24px', fontWeight: 900 }}>{knownCount}</div>
-            <div style={{ color: '#3F5878', fontSize: '12px', fontWeight: 900 }}>알아요</div>
+            <div style={{ color: '#F7F8FA', fontSize: '24px', fontWeight: 900 }}>{knownCount}</div>
+            <div style={{ color: '#C9D2DD', fontSize: '12px', fontWeight: 900 }}>알아요</div>
           </div>
           <div>
-            <div style={{ fontSize: '24px', fontWeight: 900 }}>{reviewCount}</div>
-            <div style={{ color: '#3F5878', fontSize: '12px', fontWeight: 900 }}>복습</div>
+            <div style={{ color: '#F7F8FA', fontSize: '24px', fontWeight: 900 }}>{reviewCount}</div>
+            <div style={{ color: '#C9D2DD', fontSize: '12px', fontWeight: 900 }}>복습</div>
           </div>
         </section>
 
@@ -828,7 +843,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                 다음
               </button>
             </div>
-            <div style={{ textAlign: 'center', color: '#3F5878', fontWeight: 900 }}>
+            <div style={{ textAlign: 'center', color: '#C9D2DD', fontWeight: 900 }}>
               {Math.min(currentIndex + 1, visibleItems.length)} / {visibleItems.length}
             </div>
           </section>
