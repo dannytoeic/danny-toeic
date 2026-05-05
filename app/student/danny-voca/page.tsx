@@ -48,9 +48,9 @@ export default function StudentDannyVocaPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#fff8ed',
+          backgroundColor: '#F3F7FB',
           fontFamily: 'Arial, sans-serif',
-          color: '#111827',
+          color: '#07162F',
         }}
       >
         로그인 상태 확인 중...
