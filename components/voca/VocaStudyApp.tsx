@@ -25,6 +25,8 @@ type LoggedInStudentLike = {
   classKey?: string;
   classKeys?: string[];
   classGroup?: string;
+  classGroups?: string[];
+  className?: string;
   course?: string;
   courseName?: string;
   enrolledClasses?: string[];
@@ -136,6 +138,8 @@ function getStudentScopeText(student?: LoggedInStudentLike | null) {
     student?.course,
     student?.courseName,
     student?.classGroup,
+    ...(student?.classGroups ?? []),
+    student?.className,
     student?.groupName,
     student?.track,
     student?.vocaTrack,
@@ -163,22 +167,50 @@ function inferExplicitTrack(student?: LoggedInStudentLike | null): VocaTrack | n
   return null;
 }
 
+function hasMonWedSignal(value: string) {
+  return value.includes('monwed') || value.includes('월수');
+}
+
+function hasTuThuSignal(value: string) {
+  return value.includes('tuthu') || value.includes('화목');
+}
+
+function getCurrentTrackFor600(classText: string, month = new Date().getMonth() + 1): VocaTrack | null {
+  const normalized = classText.toLowerCase();
+  const isOddMonth = month % 2 === 1;
+
+  if (hasMonWedSignal(normalized)) return isOddMonth ? 'A' : 'B';
+  if (hasTuThuSignal(normalized)) return isOddMonth ? 'B' : 'A';
+  return null;
+}
+
 function inferStudentVocaScope(student?: LoggedInStudentLike | null): StudentVocaScope {
-  const classKeys = [
+  const classValues = [
     student?.classKey,
     ...(student?.classKeys ?? []),
+    student?.classGroup,
+    ...(student?.classGroups ?? []),
+    student?.className,
+    student?.groupName,
     ...(student?.enrolledClasses ?? []),
   ]
     .filter((value): value is string => Boolean(value))
     .map((value) => value.toLowerCase());
   const values = getStudentScopeText(student).toLowerCase();
   const course = inferCourse(student);
-  const hasMonWed = classKeys.some((value) => value.includes('monwed'));
-  const hasTuThu = classKeys.some((value) => value.includes('tuthu'));
+  const hasMonWed = classValues.some(hasMonWedSignal);
+  const hasTuThu = classValues.some(hasTuThuSignal);
+  const has600 = course === '600' || values.includes('600');
   const has800 = course === '800' || values.includes('800');
 
   if (has800 && hasMonWed && !hasTuThu) return { course: '800', track: 'A' };
   if (has800 && hasTuThu && !hasMonWed) return { course: '800', track: 'B' };
+  if (has600 && hasMonWed && !hasTuThu) {
+    return { course: '600', track: getCurrentTrackFor600('600-monwed') };
+  }
+  if (has600 && hasTuThu && !hasMonWed) {
+    return { course: '600', track: getCurrentTrackFor600('600-tuthu') };
+  }
 
   return {
     course,
@@ -196,10 +228,10 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
   const studentScope = useMemo(() => inferStudentVocaScope(student), [student]);
   const inferredCourse = studentScope.course;
   const inferredTrack = studentScope.track;
-  const hasStudentScope = Boolean(inferredCourse && inferredTrack);
 
   const [allSets, setAllSets] = useState<VocaSet[]>([]);
   const [course, setCourse] = useState<VocaCourse>(inferredCourse ?? '800');
+  const [track, setTrack] = useState<VocaTrack | null>(inferredTrack);
   const [version, setVersion] = useState<VocaVersion>(
     inferVersion(student, inferredCourse ?? '800')
   );
@@ -213,10 +245,6 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
   useEffect(() => {
     window.setTimeout(() => {
       async function loadSets() {
-        const nextCourse = inferredCourse;
-        const nextTrack = inferredTrack;
-        const versionCourse = nextCourse ?? '800';
-        const nextVersion = inferVersion(student, versionCourse);
         let loadedSets: VocaSet[] = [];
 
         try {
@@ -226,20 +254,25 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           loadedSets = getVocaSets();
         }
 
+        const versionCourse = inferredCourse ?? loadedSets[0]?.course ?? '800';
+        const nextVersion = inferVersion(student, versionCourse);
+        const scopedByCourseAndVersion = loadedSets.filter(
+          (set) => set.course === versionCourse && set.version === nextVersion
+        );
+        const nextTrack =
+          inferredTrack ??
+          scopedByCourseAndVersion[0]?.track ??
+          loadedSets.find((set) => set.course === versionCourse)?.track ??
+          sampleVocaSet.track;
+
         setAllSets(loadedSets);
         setCourse(versionCourse);
+        setTrack(nextTrack);
         setVersion(nextVersion);
-
-        if (!nextCourse || !nextTrack) {
-          setSelectedSetId('');
-          setProgress({});
-          setCurrentIndex(0);
-          return;
-        }
 
         const firstMatchingSet = loadedSets.find(
           (set) =>
-            set.course === nextCourse &&
+            set.course === versionCourse &&
             set.track === nextTrack &&
             set.version === nextVersion
         );
@@ -256,15 +289,15 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
   const availableVersions = getVersionsForCourse(course);
 
   const scopedSets = useMemo(() => {
-    if (!inferredCourse || !inferredTrack) return [];
+    if (!track) return [];
 
     return allSets.filter(
       (set) =>
-        set.course === inferredCourse &&
-        set.track === inferredTrack &&
+        set.course === course &&
+        set.track === track &&
         set.version === version
     );
-  }, [allSets, inferredCourse, inferredTrack, version]);
+  }, [allSets, course, track, version]);
 
   const vocaSet = useMemo(() => {
     return scopedSets.find((set) => set.id === selectedSetId) ?? scopedSets[0] ?? sampleVocaSet;
@@ -670,21 +703,10 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
             Danny Voca 단어암기
           </h1>
           <p style={{ margin: '10px 0 0', color: '#C9D2DD', lineHeight: 1.65, fontWeight: 800 }}>
-            {hasStudentScope ? vocaSet.displayTitle || vocaSet.title : '계정 진도 확인 필요'}
+            {vocaSet.displayTitle || vocaSet.title}
           </p>
         </header>
 
-        {!hasStudentScope ? (
-          <section style={{ ...panelStyle, display: 'grid', gap: '10px' }}>
-            <div style={{ color: '#F7F8FA', fontSize: '20px', fontWeight: 900 }}>
-              진도 정보 확인 필요
-            </div>
-            <div style={{ color: '#C9D2DD', fontSize: '15px', fontWeight: 800, lineHeight: 1.7 }}>
-              현재 계정의 진도 정보가 확인되지 않습니다. 관리자에게 문의해 주세요.
-            </div>
-          </section>
-        ) : (
-          <>
         <section style={{ ...panelStyle, display: 'grid', gap: '12px' }}>
           <div style={{ color: '#F4F4F2', fontSize: '20px', fontWeight: 900 }}>내 단어 세트 선택</div>
           <div
@@ -704,7 +726,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                 color: '#394350',
               }}
             >
-              {inferredCourse}반
+              {course}반
             </div>
 
             <div
@@ -717,7 +739,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                 color: '#394350',
               }}
             >
-              {inferredTrack}진도
+              {track ?? '자동'}진도
             </div>
 
             <select
@@ -776,6 +798,11 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               현재 선택: {vocaSet.displayTitle || vocaSet.title}
             </div>
           )}
+          {!inferredTrack ? (
+            <div style={{ color: '#C9D2DD', fontSize: '13px', fontWeight: 800, lineHeight: 1.6 }}>
+              진도 자동 확인 실패로 업로드된 {course}반 자료 중 사용 가능한 진도를 자동 선택했습니다.
+            </div>
+          ) : null}
         </section>
 
         <section
@@ -874,8 +901,6 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           <section style={{ display: 'grid', gap: '14px' }}>
             {visibleItems.map((item) => renderItem(item, true))}
           </section>
-        )}
-          </>
         )}
       </div>
     </main>
