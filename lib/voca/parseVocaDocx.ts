@@ -71,8 +71,11 @@ function countEnglishWords(term: string) {
 
 function isDocumentHeader(line: string) {
   const normalized = line.replace(/\s+/g, ' ').trim();
+  const isVocaHeader =
+    /Day[_\s]?\d+/i.test(normalized) && /실전\s*-\s*\d+(?:\.\d+)?/.test(normalized);
 
   return (
+    isVocaHeader ||
     /^(?:[A-Z]\s+)?Day[_\s-]*\d+$/i.test(normalized) ||
     /^(?:[A-Z]\s+)?Day[_\s-]*\d+\s+\d+\s+[A-Z]\s*-\s*\d+$/i.test(normalized) ||
     /^\d+\s+[A-Z]\s*-\s*\d+$/i.test(normalized) ||
