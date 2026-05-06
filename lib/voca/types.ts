@@ -25,6 +25,8 @@ export type VocaDay =
 export type VocaItem = {
   id: string;
   type: VocaItemType;
+  originalText?: string;
+  quizText?: string;
   term?: string;
   prompt?: string;
   pos?: string;

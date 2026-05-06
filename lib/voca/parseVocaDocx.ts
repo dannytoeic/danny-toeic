@@ -18,6 +18,24 @@ function normalizeLines(rawText: string) {
     .filter(Boolean);
 }
 
+function normalizeRawText(rawText: string) {
+  return rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
+
+function splitVocaGroups(rawText: string) {
+  return normalizeRawText(rawText)
+    .split(/\n\s*\n+/)
+    .map((group) =>
+      group
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line && !isDocumentHeader(line))
+        .join('\n')
+        .trim()
+    )
+    .filter(Boolean);
+}
+
 function isLikelyPos(value: string) {
   const compact = value.replace(/\s/g, '');
   const posTokens = [
@@ -67,6 +85,20 @@ function getParenGroups(value: string) {
   return Array.from(value.matchAll(PAREN_GROUP_PATTERN), (match) => match[1].trim()).filter(
     Boolean
   );
+}
+
+function blankParenAnswers(value: string) {
+  const answers: string[] = [];
+  const quizText = value.replace(/\(([^)]+)\)/g, (_match, answer: string) => {
+    const cleaned = answer.trim();
+    if (cleaned) answers.push(cleaned);
+    return answer.includes('\n') ? answer.split('\n').map(() => '____').join('\n') : '____';
+  });
+
+  return {
+    answers,
+    quizText,
+  };
 }
 
 function isLikelyEnglishTerm(term: string) {
@@ -288,6 +320,27 @@ function createNoteItem(titleLine: string, bodyLines: string[], index: number): 
 }
 
 export function parseRawVocaText(rawText: string): VocaItem[] {
+  const groups = splitVocaGroups(rawText);
+  if (groups.length > 0) {
+    return groups.map((group, index) => {
+      const { answers, quizText } = blankParenAnswers(group);
+      const firstLine = group.split('\n')[0] ?? group;
+      const speakable = isEnglishFocused(firstLine);
+
+      return {
+        id: makeId('vocabGroup', index + 1),
+        type: 'group',
+        originalText: group,
+        quizText,
+        answers,
+        title: firstLine,
+        lines: group.split('\n'),
+        rawText: group,
+        speakable,
+      };
+    });
+  }
+
   const lines = normalizeLines(rawText);
   const items: VocaItem[] = [];
   const seen = new Set<string>();
@@ -447,12 +500,18 @@ export function createVocaSetFromRawText(params: {
 }): VocaSet {
   const course = params.course ?? '800';
   const track = params.track ?? 'A';
-  const version = course === '600' ? '통합' : params.version ?? 'ver.2';
+  const version = course === '600' ? '통합' : params.version ?? 'ver.3';
   const day = params.day ?? 'Day 1';
   const displayTitle =
     version === '통합' ? `${course}반 ${track} ${day}` : `${course}반 ${track} ${version} ${day}`;
   const title = params.title?.trim() || displayTitle;
   const versionKey = version === '통합' ? 'unified' : version;
+  const itemVersionKey = version === '통합' ? 'unified' : version.replace(/\./g, '');
+  const dayNumber = day.replace(/\D/g, '') || '1';
+  const items = parseRawVocaText(params.rawText).map((item, index) => ({
+    ...item,
+    id: `${course}-${track}-${itemVersionKey}-day${dayNumber}-${String(index + 1).padStart(3, '0')}`,
+  }));
 
   return {
     id: `danny-voca-set-${course}-${track}-${versionKey}-${day.replace(/\s+/g, '')}`,
@@ -463,6 +522,6 @@ export function createVocaSetFromRawText(params: {
     book: params.book?.trim() || 'Word 단어시험지',
     version,
     day,
-    items: parseRawVocaText(params.rawText),
+    items,
   };
 }

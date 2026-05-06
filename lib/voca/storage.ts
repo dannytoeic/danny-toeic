@@ -27,7 +27,7 @@ export const VOCA_DAYS: VocaDay[] = [
 ];
 
 export function getVersionsForCourse(course: VocaCourse): VocaVersion[] {
-  return course === '600' ? ['통합'] : ['ver.2', 'ver.1', 'ver.3'];
+  return course === '600' ? ['통합'] : ['ver.3'];
 }
 
 function normalizeVersionForCourse(course: VocaCourse, version: VocaVersion): VocaVersion {
@@ -35,7 +35,7 @@ function normalizeVersionForCourse(course: VocaCourse, version: VocaVersion): Vo
 }
 
 function getVersionSortIndex(version: VocaVersion) {
-  const versionOrder: VocaVersion[] = ['통합', 'ver.2', 'ver.1', 'ver.3'];
+  const versionOrder: VocaVersion[] = ['통합', 'ver.3', 'ver.2', 'ver.1'];
   const index = versionOrder.indexOf(version);
   return index === -1 ? versionOrder.length : index;
 }
@@ -68,48 +68,51 @@ function makeSetStorageKey(id: string) {
 }
 
 export const sampleVocaSet: VocaSet = {
-  id: 'sample-danny-voca-800-A-ver.1-Day1',
-  title: '800반 A ver.1 Day 1',
-  displayTitle: '800반 A ver.1 Day 1',
+  id: 'sample-danny-voca-800-A-ver.3-Day1',
+  title: '800반 A ver.3 Day 1',
+  displayTitle: '800반 A ver.3 Day 1',
   course: '800',
   track: 'A',
   book: '시제품 샘플',
-  version: 'ver.1',
+  version: 'ver.3',
   day: 'Day 1',
   items: [
     {
-      id: 'sample-word-1',
-      type: 'word',
-      term: 'tentative',
-      pos: '형',
-      meaning: '잠정적인 / 일시적인',
-      rawText: 'tentative (형) (잠정적인/일시적인)',
+      id: 'sample-800-A-ver3-day1-001',
+      type: 'group',
+      originalText: 'synthetic material (명) (합성물질)',
+      quizText: 'synthetic material ____ ____',
+      answers: ['명', '합성물질'],
+      rawText: 'synthetic material (명) (합성물질)',
       speakable: true,
     },
     {
-      id: 'sample-phrase-1',
-      type: 'phrase',
-      term: 'traffic congestion',
-      pos: '명',
-      meaning: '교통체증',
-      rawText: 'traffic congestion (명) (교통체증)',
-      speakable: true,
-    },
-    {
-      id: 'sample-phrase-2',
-      type: 'phrase',
-      term: 'make an announcement',
-      meaning: '발표하다 / 공표하다',
-      rawText: 'make an announcement (발표하다/공표하다)',
-      speakable: true,
-    },
-    {
-      id: 'sample-note-1',
-      type: 'note',
-      title: 'rate',
-      lines: ['1. 명사', '(1) (요금) room rates (객실요금)', '(2) (비율) interest rate (이자율)'],
-      rawText: '* rate\n1. 명사\n(1) (요금) room rates (객실요금)',
+      id: 'sample-800-A-ver3-day1-002',
+      type: 'group',
+      originalText: 'way (to V) ~할 방법\nto부정사의 수식을 받는 명사정리\n(plan/place/right/reason/opportunity/chance/way/\nability/time) + to V',
+      quizText: 'way ____ ~할 방법\nto부정사의 수식을 받는 명사정리\n____\n____ + to V',
+      answers: ['to V', 'plan/place/right/reason/opportunity/chance/way/\nability/time'],
+      rawText: 'way (to V) ~할 방법\nto부정사의 수식을 받는 명사정리\n(plan/place/right/reason/opportunity/chance/way/\nability/time) + to V',
+      lines: [
+        'way (to V) ~할 방법',
+        'to부정사의 수식을 받는 명사정리',
+        '(plan/place/right/reason/opportunity/chance/way/',
+        'ability/time) + to V',
+      ],
       speakable: false,
+    },
+    {
+      id: 'sample-800-A-ver3-day1-003',
+      type: 'group',
+      originalText: '(hopeful)/(doubtful)/(optimistic) that절\n~에 대해 (희망적인)/회의적인/(낙관적인)',
+      quizText: '____/____/____ that절\n~에 대해 ____/회의적인/____',
+      answers: ['hopeful', 'doubtful', 'optimistic', '희망적인', '낙관적인'],
+      rawText: '(hopeful)/(doubtful)/(optimistic) that절\n~에 대해 (희망적인)/회의적인/(낙관적인)',
+      lines: [
+        '(hopeful)/(doubtful)/(optimistic) that절',
+        '~에 대해 (희망적인)/회의적인/(낙관적인)',
+      ],
+      speakable: true,
     },
   ],
 };

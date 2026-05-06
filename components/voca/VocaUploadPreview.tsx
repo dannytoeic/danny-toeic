@@ -198,7 +198,7 @@ export default function VocaUploadPreview() {
     setDay(set.day);
     setVocaSet(set);
     setSavedSetId(set.id);
-    setRawText(set.items.map((item) => item.rawText).join('\n'));
+    setRawText(set.items.map((item) => item.originalText ?? item.rawText).join('\n\n'));
     setMessage(`${set.displayTitle || set.title} 세트를 불러왔습니다.`);
   }
 
@@ -586,11 +586,13 @@ export default function VocaUploadPreview() {
                   </div>
                 ) : item.type === 'group' ? (
                   <div style={{ display: 'grid', gap: '8px' }}>
-                    <div style={{ fontSize: '20px', fontWeight: 900, color: '#111827' }}>
-                      {item.title}
-                    </div>
+                    <div style={{ fontSize: '20px', fontWeight: 900, color: '#111827' }}>빈칸 미리보기</div>
                     <div style={{ color: '#374151', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
-                      {(item.lines ?? []).join('\n')}
+                      {item.quizText ?? (item.lines ?? []).join('\n')}
+                    </div>
+                    <div style={{ fontSize: '15px', fontWeight: 900, color: '#111827' }}>원문</div>
+                    <div style={{ color: '#475569', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
+                      {item.originalText ?? item.rawText}
                     </div>
                   </div>
                 ) : item.type === 'note' ? (

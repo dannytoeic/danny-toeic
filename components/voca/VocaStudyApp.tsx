@@ -47,8 +47,8 @@ type StudentVocaScope = {
 
 const STATUS_LABEL: Record<VocaKnowledgeStatus, string> = {
   confusing: '헷갈림',
-  unknown: '몰라요',
-  known: '알아요',
+  unknown: '틀림',
+  known: '맞힘',
 };
 
 const STATUS_STYLE: Record<
@@ -63,46 +63,46 @@ const STATUS_STYLE: Record<
   }
 > = {
   confusing: {
-    backgroundColor: '#F4E1BC',
-    borderColor: '#DBA54F',
-    color: '#8A5A12',
+    backgroundColor: '#243248',
+    borderColor: '#5D759E',
+    color: '#DDE8F7',
     iconBackgroundColor: 'transparent',
-    iconBorderColor: '#8A5A12',
-    iconColor: '#8A5A12',
+    iconBorderColor: '#8FA8CF',
+    iconColor: '#DDE8F7',
   },
   unknown: {
-    backgroundColor: '#F6B0A4',
-    borderColor: '#F06F62',
-    color: '#8D2018',
-    iconBackgroundColor: '#F45145',
-    iconBorderColor: '#F45145',
+    backgroundColor: '#2D3340',
+    borderColor: '#7C8798',
+    color: '#F0F3F8',
+    iconBackgroundColor: '#566172',
+    iconBorderColor: '#566172',
     iconColor: '#FFFFFF',
   },
   known: {
-    backgroundColor: '#B9E3EA',
-    borderColor: '#55B6C4',
-    color: '#075C70',
-    iconBackgroundColor: '#087F95',
-    iconBorderColor: '#087F95',
+    backgroundColor: '#203A58',
+    borderColor: '#6FA0D8',
+    color: '#EAF4FF',
+    iconBackgroundColor: '#3B78B6',
+    iconBorderColor: '#3B78B6',
     iconColor: '#FFFFFF',
   },
 };
 
 const STATUS_ICON: Record<VocaKnowledgeStatus, string> = {
-  confusing: '?',
+  confusing: '~',
   unknown: 'X',
   known: '✓',
 };
 
 const TYPE_LABEL: Record<VocaItemType, string> = {
-  word: 'word',
-  phrase: 'phrase',
-  note: 'note',
-  misc: 'misc',
-  blank: 'blank',
-  grammar: 'grammar',
-  pattern: 'pattern',
-  group: 'group',
+  word: '단어',
+  phrase: '표현',
+  note: '정리',
+  misc: '기타',
+  blank: '빈칸',
+  grammar: '문법',
+  pattern: '패턴',
+  group: '학습그룹',
 };
 
 const TYPE_COLOR: Record<VocaItemType, string> = {
@@ -118,10 +118,34 @@ const TYPE_COLOR: Record<VocaItemType, string> = {
 
 function getSpeakText(item: VocaItem) {
   if (item.term) return item.term;
+  if (item.speakable && item.quizText) {
+    return item.quizText.replace(/____/g, '').replace(/[:：]/g, '').trim();
+  }
   if (item.speakable && item.prompt) {
     return item.prompt.replace(/____/g, '').replace(/[:：]/g, '').trim();
   }
   return '';
+}
+
+function makeQuizTextFromRaw(value: string) {
+  return value.replace(/\(([^)]+)\)/g, (_match, answer: string) =>
+    answer.includes('\n') ? answer.split('\n').map(() => '____').join('\n') : '____'
+  );
+}
+
+function getQuizText(item: VocaItem) {
+  return item.quizText ?? item.prompt ?? makeQuizTextFromRaw(item.originalText ?? item.rawText);
+}
+
+function getOriginalText(item: VocaItem) {
+  return item.originalText ?? item.answerText ?? item.rawText;
+}
+
+function getAnswerText(item: VocaItem) {
+  if (item.answers && item.answers.length > 0) return item.answers.join(' / ');
+  if (item.answer) return item.answer;
+  if (item.meaning) return `${item.pos ? `(${item.pos}) ` : ''}${item.meaning}`;
+  return getOriginalText(item);
 }
 
 function speak(item: VocaItem) {
@@ -237,10 +261,10 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
   );
   const [selectedSetId, setSelectedSetId] = useState('');
   const [progress, setProgress] = useState<VocaProgressMap>({});
-  const [hideMeaning, setHideMeaning] = useState(false);
   const [cardMode, setCardMode] = useState(false);
   const [reviewOnly, setReviewOnly] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [revealedAnswers, setRevealedAnswers] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     window.setTimeout(() => {
@@ -309,6 +333,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
     window.setTimeout(() => {
       setProgress(loadVocaProgress(vocaSet.id));
       setCurrentIndex(0);
+      setRevealedAnswers({});
     }, 0);
   }, [vocaSet.id]);
 
@@ -335,6 +360,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
     setSelectedSetId('');
     setProgress({});
     setCurrentIndex(0);
+    setRevealedAnswers({});
   }
 
   function chooseSet(set: VocaSet) {
@@ -343,6 +369,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
     setCurrentIndex(0);
     setCardMode(false);
     setReviewOnly(false);
+    setRevealedAnswers({});
   }
 
   function setStatus(itemId: string, status: VocaKnowledgeStatus) {
@@ -365,48 +392,55 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
     });
   }
 
+  function toggleAnswer(itemId: string) {
+    setRevealedAnswers((prev) => ({
+      ...prev,
+      [itemId]: !prev[itemId],
+    }));
+  }
+
   const pageStyle: React.CSSProperties = {
     minHeight: '100vh',
-    backgroundColor: '#050C18',
+    backgroundColor: '#0e1116',
     fontFamily: 'Arial, sans-serif',
     color: '#F4F4F2',
     padding: '18px 12px 42px',
   };
 
   const shellStyle: React.CSSProperties = {
-    maxWidth: '760px',
+    maxWidth: '860px',
     margin: '0 auto',
     display: 'grid',
     gap: '16px',
   };
 
   const panelStyle: React.CSSProperties = {
-    backgroundColor: '#101C2E',
-    border: '1px solid #283447',
-    borderRadius: '28px',
+    backgroundColor: '#1b222c',
+    border: '1px solid rgba(226, 232, 240, 0.10)',
+    borderRadius: '18px',
     padding: '20px',
     boxShadow: '0 14px 34px rgba(0, 0, 0, 0.28)',
   };
 
   const itemCardStyle: React.CSSProperties = {
-    backgroundColor: '#FAFAF8',
-    border: '1px solid #D7DEE7',
-    borderRadius: '28px',
+    backgroundColor: '#151b24',
+    border: '1px solid rgba(226, 232, 240, 0.12)',
+    borderRadius: '18px',
     padding: '20px',
     boxShadow: '0 10px 30px rgba(4, 10, 20, 0.10)',
   };
 
   const bigButtonStyle: React.CSSProperties = {
     minHeight: '48px',
-    borderRadius: '22px',
-    border: '1.5px solid #5E7EAB',
-    backgroundColor: '#F4F5F7',
-    color: '#35527B',
+    borderRadius: '12px',
+    border: '1px solid rgba(148, 163, 184, 0.45)',
+    backgroundColor: '#243248',
+    color: '#E8EEF7',
     fontSize: '15px',
     fontWeight: 900,
     cursor: 'pointer',
     padding: '12px 14px',
-    boxShadow: '0 8px 18px rgba(4, 10, 20, 0.12)',
+    boxShadow: '0 8px 18px rgba(4, 10, 20, 0.16)',
     maxWidth: '100%',
     boxSizing: 'border-box',
   };
@@ -420,9 +454,9 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
   const speakerButtonStyle: React.CSSProperties = {
     width: '50px',
     height: '50px',
-    borderRadius: '999px',
+    borderRadius: '12px',
     border: 'none',
-    backgroundColor: '#5D82B4',
+    backgroundColor: '#315D8A',
     color: '#FFFFFF',
     fontSize: '22px',
     cursor: 'pointer',
@@ -431,10 +465,10 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
 
   const meaningBoxStyle: React.CSSProperties = {
     minHeight: '54px',
-    borderRadius: '18px',
-    backgroundColor: '#EEF3F8',
-    border: '1px solid #D9E3EE',
-    color: '#07162F',
+    borderRadius: '14px',
+    backgroundColor: '#f8f6f1',
+    border: '1px solid #ddd7ce',
+    color: '#111827',
     padding: '15px',
     fontSize: '20px',
     lineHeight: 1.6,
@@ -448,10 +482,10 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
       alignItems: 'center',
       justifyContent: 'center',
       width: '100%',
-      minHeight: '50px',
-      backgroundColor: active ? '#5C84B8' : '#F4F5F7',
-      borderColor: active ? '#5C84B8' : '#5E7EAB',
-      color: active ? '#FFFFFF' : '#2E4B70',
+      minHeight: '46px',
+      backgroundColor: active ? '#315D8A' : '#243248',
+      borderColor: active ? '#6FA0D8' : 'rgba(148, 163, 184, 0.45)',
+      color: '#F4F7FB',
       whiteSpace: 'nowrap',
       boxShadow: active
         ? '0 10px 22px rgba(38, 70, 120, 0.24)'
@@ -462,6 +496,10 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
   function renderItem(item: VocaItem, compact = false) {
     const status = progress[item.id];
     const statusStyle = status ? STATUS_STYLE[status] : null;
+    const isRevealed = Boolean(revealedAnswers[item.id]);
+    const quizText = getQuizText(item);
+    const originalText = getOriginalText(item);
+    const answerText = getAnswerText(item);
 
     return (
       <article
@@ -470,7 +508,6 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           ...itemCardStyle,
           display: 'grid',
           gap: '14px',
-          backgroundColor: '#FAFAF8',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
@@ -479,8 +516,8 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               display: 'inline-flex',
               padding: '6px 10px',
               borderRadius: '999px',
-              backgroundColor: TYPE_COLOR[item.type],
-              color: '#355B84',
+              backgroundColor: '#243248',
+              color: '#DDE8F7',
               fontSize: '12px',
               fontWeight: 800,
             }}
@@ -504,115 +541,48 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           ) : null}
         </div>
 
-        {item.type === 'word' || item.type === 'phrase' || item.type === 'pattern' ? (
-          <>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: item.speakable ? '1fr auto' : '1fr',
-                gap: '12px',
-                alignItems: 'center',
-              }}
-            >
-              <div style={{ color: '#07162F', fontSize: compact ? '26px' : '34px', fontWeight: 900 }}>
-                {item.term}
-              </div>
-              {item.speakable ? (
-                <button
-                  onClick={() => speak(item)}
-                  type="button"
-                  aria-label={`${getSpeakText(item)} pronunciation`}
-                  style={speakerButtonStyle}
-                >
-                  🔊
-                </button>
-              ) : null}
-            </div>
+        <div
+          style={{
+            whiteSpace: 'pre-wrap',
+            color: '#F8FAFC',
+            fontSize: compact ? '21px' : '28px',
+            fontWeight: 900,
+            lineHeight: 1.65,
+            wordBreak: 'keep-all',
+          }}
+        >
+          {isRevealed ? originalText : quizText}
+        </div>
 
-            <div
-              style={meaningBoxStyle}
+        <div style={{ display: 'grid', gridTemplateColumns: item.speakable ? '1fr auto' : '1fr', gap: '10px' }}>
+          <button
+            onClick={() => toggleAnswer(item.id)}
+            type="button"
+            style={{
+              ...modeButtonStyle(isRevealed),
+              minHeight: '44px',
+              padding: '10px 12px',
+            }}
+          >
+            {isRevealed ? '정답 숨기기' : '정답 보기'}
+          </button>
+          {item.speakable ? (
+            <button
+              onClick={() => speak(item)}
+              type="button"
+              aria-label={`${getSpeakText(item)} pronunciation`}
+              style={{ ...speakerButtonStyle, width: '44px', height: '44px', fontSize: '18px' }}
             >
-              {hideMeaning ? '뜻 가림' : `${item.pos ? `(${item.pos}) ` : ''}${item.meaning ?? ''}`}
-            </div>
-          </>
-        ) : item.type === 'blank' ? (
-          <>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: item.speakable ? '1fr auto' : '1fr',
-                gap: '12px',
-                alignItems: 'center',
-              }}
-            >
-              <div style={{ color: '#07162F', fontSize: compact ? '26px' : '34px', fontWeight: 900 }}>
-                {item.prompt}
-              </div>
-              {item.speakable ? (
-                <button
-                  onClick={() => speak(item)}
-                  type="button"
-                  aria-label={`${getSpeakText(item)} pronunciation`}
-                  style={speakerButtonStyle}
-                >
-                  🔊
-                </button>
-              ) : null}
-            </div>
-            <div
-              style={meaningBoxStyle}
-            >
-              {hideMeaning ? '정답 가림' : item.answer}
-            </div>
-          </>
-        ) : item.type === 'grammar' ? (
-          <>
-            <div style={{ color: '#07162F', fontSize: compact ? '22px' : '28px', fontWeight: 900, lineHeight: 1.55 }}>
-              {hideMeaning ? item.prompt : item.answerText ?? item.rawText}
-            </div>
-            <div
-              style={{ ...meaningBoxStyle, fontSize: '18px' }}
-            >
-              {hideMeaning ? '정답 가림' : `정답: ${(item.answers ?? []).join(' / ')}`}
-            </div>
-          </>
-        ) : item.type === 'group' ? (
-          <>
-            <div style={{ color: '#07162F', fontSize: '28px', fontWeight: 900 }}>{item.title}</div>
-            <div
-              style={{
-                whiteSpace: 'pre-wrap',
-                lineHeight: 1.8,
-                fontSize: '17px',
-                fontWeight: 800,
-                color: '#07162F',
-                borderRadius: '18px',
-                backgroundColor: '#EEF3F8',
-                border: '1px solid #D9E3EE',
-                padding: '15px',
-              }}
-            >
-              {hideMeaning ? '내용 가림' : (item.lines ?? []).join('\n')}
-            </div>
-          </>
-        ) : item.type === 'note' ? (
-          <>
-            <div style={{ color: '#07162F', fontSize: '28px', fontWeight: 900 }}>* {item.title}</div>
-            <div
-              style={{
-                whiteSpace: 'pre-wrap',
-                lineHeight: 1.8,
-                fontSize: '17px',
-                fontWeight: 800,
-                color: '#3F5878',
-              }}
-            >
-              {(item.lines ?? []).join('\n') || item.rawText}
-            </div>
-          </>
-        ) : (
-          <div style={{ color: '#3F5878', lineHeight: 1.8, fontSize: '17px', fontWeight: 800 }}>{item.rawText}</div>
-        )}
+              🔊
+            </button>
+          ) : null}
+        </div>
+
+        {isRevealed ? (
+          <div style={{ ...meaningBoxStyle, fontSize: '16px', fontWeight: 800 }}>
+            정답: {answerText}
+          </div>
+        ) : null}
 
         <div
           style={{
@@ -621,7 +591,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
             gap: '6px',
           }}
         >
-          {(['confusing', 'unknown', 'known'] as VocaKnowledgeStatus[]).map((statusKey) => (
+          {(['known', 'confusing', 'unknown'] as VocaKnowledgeStatus[]).map((statusKey) => (
             <button
               key={statusKey}
               onClick={() => setStatus(item.id, statusKey)}
@@ -637,9 +607,9 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                 backgroundColor: STATUS_STYLE[statusKey].backgroundColor,
                 borderColor: STATUS_STYLE[statusKey].borderColor,
                 color: STATUS_STYLE[statusKey].color,
-                fontSize: '14px',
-                padding: '12px 8px',
-                minHeight: '48px',
+                fontSize: '13px',
+                padding: '9px 6px',
+                minHeight: '42px',
                 boxShadow:
                   status === statusKey
                     ? `inset 0 0 0 2px ${STATUS_STYLE[statusKey].borderColor}`
@@ -666,7 +636,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               >
                 {STATUS_ICON[statusKey]}
               </span>
-              <span style={{ whiteSpace: 'nowrap' }}>{STATUS_LABEL[statusKey]}</span>
+              <span style={{ whiteSpace: 'nowrap', wordBreak: 'keep-all' }}>{STATUS_LABEL[statusKey]}</span>
             </button>
           ))}
         </div>
@@ -721,9 +691,9 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                 ...bigButtonStyle,
                 display: 'flex',
                 alignItems: 'center',
-                backgroundColor: '#E7EDF2',
-                borderColor: '#CBD5E1',
-                color: '#394350',
+                backgroundColor: '#243248',
+                borderColor: 'rgba(148, 163, 184, 0.45)',
+                color: '#E8EEF7',
               }}
             >
               {course}반
@@ -734,9 +704,9 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                 ...bigButtonStyle,
                 display: 'flex',
                 alignItems: 'center',
-                backgroundColor: '#E7EDF2',
-                borderColor: '#CBD5E1',
-                color: '#394350',
+                backgroundColor: '#243248',
+                borderColor: 'rgba(148, 163, 184, 0.45)',
+                color: '#E8EEF7',
               }}
             >
               {track ?? '자동'}진도
@@ -759,9 +729,9 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                 ...bigButtonStyle,
                 display: 'flex',
                 alignItems: 'center',
-                backgroundColor: '#E7EDF2',
-                borderColor: '#CBD5E1',
-                color: '#394350',
+                backgroundColor: '#243248',
+                borderColor: 'rgba(148, 163, 184, 0.45)',
+                color: '#E8EEF7',
               }}
             >
               {scopedSets.length > 0 ? `${scopedSets.length}개 Day` : '업로드 없음'}
@@ -778,9 +748,9 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
                   style={{
                     ...bigButtonStyle,
                     textAlign: 'left',
-                    backgroundColor: vocaSet.id === set.id ? '#5C84B8' : '#F4F5F7',
-                    borderColor: vocaSet.id === set.id ? '#5C84B8' : '#5E7EAB',
-                    color: vocaSet.id === set.id ? '#FFFFFF' : '#2E4B70',
+                    backgroundColor: vocaSet.id === set.id ? '#315D8A' : '#243248',
+                    borderColor: vocaSet.id === set.id ? '#6FA0D8' : 'rgba(148, 163, 184, 0.45)',
+                    color: '#F4F7FB',
                   }}
                 >
                   {set.displayTitle || set.title}
@@ -820,7 +790,7 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           </div>
           <div>
             <div style={{ color: '#F7F8FA', fontSize: '24px', fontWeight: 900 }}>{knownCount}</div>
-            <div style={{ color: '#C9D2DD', fontSize: '12px', fontWeight: 900 }}>알아요</div>
+            <div style={{ color: '#C9D2DD', fontSize: '12px', fontWeight: 900 }}>맞힘</div>
           </div>
           <div>
             <div style={{ color: '#F7F8FA', fontSize: '24px', fontWeight: 900 }}>{reviewCount}</div>
@@ -836,11 +806,11 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           }}
         >
           <button
-            onClick={() => setHideMeaning((prev) => !prev)}
+            onClick={() => setRevealedAnswers({})}
             type="button"
-            style={modeButtonStyle(hideMeaning)}
+            style={modeButtonStyle(false)}
           >
-            뜻 가리고 보기
+            정답 모두 숨김
           </button>
           <button
             onClick={() => {
@@ -864,13 +834,13 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           </button>
           <button
             onClick={() => {
-              setHideMeaning(false);
               setCardMode(false);
               setReviewOnly(false);
               setCurrentIndex(0);
+              setRevealedAnswers({});
             }}
             type="button"
-            style={modeButtonStyle(!hideMeaning && !cardMode && !reviewOnly)}
+            style={modeButtonStyle(!cardMode && !reviewOnly)}
           >
             전체 보기
           </button>
