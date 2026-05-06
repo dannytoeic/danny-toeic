@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   getVersionsForCourse,
   fetchRemoteVocaSets,
@@ -265,9 +266,15 @@ function inferVersion(student: LoggedInStudentLike | null | undefined, course: V
 }
 
 export default function VocaStudyApp({ student }: VocaStudyAppProps) {
+  const searchParams = useSearchParams();
   const studentScope = useMemo(() => inferStudentVocaScope(student), [student]);
   const inferredCourse = studentScope.course;
   const inferredTrack = studentScope.track;
+  const requestedSetId = searchParams.get('setId') ?? '';
+  const requestedCourse = searchParams.get('course') as VocaCourse | null;
+  const requestedTrack = searchParams.get('track') as VocaTrack | null;
+  const requestedVersion = searchParams.get('version') as VocaVersion | null;
+  const requestedDay = searchParams.get('day');
 
   const [allSets, setAllSets] = useState<VocaSet[]>([]);
   const [course, setCourse] = useState<VocaCourse>(inferredCourse ?? '800');
@@ -294,28 +301,43 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           loadedSets = getVocaSets();
         }
 
-        const versionCourse = inferredCourse ?? loadedSets[0]?.course ?? '800';
-        const nextVersion = inferVersion(student, versionCourse);
+        const versionCourse =
+          requestedCourse === '600' || requestedCourse === '800'
+            ? requestedCourse
+            : inferredCourse ?? loadedSets[0]?.course ?? '800';
+        const availableVersionsForCourse = getVersionsForCourse(versionCourse);
+        const nextVersion =
+          requestedVersion && availableVersionsForCourse.includes(requestedVersion)
+            ? requestedVersion
+            : inferVersion(student, versionCourse);
         const scopedByCourseAndVersion = loadedSets.filter(
           (set) => set.course === versionCourse && set.version === nextVersion
         );
         const nextTrack =
-          inferredTrack ??
-          scopedByCourseAndVersion[0]?.track ??
-          loadedSets.find((set) => set.course === versionCourse)?.track ??
-          sampleVocaSet.track;
+          requestedTrack === 'A' || requestedTrack === 'B'
+            ? requestedTrack
+            : inferredTrack ??
+              scopedByCourseAndVersion[0]?.track ??
+              loadedSets.find((set) => set.course === versionCourse)?.track ??
+              sampleVocaSet.track;
 
         setAllSets(loadedSets);
         setCourse(versionCourse);
         setTrack(nextTrack);
         setVersion(nextVersion);
 
-        const firstMatchingSet = loadedSets.find(
-          (set) =>
-            set.course === versionCourse &&
-            set.track === nextTrack &&
-            set.version === nextVersion
-        );
+        const requestedSet = requestedSetId
+          ? loadedSets.find((set) => set.id === requestedSetId)
+          : null;
+        const firstMatchingSet =
+          requestedSet ??
+          loadedSets.find(
+            (set) =>
+              set.course === versionCourse &&
+              set.track === nextTrack &&
+              set.version === nextVersion &&
+              (!requestedDay || set.day === requestedDay)
+          );
 
         const nextSet = firstMatchingSet ?? sampleVocaSet;
         setSelectedSetId(firstMatchingSet?.id ?? '');
@@ -324,7 +346,16 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
 
       loadSets();
     }, 0);
-  }, [inferredCourse, inferredTrack, student]);
+  }, [
+    inferredCourse,
+    inferredTrack,
+    requestedCourse,
+    requestedDay,
+    requestedSetId,
+    requestedTrack,
+    requestedVersion,
+    student,
+  ]);
 
   const availableVersions = getVersionsForCourse(course);
 

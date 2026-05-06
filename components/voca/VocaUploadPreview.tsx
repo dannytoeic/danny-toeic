@@ -6,6 +6,7 @@ import { createVocaSetFromRawText, extractTextFromDocx } from '@/lib/voca/parseV
 import {
   deleteVocaSet,
   deleteRemoteVocaSet,
+  fetchRemoteVocaSets,
   getVocaSets,
   getVersionsForCourse,
   makeVocaSetId,
@@ -158,13 +159,16 @@ export default function VocaUploadPreview() {
   }
 
   async function handleSavePrototype() {
-    if (!vocaSet) {
+    if (!vocaSet && !rawText.trim()) {
       setMessage('먼저 .docx를 업로드하거나 원문 텍스트를 입력해 주세요.');
       return;
     }
 
+    const parsedSet = rawText.trim() ? buildSetFromText(rawText) : vocaSet;
+    if (!parsedSet) return;
+
     const nextSet: VocaSet = {
-      ...vocaSet,
+      ...parsedSet,
       id: makeVocaSetId(course, track, version, day),
       title: displayTitle,
       displayTitle,
@@ -176,18 +180,25 @@ export default function VocaUploadPreview() {
 
     try {
       const remoteSets = await saveRemoteVocaSet(nextSet);
+      const verifiedSets = await fetchRemoteVocaSets();
+      const verifiedSet = verifiedSets.find((set) => set.id === nextSet.id);
+      const isVerified =
+        Boolean(verifiedSet) &&
+        JSON.stringify(verifiedSet?.items ?? []) === JSON.stringify(nextSet.items);
+
+      if (!isVerified) {
+        throw new Error('저장 후 서버 데이터 확인에 실패했습니다.');
+      }
+
       saveVocaSet(nextSet);
       setVocaSet(nextSet);
       setSavedSetId(nextSet.id);
-      setSavedSets(remoteSets);
+      setSavedSets(verifiedSets.length > 0 ? verifiedSets : remoteSets);
       setMessage(`${displayTitle} 세트를 서버에 저장했습니다. 이제 모바일에서도 보입니다.`);
     } catch (error) {
       console.error(error);
-      saveVocaSet(nextSet);
-      setVocaSet(nextSet);
-      setSavedSetId(nextSet.id);
       await refreshSavedSets();
-      setMessage(`${displayTitle} 세트를 이 브라우저에만 임시 저장했습니다.`);
+      setMessage(`${displayTitle} 세트를 서버에 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.`);
     }
   }
 
@@ -369,7 +380,10 @@ export default function VocaUploadPreview() {
             이 조합으로 저장
           </button>
           {savedSetId ? (
-            <Link href="/student/danny-voca" style={{ ...buttonStyle, backgroundColor: '#15803d' }}>
+            <Link
+              href={`/student/danny-voca?setId=${encodeURIComponent(savedSetId)}&course=${encodeURIComponent(course)}&track=${encodeURIComponent(track)}&version=${encodeURIComponent(version)}&day=${encodeURIComponent(day)}`}
+              style={{ ...buttonStyle, backgroundColor: '#15803d' }}
+            >
               학생 화면에서 보기
             </Link>
           ) : null}
