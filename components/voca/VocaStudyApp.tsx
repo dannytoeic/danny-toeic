@@ -118,8 +118,8 @@ const TYPE_COLOR: Record<VocaItemType, string> = {
 
 function getSpeakText(item: VocaItem) {
   if (item.term) return item.term;
-  if (item.speakable && item.quizText) {
-    return item.quizText.replace(/____/g, '').replace(/[:：]/g, '').trim();
+  if (item.speakable && item.originalText) {
+    return item.originalText.replace(/\(([^)]+)\)/g, '').replace(/[:：]/g, '').trim();
   }
   if (item.speakable && item.prompt) {
     return item.prompt.replace(/____/g, '').replace(/[:：]/g, '').trim();
@@ -160,11 +160,8 @@ function getOriginalText(item: VocaItem) {
   return stripVocaHeaderLines(item.originalText ?? item.answerText ?? item.rawText);
 }
 
-function getAnswerText(item: VocaItem) {
-  if (item.answers && item.answers.length > 0) return item.answers.join(' / ');
-  if (item.answer) return item.answer;
-  if (item.meaning) return `${item.pos ? `(${item.pos}) ` : ''}${item.meaning}`;
-  return getOriginalText(item);
+function hasBlankQuizText(item: VocaItem) {
+  return Boolean(item.originalText || item.quizText);
 }
 
 function speak(item: VocaItem) {
@@ -280,10 +277,10 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
   );
   const [selectedSetId, setSelectedSetId] = useState('');
   const [progress, setProgress] = useState<VocaProgressMap>({});
+  const [hideMeaning, setHideMeaning] = useState(false);
   const [cardMode, setCardMode] = useState(false);
   const [reviewOnly, setReviewOnly] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [revealedAnswers, setRevealedAnswers] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     window.setTimeout(() => {
@@ -352,7 +349,6 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
     window.setTimeout(() => {
       setProgress(loadVocaProgress(vocaSet.id));
       setCurrentIndex(0);
-      setRevealedAnswers({});
     }, 0);
   }, [vocaSet.id]);
 
@@ -384,7 +380,6 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
     setSelectedSetId('');
     setProgress({});
     setCurrentIndex(0);
-    setRevealedAnswers({});
   }
 
   function chooseSet(set: VocaSet) {
@@ -393,7 +388,6 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
     setCurrentIndex(0);
     setCardMode(false);
     setReviewOnly(false);
-    setRevealedAnswers({});
   }
 
   function setStatus(itemId: string, status: VocaKnowledgeStatus) {
@@ -414,13 +408,6 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
       if (next >= visibleItems.length) return visibleItems.length - 1;
       return next;
     });
-  }
-
-  function toggleAnswer(itemId: string) {
-    setRevealedAnswers((prev) => ({
-      ...prev,
-      [itemId]: !prev[itemId],
-    }));
   }
 
   const pageStyle: React.CSSProperties = {
@@ -520,10 +507,9 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
   function renderItem(item: VocaItem, compact = false) {
     const status = progress[item.id];
     const statusStyle = status ? STATUS_STYLE[status] : null;
-    const isRevealed = Boolean(revealedAnswers[item.id]);
     const quizText = getQuizText(item);
     const originalText = getOriginalText(item);
-    const answerText = getAnswerText(item);
+    const usesBlankQuiz = hasBlankQuizText(item);
 
     return (
       <article
@@ -565,48 +551,149 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           ) : null}
         </div>
 
-        <div
-          style={{
-            whiteSpace: 'pre-wrap',
-            color: '#07162F',
-            fontSize: compact ? '21px' : '28px',
-            fontWeight: 900,
-            lineHeight: 1.65,
-            wordBreak: 'keep-all',
-          }}
-        >
-          {isRevealed ? originalText : quizText}
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: item.speakable ? '1fr auto' : '1fr', gap: '10px' }}>
-          <button
-            onClick={() => toggleAnswer(item.id)}
-            type="button"
-            style={{
-              ...modeButtonStyle(isRevealed),
-              minHeight: '44px',
-              padding: '10px 12px',
-            }}
-          >
-            {isRevealed ? '정답 숨기기' : '정답 보기'}
-          </button>
-          {item.speakable ? (
-            <button
-              onClick={() => speak(item)}
-              type="button"
-              aria-label={`${getSpeakText(item)} pronunciation`}
-              style={{ ...speakerButtonStyle, width: '44px', height: '44px', fontSize: '18px' }}
+        {usesBlankQuiz ? (
+          <>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: item.speakable ? '1fr auto' : '1fr',
+                gap: '12px',
+                alignItems: 'center',
+              }}
             >
-              🔊
-            </button>
-          ) : null}
-        </div>
+              <div
+                style={{
+                  whiteSpace: 'pre-wrap',
+                  color: '#07162F',
+                  fontSize: compact ? '21px' : '28px',
+                  fontWeight: 900,
+                  lineHeight: 1.65,
+                  wordBreak: 'keep-all',
+                }}
+              >
+                {hideMeaning ? quizText : originalText}
+              </div>
+              {item.speakable ? (
+                <button
+                  onClick={() => speak(item)}
+                  type="button"
+                  aria-label={`${getSpeakText(item)} pronunciation`}
+                  style={speakerButtonStyle}
+                >
+                  🔊
+                </button>
+              ) : null}
+            </div>
+          </>
+        ) : item.type === 'word' || item.type === 'phrase' || item.type === 'pattern' ? (
+          <>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: item.speakable ? '1fr auto' : '1fr',
+                gap: '12px',
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ color: '#07162F', fontSize: compact ? '26px' : '34px', fontWeight: 900 }}>
+                {item.term}
+              </div>
+              {item.speakable ? (
+                <button
+                  onClick={() => speak(item)}
+                  type="button"
+                  aria-label={`${getSpeakText(item)} pronunciation`}
+                  style={speakerButtonStyle}
+                >
+                  🔊
+                </button>
+              ) : null}
+            </div>
 
-        {isRevealed ? (
-          <div style={{ ...meaningBoxStyle, fontSize: '16px', fontWeight: 800 }}>
-            정답: {answerText}
-          </div>
-        ) : null}
+            <div
+              style={meaningBoxStyle}
+            >
+              {hideMeaning ? '뜻 가림' : `${item.pos ? `(${item.pos}) ` : ''}${item.meaning ?? ''}`}
+            </div>
+          </>
+        ) : item.type === 'blank' ? (
+          <>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: item.speakable ? '1fr auto' : '1fr',
+                gap: '12px',
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ color: '#07162F', fontSize: compact ? '26px' : '34px', fontWeight: 900 }}>
+                {item.prompt}
+              </div>
+              {item.speakable ? (
+                <button
+                  onClick={() => speak(item)}
+                  type="button"
+                  aria-label={`${getSpeakText(item)} pronunciation`}
+                  style={speakerButtonStyle}
+                >
+                  🔊
+                </button>
+              ) : null}
+            </div>
+            <div
+              style={meaningBoxStyle}
+            >
+              {hideMeaning ? '정답 가림' : item.answer}
+            </div>
+          </>
+        ) : item.type === 'grammar' ? (
+          <>
+            <div style={{ color: '#07162F', fontSize: compact ? '22px' : '28px', fontWeight: 900, lineHeight: 1.55 }}>
+              {hideMeaning ? item.prompt : item.answerText ?? item.rawText}
+            </div>
+            <div
+              style={{ ...meaningBoxStyle, fontSize: '18px' }}
+            >
+              {hideMeaning ? '정답 가림' : `정답: ${(item.answers ?? []).join(' / ')}`}
+            </div>
+          </>
+        ) : item.type === 'group' ? (
+          <>
+            <div style={{ color: '#07162F', fontSize: '28px', fontWeight: 900 }}>{item.title}</div>
+            <div
+              style={{
+                whiteSpace: 'pre-wrap',
+                lineHeight: 1.8,
+                fontSize: '17px',
+                fontWeight: 800,
+                color: '#07162F',
+                borderRadius: '18px',
+                backgroundColor: '#EEF3F8',
+                border: '1px solid #D9E3EE',
+                padding: '15px',
+              }}
+            >
+              {hideMeaning ? '내용 가림' : (item.lines ?? []).join('\n')}
+            </div>
+          </>
+        ) : item.type === 'note' ? (
+          <>
+            <div style={{ color: '#07162F', fontSize: '28px', fontWeight: 900 }}>* {item.title}</div>
+            <div
+              style={{
+                whiteSpace: 'pre-wrap',
+                lineHeight: 1.8,
+                fontSize: '17px',
+                fontWeight: 800,
+                color: '#3F5878',
+              }}
+            >
+              {(item.lines ?? []).join('\n') || item.rawText}
+            </div>
+          </>
+        ) : (
+          <div style={{ color: '#3F5878', lineHeight: 1.8, fontSize: '17px', fontWeight: 800 }}>{item.rawText}</div>
+        )}
 
         <div
           style={{
@@ -830,9 +917,9 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
           }}
         >
           <button
-            onClick={() => setRevealedAnswers({})}
+            onClick={() => setHideMeaning((prev) => !prev)}
             type="button"
-            style={modeButtonStyle(false)}
+            style={modeButtonStyle(hideMeaning)}
           >
             뜻 가리고 보기
           </button>
@@ -861,10 +948,10 @@ export default function VocaStudyApp({ student }: VocaStudyAppProps) {
               setCardMode(false);
               setReviewOnly(false);
               setCurrentIndex(0);
-              setRevealedAnswers({});
+              setHideMeaning(false);
             }}
             type="button"
-            style={modeButtonStyle(!cardMode && !reviewOnly)}
+            style={modeButtonStyle(!hideMeaning && !cardMode && !reviewOnly)}
           >
             전체 보기
           </button>
