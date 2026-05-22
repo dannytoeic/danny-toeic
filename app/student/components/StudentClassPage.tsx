@@ -647,6 +647,22 @@ export default function StudentClassPage({
               style={discountBannerImageStyle}
             />
           </div>
+
+          <div
+            style={{
+              ...discountBannerWrapStyle,
+              marginTop: isMobile ? '12px' : '16px',
+            }}
+          >
+            <Image
+              src="/images/june-calendar.png"
+              alt="6월 수업 캘린더"
+              width={866}
+              height={683}
+              sizes="(max-width: 768px) 100vw, 1060px"
+              style={discountBannerImageStyle}
+            />
+          </div>
         </section>
 
         <section
