@@ -349,6 +349,10 @@ export default function StudentClassPage({
 
   const pageStyle: React.CSSProperties = {
     minHeight: '100vh',
+    width: '100%',
+    maxWidth: '100%',
+    overflowX: 'hidden',
+    boxSizing: 'border-box',
     backgroundColor: '#0e1116',
     fontFamily: 'Arial, sans-serif',
     color: '#f4f1eb',
@@ -356,11 +360,18 @@ export default function StudentClassPage({
 
   const containerStyle: React.CSSProperties = {
     maxWidth: '1120px',
+    width: '100%',
+    minWidth: 0,
     margin: '0 auto',
     padding: isMobile ? '18px 12px 40px' : '28px 18px 64px',
+    boxSizing: 'border-box',
   };
 
   const outerCardStyle: React.CSSProperties = {
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    boxSizing: 'border-box',
     backgroundColor: '#1b222c',
     border: '1px solid rgba(226, 232, 240, 0.10)',
     borderRadius: isMobile ? '16px' : '18px',
@@ -369,6 +380,10 @@ export default function StudentClassPage({
   };
 
   const innerBoxStyle: React.CSSProperties = {
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    boxSizing: 'border-box',
     backgroundColor: '#f8f6f1',
     border: '1px solid #ddd7ce',
     borderRadius: isMobile ? '12px' : '14px',
@@ -377,6 +392,10 @@ export default function StudentClassPage({
   };
 
   const headerOuterStyle: React.CSSProperties = {
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    boxSizing: 'border-box',
     backgroundColor: '#151b24',
     border: '1px solid rgba(226, 232, 240, 0.11)',
     borderRadius: isMobile ? '16px' : '18px',
@@ -421,6 +440,10 @@ export default function StudentClassPage({
   };
 
   const discountBannerWrapStyle: React.CSSProperties = {
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    boxSizing: 'border-box',
     marginTop: isMobile ? '16px' : '20px',
     overflow: 'hidden',
     borderRadius: isMobile ? '12px' : '16px',
@@ -431,7 +454,9 @@ export default function StudentClassPage({
   const discountBannerImageStyle: React.CSSProperties = {
     display: 'block',
     width: '100%',
+    maxWidth: '100%',
     height: 'auto',
+    objectFit: 'contain',
     borderRadius: isMobile ? '12px' : '16px',
   };
 
@@ -466,6 +491,10 @@ export default function StudentClassPage({
 
   const sectionHeaderRowStyle: React.CSSProperties = {
     display: 'flex',
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    boxSizing: 'border-box',
     justifyContent: 'space-between',
     alignItems: isMobile ? 'flex-start' : 'center',
     gap: '12px',
@@ -476,6 +505,7 @@ export default function StudentClassPage({
   };
 
   const sectionHeaderTitleStyle: React.CSSProperties = {
+    minWidth: 0,
     color: '#f2eee7',
     fontSize: isMobile ? '22px' : '30px',
     fontWeight: 800,
@@ -485,6 +515,7 @@ export default function StudentClassPage({
   };
 
   const sectionDateStyle: React.CSSProperties = {
+    minWidth: 0,
     color: '#c8b99d',
     fontSize: isMobile ? '15px' : '20px',
     fontWeight: 700,
@@ -501,6 +532,7 @@ export default function StudentClassPage({
 
   const bodyTextStyle: React.CSSProperties = {
     margin: 0,
+    maxWidth: '100%',
     color: '#1f2933',
     fontSize: isMobile ? '15px' : '18px',
     lineHeight: isMobile ? 1.82 : 1.95,
@@ -574,6 +606,10 @@ export default function StudentClassPage({
           style={{
             marginBottom: isMobile ? '14px' : '18px',
             display: 'flex',
+            width: '100%',
+            maxWidth: '100%',
+            minWidth: 0,
+            boxSizing: 'border-box',
             justifyContent: 'space-between',
             alignItems: 'center',
             gap: '12px',
@@ -613,7 +649,16 @@ export default function StudentClassPage({
           </div>
         </section>
 
-        <section style={{ display: 'grid', gap: isMobile ? '20px' : '28px' }}>
+        <section
+          style={{
+            display: 'grid',
+            width: '100%',
+            maxWidth: '100%',
+            minWidth: 0,
+            boxSizing: 'border-box',
+            gap: isMobile ? '20px' : '28px',
+          }}
+        >
           {message ? (
             <section style={outerCardStyle}>
               <div style={innerBoxStyle}>
@@ -661,7 +706,16 @@ export default function StudentClassPage({
                     ) : null}
                   </div>
 
-                  <div style={{ display: 'grid', gap: isMobile ? '14px' : '18px' }}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      width: '100%',
+                      maxWidth: '100%',
+                      minWidth: 0,
+                      boxSizing: 'border-box',
+                      gap: isMobile ? '14px' : '18px',
+                    }}
+                  >
                     <div style={innerBoxStyle}>
                       <div style={sectionTitleStyle}>오늘 공지</div>
                       {card.noticeText ? (
@@ -782,6 +836,8 @@ export default function StudentClassPage({
                               alt={`추가 이미지 ${index + 1}`}
                               style={{
                                 width: '100%',
+                                maxWidth: '100%',
+                                height: 'auto',
                                 display: 'block',
                                 borderRadius: '12px',
                                 border: '1px solid #d6dce3',
