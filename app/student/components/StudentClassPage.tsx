@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -419,6 +420,21 @@ export default function StudentClassPage({
     textAlign: 'center',
   };
 
+  const discountBannerWrapStyle: React.CSSProperties = {
+    marginTop: isMobile ? '16px' : '20px',
+    overflow: 'hidden',
+    borderRadius: isMobile ? '12px' : '16px',
+    boxShadow: '0 12px 28px rgba(0, 0, 0, 0.22)',
+    backgroundColor: '#0f141b',
+  };
+
+  const discountBannerImageStyle: React.CSSProperties = {
+    display: 'block',
+    width: '100%',
+    height: 'auto',
+    borderRadius: isMobile ? '12px' : '16px',
+  };
+
   const topLabelStyle: React.CSSProperties = {
     color: '#c8b99d',
     fontSize: isMobile ? '15px' : '18px',
@@ -583,6 +599,18 @@ export default function StudentClassPage({
           >
             Danny Voca 단어암기
           </a>
+
+          <div style={discountBannerWrapStyle}>
+            <Image
+              src="/images/pagoda-discount-banner.png"
+              alt="Pagoda TOEIC 수강료 할인 안내"
+              width={1920}
+              height={1080}
+              priority
+              sizes="(max-width: 768px) 100vw, 1060px"
+              style={discountBannerImageStyle}
+            />
+          </div>
         </section>
 
         <section style={{ display: 'grid', gap: isMobile ? '20px' : '28px' }}>
