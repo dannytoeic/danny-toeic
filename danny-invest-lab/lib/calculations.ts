@@ -6,7 +6,7 @@ export const KRW = new Intl.NumberFormat("ko-KR", {
   maximumFractionDigits: 0,
 });
 
-export const percent = (value: number) => `${value.toFixed(1)}%`;
+export const percent = (value: number) => `${Number.isFinite(value) ? value.toFixed(1) : "0.0"}%`;
 
 export const holdingValue = (holding: Holding) => holding.quantity * holding.currentPrice;
 
@@ -22,7 +22,7 @@ export const drawdownFromHigh = (price: number, high: number) =>
   high === 0 ? 0 : ((price - high) / high) * 100;
 
 export const maPosition = (price: number, ma: number) => {
-  if (ma === 0) return "미입력";
+  if (price === 0 || ma === 0) return "미입력";
   const gap = ((price - ma) / ma) * 100;
   if (gap >= 2) return "위";
   if (gap <= -2) return "아래";
@@ -79,17 +79,18 @@ export function buildSummary(accounts: Account[], holdings: Holding[], settings:
     pensionAssets,
     targetAssetOneYear: settings.totalCapital * (settings.yearlyTargetRate / 100),
     targetProgress: weightOf(totalAssets, settings.totalCapital * (settings.yearlyTargetRate / 100)),
-    cashWeight: weightOf(totalCash, settings.totalCapital),
-    semiconductorWeight: weightOf(semiconductorValue, investableCapital),
-    usEtfWeight: weightOf(usEtfValue, investableCapital),
-    swingWeight: weightOf(swingValue, investableCapital),
-    cmaCashWeight: weightOf(cmaCash, settings.totalCapital),
+    cashWeight: weightOf(totalCash, totalAssets),
+    semiconductorWeight: weightOf(semiconductorValue, totalAssets),
+    usEtfWeight: weightOf(usEtfValue, totalAssets),
+    swingWeight: weightOf(swingValue, totalAssets),
+    cmaCashWeight: weightOf(cmaCash, totalAssets),
     pensionWeight: weightOf(pensionAssets, totalAssets),
-    investmentWeight: weightOf(currentInvestment, investableCapital),
+    investmentWeight: weightOf(currentInvestment, totalAssets),
+    investmentVsInvestableWeight: weightOf(currentInvestment, investableCapital),
     cashTargetGap: totalCash - cashTarget,
     cmaMinimumGap: cmaCash - settings.cmaMinimumCash,
-    semiconductorMaxAmount: investableCapital * (settings.semiconductorMaxWeight / 100),
-    usEtfTargetAmount: investableCapital * (settings.usEtfTargetWeight / 100),
+    semiconductorMaxAmount: totalAssets * (settings.semiconductorMaxWeight / 100),
+    usEtfTargetAmount: totalAssets * (settings.usEtfTargetWeight / 100),
   };
 }
 

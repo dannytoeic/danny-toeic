@@ -1,5 +1,6 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useMemo, useState } from "react";
 import {
   KRW,
@@ -25,36 +26,126 @@ import {
   defaultHoldings,
   defaultSettings,
 } from "@/lib/default-data";
-import type { Account, AccountRole, AccountType, AssetClass, BuyPlanMode, Holding } from "@/lib/types";
+import type { Account, AccountRole, AccountType, AssetClass, BuyPlanMode, Holding, Settings } from "@/lib/types";
 
-const storageKey = "danny-invest-lab-v1";
-const tabs = ["대시보드", "계좌", "보유종목", "매수계획", "알림조건", "오늘의판단", "설정"] as const;
+type Tab = "대시보드" | "계좌" | "보유종목" | "매수계획" | "알림조건" | "오늘의판단" | "설정";
+type DataMode = "실제 데이터 입력 모드" | "예시 데이터 모드";
+type SavedState = {
+  accounts: Account[];
+  holdings: Holding[];
+  settings: Settings;
+  buyPlan: typeof defaultBuyPlan;
+  dataMode: DataMode;
+};
 
-function loadSavedState() {
-  if (typeof window === "undefined") return null;
-  const saved = window.localStorage.getItem(storageKey);
-  if (!saved) return null;
-  return JSON.parse(saved) as {
-    accounts?: Account[];
-    holdings?: Holding[];
-    settings?: typeof defaultSettings;
-    buyPlan?: typeof defaultBuyPlan;
+const storageKey = "danny-invest-lab-v2";
+const tabs: Tab[] = ["대시보드", "계좌", "보유종목", "매수계획", "알림조건", "오늘의판단", "설정"];
+
+function emptyAccounts(): Account[] {
+  return [
+    {
+      id: "acct-brokerage",
+      name: "한국투자증권 위탁계좌",
+      brokerage: "한국투자증권",
+      accountType: "위탁",
+      role: "적극투자",
+      cashAmount: 0,
+      memo: "",
+    },
+    {
+      id: "acct-isa",
+      name: "한국투자증권 ISA",
+      brokerage: "한국투자증권",
+      accountType: "ISA",
+      role: "절세형 ETF",
+      cashAmount: 0,
+      memo: "",
+    },
+    {
+      id: "acct-pension",
+      name: "한국투자증권 연금계좌",
+      brokerage: "한국투자증권",
+      accountType: "연금",
+      role: "장기연금",
+      cashAmount: 0,
+      memo: "",
+    },
+    {
+      id: "acct-cma",
+      name: "한국투자증권 CMA",
+      brokerage: "한국투자증권",
+      accountType: "CMA",
+      role: "방어현금",
+      cashAmount: 0,
+      memo: "",
+    },
+  ];
+}
+
+function emptyState(): SavedState {
+  return {
+    accounts: emptyAccounts(),
+    holdings: [],
+    settings: defaultSettings,
+    buyPlan: defaultBuyPlan,
+    dataMode: "실제 데이터 입력 모드",
   };
 }
 
+function exampleState(): SavedState {
+  return {
+    accounts: defaultAccounts,
+    holdings: defaultHoldings,
+    settings: defaultSettings,
+    buyPlan: defaultBuyPlan,
+    dataMode: "예시 데이터 모드",
+  };
+}
+
+function readSavedState(): SavedState {
+  if (typeof window === "undefined") return emptyState();
+  const raw = window.localStorage.getItem(storageKey);
+  if (!raw) return emptyState();
+  try {
+    const parsed = JSON.parse(raw) as Partial<SavedState>;
+    return {
+      accounts: parsed.accounts?.length ? parsed.accounts : emptyAccounts(),
+      holdings: parsed.holdings ?? [],
+      settings: parsed.settings ?? defaultSettings,
+      buyPlan: parsed.buyPlan ?? defaultBuyPlan,
+      dataMode: parsed.dataMode ?? "실제 데이터 입력 모드",
+    };
+  } catch {
+    return emptyState();
+  }
+}
+
 export default function Home() {
-  const savedState = loadSavedState();
-  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("대시보드");
-  const [accounts, setAccounts] = useState(savedState?.accounts ?? defaultAccounts);
-  const [holdings, setHoldings] = useState(savedState?.holdings ?? defaultHoldings);
-  const [settings, setSettings] = useState(savedState?.settings ?? defaultSettings);
-  const [buyPlan, setBuyPlan] = useState(savedState?.buyPlan ?? defaultBuyPlan);
+  const [activeTab, setActiveTab] = useState<Tab>("대시보드");
+  const [accounts, setAccounts] = useState<Account[]>(emptyAccounts);
+  const [holdings, setHoldings] = useState<Holding[]>([]);
+  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [buyPlan, setBuyPlan] = useState(defaultBuyPlan);
+  const [dataMode, setDataMode] = useState<DataMode>("실제 데이터 입력 모드");
   const [rules, setRules] = useState(defaultAlertRules);
   const [advisoryText, setAdvisoryText] = useState("");
+  const [saveMessage, setSaveMessage] = useState("");
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
-    window.localStorage.setItem(storageKey, JSON.stringify({ accounts, holdings, settings, buyPlan }));
-  }, [accounts, holdings, settings, buyPlan]);
+    const saved = readSavedState();
+    setAccounts(saved.accounts);
+    setHoldings(saved.holdings);
+    setSettings(saved.settings);
+    setBuyPlan(saved.buyPlan);
+    setDataMode(saved.dataMode);
+    setHasLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoaded) return;
+    window.localStorage.setItem(storageKey, JSON.stringify({ accounts, holdings, settings, buyPlan, dataMode }));
+  }, [accounts, holdings, settings, buyPlan, dataMode, hasLoaded]);
 
   const summary = useMemo(() => buildSummary(accounts, holdings, settings), [accounts, holdings, settings]);
   const alerts = useMemo(() => activeAlerts(accounts, holdings, settings, rules), [accounts, holdings, settings, rules]);
@@ -62,6 +153,34 @@ export default function Home() {
     () => buyPlanRows(settings, buyPlan, summary.additionalDeployable),
     [settings, buyPlan, summary.additionalDeployable],
   );
+
+  const saveNow = (message: string) => {
+    window.localStorage.setItem(storageKey, JSON.stringify({ accounts, holdings, settings, buyPlan, dataMode }));
+    setSaveMessage(message);
+    window.setTimeout(() => setSaveMessage(""), 1800);
+  };
+
+  const loadExample = () => {
+    const next = exampleState();
+    setAccounts(next.accounts);
+    setHoldings(next.holdings);
+    setSettings(next.settings);
+    setBuyPlan(next.buyPlan);
+    setDataMode(next.dataMode);
+    setSaveMessage("예시 데이터를 불러왔습니다.");
+  };
+
+  const resetAll = () => {
+    if (!window.confirm("전체 데이터를 초기화하시겠습니까?")) return;
+    const next = emptyState();
+    setAccounts(next.accounts);
+    setHoldings(next.holdings);
+    setSettings(next.settings);
+    setBuyPlan(next.buyPlan);
+    setDataMode(next.dataMode);
+    window.localStorage.removeItem(storageKey);
+    setSaveMessage("전체 데이터를 초기화했습니다.");
+  };
 
   const addAccount = () => {
     const id = `acct-${Date.now()}`;
@@ -77,10 +196,18 @@ export default function Home() {
         memo: "",
       },
     ]);
+    setDataMode("실제 데이터 입력 모드");
+  };
+
+  const deleteAccount = (id: string) => {
+    if (!window.confirm("이 계좌를 삭제하시겠습니까?")) return;
+    setAccounts(accounts.filter((account) => account.id !== id));
+    setHoldings(holdings.filter((holding) => holding.accountId !== id));
+    setDataMode("실제 데이터 입력 모드");
   };
 
   const addHolding = () => {
-    const account = accounts[0];
+    const account = accounts[0] ?? emptyAccounts()[0];
     setHoldings([
       ...holdings,
       {
@@ -105,10 +232,18 @@ export default function Home() {
         dayChangeRate: 0,
       },
     ]);
+    setDataMode("실제 데이터 입력 모드");
+  };
+
+  const deleteHolding = (id: string) => {
+    if (!window.confirm("이 종목을 삭제하시겠습니까?")) return;
+    setHoldings(holdings.filter((holding) => holding.id !== id));
+    setDataMode("실제 데이터 입력 모드");
   };
 
   const updateAccount = <K extends keyof Account>(id: string, key: K, value: Account[K]) => {
     setAccounts(accounts.map((account) => (account.id === id ? { ...account, [key]: value } : account)));
+    setDataMode("실제 데이터 입력 모드");
   };
 
   const updateHolding = <K extends keyof Holding>(id: string, key: K, value: Holding[K]) => {
@@ -126,6 +261,7 @@ export default function Home() {
         };
       }),
     );
+    setDataMode("실제 데이터 입력 모드");
   };
 
   const generateAdvisoryText = () => {
@@ -137,20 +273,30 @@ export default function Home() {
     <main className="min-h-screen">
       <section className="border-b border-[#dfe5df] bg-white">
         <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-sm font-bold text-[#256f5c]">10억 프로젝트 자문 시스템</p>
               <h1 className="mt-1 text-2xl font-black sm:text-3xl">데니 투자연구소</h1>
               <p className="mt-2 max-w-3xl text-sm text-[#65706a]">
-                종목을 맞히는 앱이 아니라, 행동을 통제하는 투자 판단 보조 상황판입니다. 자동매매와 주문 실행 기능은 없습니다.
+                사용자가 직접 입력한 투자금, 계좌별 현금, 보유종목, 현재가, 고점, 이동평균선을 기준으로 재계산합니다.
               </p>
             </div>
-            <button
-              className="rounded-lg bg-[#256f5c] px-4 py-3 text-sm font-bold text-white"
-              onClick={generateAdvisoryText}
-            >
-              ChatGPT 자문 요청문 생성
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button className="rounded-lg border border-[#256f5c] px-4 py-3 text-sm font-bold text-[#256f5c]" onClick={loadExample}>
+                예시 데이터 불러오기
+              </button>
+              <button className="rounded-lg border border-[#b42318] px-4 py-3 text-sm font-bold text-[#b42318]" onClick={resetAll}>
+                전체 데이터 초기화
+              </button>
+              <button className="rounded-lg bg-[#256f5c] px-4 py-3 text-sm font-bold text-white" onClick={generateAdvisoryText}>
+                ChatGPT 자문 요청문 생성
+              </button>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-[#e4f1eb] px-3 py-1 text-xs font-black text-[#256f5c]">{dataMode}</span>
+            <span className="text-xs font-bold text-[#65706a]">입력값은 브라우저 localStorage에 저장됩니다.</span>
+            {saveMessage && <span className="text-xs font-black text-[#256f5c]">{saveMessage}</span>}
           </div>
           <nav className="mt-5 flex gap-2 overflow-x-auto pb-1">
             {tabs.map((tab) => (
@@ -175,7 +321,14 @@ export default function Home() {
           <Dashboard accounts={accounts} holdings={holdings} settings={settings} summary={summary} alerts={alerts} />
         )}
         {activeTab === "계좌" && (
-          <Accounts accounts={accounts} holdings={holdings} updateAccount={updateAccount} addAccount={addAccount} />
+          <Accounts
+            accounts={accounts}
+            holdings={holdings}
+            updateAccount={updateAccount}
+            addAccount={addAccount}
+            deleteAccount={deleteAccount}
+            saveNow={saveNow}
+          />
         )}
         {activeTab === "보유종목" && (
           <Holdings
@@ -184,24 +337,27 @@ export default function Home() {
             summary={summary}
             updateHolding={updateHolding}
             addHolding={addHolding}
+            deleteHolding={deleteHolding}
+            saveNow={saveNow}
           />
         )}
         {activeTab === "매수계획" && (
-          <BuyPlanView
-            buyPlan={buyPlan}
-            setBuyPlan={setBuyPlan}
-            settings={settings}
-            summary={summary}
-            rows={buyRows}
-          />
+          <BuyPlanView buyPlan={buyPlan} setBuyPlan={setBuyPlan} settings={settings} summary={summary} rows={buyRows} />
         )}
-        {activeTab === "알림조건" && (
-          <AlertsView rules={rules} setRules={setRules} alerts={alerts} holdings={holdings} summary={summary} />
-        )}
+        {activeTab === "알림조건" && <AlertsView rules={rules} setRules={setRules} alerts={alerts} />}
         {activeTab === "오늘의판단" && (
           <Judgment alerts={alerts} holdings={holdings} summary={summary} advisoryText={advisoryText} />
         )}
-        {activeTab === "설정" && <Settings settings={settings} setSettings={setSettings} />}
+        {activeTab === "설정" && (
+          <SettingsView
+            settings={settings}
+            onSave={(next) => {
+              setSettings(next);
+              setDataMode("실제 데이터 입력 모드");
+              saveNow("설정을 저장했습니다.");
+            }}
+          />
+        )}
       </div>
 
       <footer className="mx-auto max-w-7xl px-4 pb-8 sm:px-6">
@@ -223,20 +379,20 @@ function Dashboard({
 }: {
   accounts: Account[];
   holdings: Holding[];
-  settings: typeof defaultSettings;
+  settings: Settings;
   summary: ReturnType<typeof buildSummary>;
   alerts: ReturnType<typeof activeAlerts>;
 }) {
   return (
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric title="총 운용 가능 자금" value={KRW.format(settings.totalCapital)} sub="설정 화면에서 총액 수정" />
+        <Metric title="총 운용 가능 자금" value={KRW.format(settings.totalCapital)} sub="설정 저장 시 즉시 반영" />
         <Metric title="방어 현금 목표" value={KRW.format(summary.cashTarget)} sub={`목표 대비 ${KRW.format(summary.cashTargetGap)}`} />
         <Metric title="실제 투자 가능 자금" value={KRW.format(summary.investableCapital)} sub="총 운용 가능 자금 - 방어현금" />
         <Metric title="추가 투입 가능 금액" value={KRW.format(summary.additionalDeployable)} sub="투자 가능 자금 - 현재 투자금" tone={summary.additionalDeployable < 0 ? "danger" : "normal"} />
-        <Metric title="현재 투자금" value={KRW.format(summary.currentInvestment)} sub={`투자 비중 ${percent(summary.investmentWeight)}`} />
-        <Metric title="현재 현금" value={KRW.format(summary.totalCash)} sub={`현금 비중 ${percent(summary.cashWeight)}`} />
-        <Metric title="총 평가자산" value={KRW.format(summary.totalAssets)} sub="현금 + 보유종목 평가금액" />
+        <Metric title="현재 투자금" value={KRW.format(summary.currentInvestment)} sub={`총자산 대비 ${percent(summary.investmentWeight)}`} />
+        <Metric title="현재 현금" value={KRW.format(summary.totalCash)} sub={`총자산 대비 ${percent(summary.cashWeight)}`} />
+        <Metric title="총 평가자산" value={KRW.format(summary.totalAssets)} sub="계좌 현금 + 보유종목 평가금액" />
         <Metric title="1년 목표 총자산" value={KRW.format(summary.targetAssetOneYear)} sub={`목표 달성률 ${percent(summary.targetProgress)}`} />
       </div>
 
@@ -266,6 +422,13 @@ function Dashboard({
         ))}
       </div>
 
+      <div className={`card p-4 ${summary.cashTargetGap >= 0 ? "border-[#b7dfc8] bg-[#f6fff8]" : "border-[#fecdca] bg-[#fff9f8]"}`}>
+        <h2 className="text-lg font-black">{summary.cashTargetGap >= 0 ? "방어현금 정상" : "방어현금 부족"}</h2>
+        <p className="mt-1 text-sm text-[#65706a]">
+          전체 현금 {KRW.format(summary.totalCash)} / 방어현금 목표 {KRW.format(summary.cashTarget)}
+        </p>
+      </div>
+
       {alerts.length > 0 && (
         <div className="card border-[#fecdca] bg-[#fff9f8] p-4">
           <h2 className="text-lg font-black text-[#b42318]">현재 알림</h2>
@@ -287,16 +450,20 @@ function Accounts({
   holdings,
   updateAccount,
   addAccount,
+  deleteAccount,
+  saveNow,
 }: {
   accounts: Account[];
   holdings: Holding[];
   updateAccount: <K extends keyof Account>(id: string, key: K, value: Account[K]) => void;
   addAccount: () => void;
+  deleteAccount: (id: string) => void;
+  saveNow: (message: string) => void;
 }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-black">계좌 관리</h2>
+        <h2 className="text-xl font-black">계좌 입력/수정</h2>
         <button onClick={addAccount} className="rounded-lg bg-[#256f5c] px-4 py-2 text-sm font-bold text-white">계좌 추가</button>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
@@ -308,14 +475,15 @@ function Accounts({
               <SelectField label="계좌 종류" value={account.accountType} options={["위탁", "ISA", "연금", "CMA", "기타"]} onChange={(value) => updateAccount(account.id, "accountType", value as AccountType)} />
               <SelectField label="역할" value={account.role} options={["적극투자", "절세형 ETF", "장기연금", "방어현금", "기타"]} onChange={(value) => updateAccount(account.id, "role", value as AccountRole)} />
               <NumberField label="현금" value={account.cashAmount} onChange={(value) => updateAccount(account.id, "cashAmount", value)} />
-              <ReadOnly label="평가금액" value={KRW.format(accountTotal(account, holdings))} />
+              <ReadOnly label="계좌 총 평가금액" value={KRW.format(accountTotal(account, holdings))} />
             </div>
             <div className="mt-3">
               <TextArea label="메모" value={account.memo} onChange={(value) => updateAccount(account.id, "memo", value)} />
             </div>
-            <p className="mt-3 text-xs font-bold text-[#65706a]">
-              매수 가능 자산 유형: {account.accountType === "CMA" ? "방어 현금 유지. 매수 재원 제외" : account.accountType === "연금" ? "장기 ETF 중심. 단기 매매 금지" : "반도체, 국내상장 미국 ETF, 기타 수동 등록 종목"}
-            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button className="rounded-lg bg-[#256f5c] px-4 py-2 text-sm font-bold text-white" onClick={() => saveNow("계좌 수정 내용을 저장했습니다.")}>계좌 수정</button>
+              <button className="rounded-lg border border-[#b42318] px-4 py-2 text-sm font-bold text-[#b42318]" onClick={() => deleteAccount(account.id)}>계좌 삭제</button>
+            </div>
           </div>
         ))}
       </div>
@@ -329,49 +497,61 @@ function Holdings({
   summary,
   updateHolding,
   addHolding,
+  deleteHolding,
+  saveNow,
 }: {
   accounts: Account[];
   holdings: Holding[];
   summary: ReturnType<typeof buildSummary>;
   updateHolding: <K extends keyof Holding>(id: string, key: K, value: Holding[K]) => void;
   addHolding: () => void;
+  deleteHolding: (id: string) => void;
+  saveNow: (message: string) => void;
 }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-black">보유 종목</h2>
+        <h2 className="text-xl font-black">보유종목 입력/수정</h2>
         <button onClick={addHolding} className="rounded-lg bg-[#256f5c] px-4 py-2 text-sm font-bold text-white">종목 추가</button>
       </div>
+      {holdings.length === 0 && (
+        <div className="card p-5 text-sm text-[#65706a]">아직 입력한 종목이 없습니다. “종목 추가” 버튼으로 실제 보유종목을 입력하세요.</div>
+      )}
       <div className="grid gap-4">
         {holdings.map((holding) => (
           <div key={holding.id} className="card p-4">
             <div className="grid gap-3 md:grid-cols-4">
-              <SelectField label="계좌" value={holding.accountId} options={accounts.map((account) => account.id)} optionLabels={Object.fromEntries(accounts.map((account) => [account.id, account.name]))} onChange={(value) => updateHolding(holding.id, "accountId", value)} />
+              <SelectField label="계좌 선택" value={holding.accountId} options={accounts.map((account) => account.id)} optionLabels={Object.fromEntries(accounts.map((account) => [account.id, account.name]))} onChange={(value) => updateHolding(holding.id, "accountId", value)} />
               <TextField label="종목명" value={holding.name} onChange={(value) => updateHolding(holding.id, "name", value)} />
               <TextField label="종목코드" value={holding.symbol} onChange={(value) => updateHolding(holding.id, "symbol", value)} />
-              <SelectField label="자산군" value={holding.assetClass} options={["반도체", "미국ETF", "현금", "스윙", "기타"]} onChange={(value) => updateHolding(holding.id, "assetClass", value as AssetClass)} />
+              <SelectField label="자산군" value={holding.assetClass} options={["반도체", "미국ETF", "스윙", "기타"]} onChange={(value) => updateHolding(holding.id, "assetClass", value as AssetClass)} />
               <NumberField label="보유수량" value={holding.quantity} onChange={(value) => updateHolding(holding.id, "quantity", value)} />
               <NumberField label="평균단가" value={holding.avgPrice} onChange={(value) => updateHolding(holding.id, "avgPrice", value)} />
               <NumberField label="현재가" value={holding.currentPrice} onChange={(value) => updateHolding(holding.id, "currentPrice", value)} />
               <NumberField label="목표비중(%)" value={holding.targetWeight} onChange={(value) => updateHolding(holding.id, "targetWeight", value)} />
-              <NumberField label="1개월 고점" value={holding.high1m} onChange={(value) => updateHolding(holding.id, "high1m", value)} />
-              <NumberField label="3개월 고점" value={holding.high3m} onChange={(value) => updateHolding(holding.id, "high3m", value)} />
-              <NumberField label="6개월 고점" value={holding.high6m} onChange={(value) => updateHolding(holding.id, "high6m", value)} />
-              <NumberField label="전일 대비(%)" value={holding.dayChangeRate} onChange={(value) => updateHolding(holding.id, "dayChangeRate", value)} />
+              <NumberField label="최근 1개월 고점" value={holding.high1m} onChange={(value) => updateHolding(holding.id, "high1m", value)} />
+              <NumberField label="최근 3개월 고점" value={holding.high3m} onChange={(value) => updateHolding(holding.id, "high3m", value)} />
+              <NumberField label="최근 6개월 고점" value={holding.high6m} onChange={(value) => updateHolding(holding.id, "high6m", value)} />
               <NumberField label="20일선" value={holding.ma20} onChange={(value) => updateHolding(holding.id, "ma20", value)} />
               <NumberField label="60일선" value={holding.ma60} onChange={(value) => updateHolding(holding.id, "ma60", value)} />
+              <NumberField label="전일 대비(%)" value={holding.dayChangeRate} onChange={(value) => updateHolding(holding.id, "dayChangeRate", value)} />
               <ReadOnly label="평가금액" value={KRW.format(holdingValue(holding))} />
               <ReadOnly label="수익률" value={percent(holdingReturnRate(holding))} />
             </div>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-              <Status label="현재비중" value={percent(weightOf(holdingValue(holding), summary.investableCapital))} />
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
               <Status label="평가손익" value={KRW.format(holdingProfit(holding))} />
-              <Status label="3개월 고점 대비" value={percent(drawdownFromHigh(holding.currentPrice, holding.high3m))} />
-              <Status label="20일선 위치" value={maPosition(holding.currentPrice, holding.ma20)} />
+              <Status label="전체 자산 대비 현재비중" value={percent(weightOf(holdingValue(holding), summary.totalAssets))} />
+              <Status label="3개월 고점 대비 하락률" value={percent(drawdownFromHigh(holding.currentPrice, holding.high3m))} />
+              <Status label="20일선 판단" value={maPosition(holding.currentPrice, holding.ma20)} />
+              <Status label="60일선 판단" value={maPosition(holding.currentPrice, holding.ma60)} />
               <Status label="행동 라벨" value={actionForHolding(holding, summary.semiconductorWeight)} strong />
             </div>
             <div className="mt-3">
               <TextArea label="메모" value={holding.memo} onChange={(value) => updateHolding(holding.id, "memo", value)} />
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button className="rounded-lg bg-[#256f5c] px-4 py-2 text-sm font-bold text-white" onClick={() => saveNow("종목 수정 내용을 저장했습니다.")}>종목 수정</button>
+              <button className="rounded-lg border border-[#b42318] px-4 py-2 text-sm font-bold text-[#b42318]" onClick={() => deleteHolding(holding.id)}>종목 삭제</button>
             </div>
           </div>
         ))}
@@ -389,7 +569,7 @@ function BuyPlanView({
 }: {
   buyPlan: typeof defaultBuyPlan;
   setBuyPlan: (plan: typeof defaultBuyPlan) => void;
-  settings: typeof defaultSettings;
+  settings: Settings;
   summary: ReturnType<typeof buildSummary>;
   rows: ReturnType<typeof buyPlanRows>;
 }) {
@@ -420,16 +600,6 @@ function BuyPlanView({
             </div>
           ))}
         </div>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <label className="flex items-center gap-2 text-sm font-bold">
-            <input type="checkbox" checked={buyPlan.completedFirst} onChange={(event) => setBuyPlan({ ...buyPlan, completedFirst: event.target.checked })} />
-            이번 달 1차 분할매수 완료
-          </label>
-          <label className="flex items-center gap-2 text-sm font-bold">
-            <input type="checkbox" checked={buyPlan.completedSecond} onChange={(event) => setBuyPlan({ ...buyPlan, completedSecond: event.target.checked })} />
-            이번 달 2차 분할매수 완료
-          </label>
-        </div>
       </div>
     </div>
   );
@@ -443,8 +613,6 @@ function AlertsView({
   rules: typeof defaultAlertRules;
   setRules: (rules: typeof defaultAlertRules) => void;
   alerts: ReturnType<typeof activeAlerts>;
-  holdings: Holding[];
-  summary: ReturnType<typeof buildSummary>;
 }) {
   return (
     <div className="space-y-4">
@@ -475,7 +643,6 @@ function AlertsView({
         <div className="mt-3 grid gap-2">
           {alerts.length === 0 ? <p className="text-sm text-[#65706a]">현재 발생한 알림이 없습니다.</p> : alerts.map((alert, index) => <p key={index} className="rounded-lg bg-[#fff3df] p-3 text-sm font-bold">{alert.message}</p>)}
         </div>
-        <p className="mt-4 text-sm text-[#65706a]">매크로 알림, 한국투자증권 Open API, 텔레그램 발송은 연동 준비 항목입니다.</p>
       </div>
     </div>
   );
@@ -535,33 +702,33 @@ function Judgment({
   );
 }
 
-function Settings({
-  settings,
-  setSettings,
-}: {
-  settings: typeof defaultSettings;
-  setSettings: (settings: typeof defaultSettings) => void;
-}) {
+function SettingsView({ settings, onSave }: { settings: Settings; onSave: (settings: Settings) => void }) {
+  const [draft, setDraft] = useState(settings);
+
+  useEffect(() => {
+    setDraft(settings);
+  }, [settings]);
+
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-black">설정</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl font-black">설정 입력/수정</h2>
+        <button className="rounded-lg bg-[#256f5c] px-4 py-2 text-sm font-bold text-white" onClick={() => onSave(draft)}>설정 저장</button>
+      </div>
       <div className="card p-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <NumberField label="총 운용 가능 자금" value={settings.totalCapital} onChange={(value) => setSettings({ ...settings, totalCapital: value })} />
-          <SelectField label="방어현금 목표 방식" value={settings.defensiveCashTargetType} options={["percentage", "fixed"]} optionLabels={{ percentage: "비율", fixed: "고정금액" }} onChange={(value) => setSettings({ ...settings, defensiveCashTargetType: value as "percentage" | "fixed" })} />
-          <NumberField label="방어현금 목표값" value={settings.defensiveCashTargetValue} onChange={(value) => setSettings({ ...settings, defensiveCashTargetValue: value })} />
-          <NumberField label="CMA 최소 현금" value={settings.cmaMinimumCash} onChange={(value) => setSettings({ ...settings, cmaMinimumCash: value })} />
-          <NumberField label="반도체 최대 비중(%)" value={settings.semiconductorMaxWeight} onChange={(value) => setSettings({ ...settings, semiconductorMaxWeight: value })} />
-          <NumberField label="미국 ETF 목표 비중(%)" value={settings.usEtfTargetWeight} onChange={(value) => setSettings({ ...settings, usEtfTargetWeight: value })} />
-          <NumberField label="스윙 최대 비중(%)" value={settings.swingMaxWeight} onChange={(value) => setSettings({ ...settings, swingMaxWeight: value })} />
-          <NumberField label="1년 목표율(%)" value={settings.yearlyTargetRate} onChange={(value) => setSettings({ ...settings, yearlyTargetRate: value })} />
-          <NumberField label="월 매수 금액" value={settings.monthlyBuyAmount} onChange={(value) => setSettings({ ...settings, monthlyBuyAmount: value })} />
-          <NumberField label="S&P500 매수 비율(%)" value={settings.sp500BuyRatio} onChange={(value) => setSettings({ ...settings, sp500BuyRatio: value })} />
-          <NumberField label="나스닥100 매수 비율(%)" value={settings.nasdaqBuyRatio} onChange={(value) => setSettings({ ...settings, nasdaqBuyRatio: value })} />
+          <NumberField label="총 운용 가능 자금" value={draft.totalCapital} onChange={(value) => setDraft({ ...draft, totalCapital: value })} />
+          <SelectField label="방어 현금 목표 방식" value={draft.defensiveCashTargetType} options={["percentage", "fixed"]} optionLabels={{ percentage: "비율 입력", fixed: "고정 금액 입력" }} onChange={(value) => setDraft({ ...draft, defensiveCashTargetType: value as "percentage" | "fixed" })} />
+          <NumberField label="방어 현금 목표값" value={draft.defensiveCashTargetValue} onChange={(value) => setDraft({ ...draft, defensiveCashTargetValue: value })} />
+          <NumberField label="1년 목표 수익률" value={draft.yearlyTargetRate} onChange={(value) => setDraft({ ...draft, yearlyTargetRate: value })} />
+          <NumberField label="반도체 최대 비중" value={draft.semiconductorMaxWeight} onChange={(value) => setDraft({ ...draft, semiconductorMaxWeight: value })} />
+          <NumberField label="미국 ETF 목표 비중" value={draft.usEtfTargetWeight} onChange={(value) => setDraft({ ...draft, usEtfTargetWeight: value })} />
+          <NumberField label="스윙 최대 비중" value={draft.swingMaxWeight} onChange={(value) => setDraft({ ...draft, swingMaxWeight: value })} />
+          <NumberField label="CMA 최소 현금" value={draft.cmaMinimumCash} onChange={(value) => setDraft({ ...draft, cmaMinimumCash: value })} />
+          <NumberField label="월 매수 금액" value={draft.monthlyBuyAmount} onChange={(value) => setDraft({ ...draft, monthlyBuyAmount: value })} />
+          <NumberField label="S&P500 매수 비율" value={draft.sp500BuyRatio} onChange={(value) => setDraft({ ...draft, sp500BuyRatio: value })} />
+          <NumberField label="나스닥100 매수 비율" value={draft.nasdaqBuyRatio} onChange={(value) => setDraft({ ...draft, nasdaqBuyRatio: value })} />
         </div>
-      </div>
-      <div className="card p-4 text-sm text-[#65706a]">
-        Supabase 연결값이 있으면 `invest_` prefix 테이블로 확장할 수 있도록 분리했습니다. 현재 MVP 데이터는 브라우저 localStorage에 저장됩니다.
       </div>
     </div>
   );
