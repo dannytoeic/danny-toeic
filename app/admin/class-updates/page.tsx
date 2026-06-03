@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminShell from '../AdminShell';
 import { getLoggedInAdmin } from '../adminGuard';
@@ -68,6 +68,11 @@ const CLASS_OPTIONS: Array<{ key: ClassKey; label: string; mode: '600' | '800' }
   { key: '600-tuthu', label: '600 화목반', mode: '600' },
   { key: '800-monwed', label: '800 월수반', mode: '800' },
   { key: '800-tuthu', label: '800 화목반', mode: '800' },
+];
+
+const MONTH_OPTIONS = [
+  { key: '2026-06', label: '2026년 6월' },
+  { key: '2026-05', label: '2026년 5월' },
 ];
 
 function buildEmptyData(): ClassUpdateMap {
@@ -311,6 +316,7 @@ export default function ClassUpdatesAdminPage() {
   const [isMobile, setIsMobile] = useState(false);
 
   const [selectedClassKey, setSelectedClassKey] = useState<ClassKey>('600-monwed');
+  const [selectedYearMonth, setSelectedYearMonth] = useState('2026-06');
   const [dataMap, setDataMap] = useState<ClassUpdateMap>(buildEmptyData());
   const [collapsedCardIds, setCollapsedCardIds] = useState<string[]>([]);
   const [savedSnapshot, setSavedSnapshot] = useState('');
@@ -336,12 +342,15 @@ export default function ClassUpdatesAdminPage() {
     setIsChecking(false);
   }, [router]);
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     setMessage('');
 
     try {
-      const response = await fetch('/api/get-class-updates', { cache: 'no-store' });
+      const response = await fetch(
+        `/api/get-class-updates?yearMonth=${encodeURIComponent(selectedYearMonth)}`,
+        { cache: 'no-store' }
+      );
       const result = await response.json();
 
       if (!result.success) {
@@ -364,16 +373,16 @@ export default function ClassUpdatesAdminPage() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [selectedYearMonth]);
 
   useEffect(() => {
     if (isChecking) return;
     loadData();
-  }, [isChecking]);
+  }, [isChecking, loadData]);
 
   useEffect(() => {
     setCollapsedCardIds([]);
-  }, [selectedClassKey]);
+  }, [selectedClassKey, selectedYearMonth]);
 
   const selectedMeta = CLASS_OPTIONS.find((item) => item.key === selectedClassKey)!;
   const selectedItem = dataMap[selectedClassKey];
@@ -606,7 +615,7 @@ export default function ClassUpdatesAdminPage() {
       const response = await fetch('/api/save-class-updates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: dataMap }),
+        body: JSON.stringify({ yearMonth: selectedYearMonth, items: dataMap }),
       });
 
       const result = await response.json();
@@ -868,6 +877,18 @@ export default function ClassUpdatesAdminPage() {
                 minWidth: 0,
               }}
             >
+              <select
+                value={selectedYearMonth}
+                onChange={(e) => setSelectedYearMonth(e.target.value)}
+                style={{ ...inputStyle, minWidth: 0 }}
+              >
+                {MONTH_OPTIONS.map((option) => (
+                  <option key={option.key} value={option.key}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
               <select
                 value={selectedClassKey}
                 onChange={(e) => setSelectedClassKey(e.target.value as ClassKey)}

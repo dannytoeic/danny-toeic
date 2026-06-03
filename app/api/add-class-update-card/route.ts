@@ -57,10 +57,13 @@ type ClassCard = {
 };
 
 type ClassUpdateRow = {
+  year_month: string;
   class_key: ClassKey;
   global_notice_text: string | null;
   cards: unknown[] | null;
 };
+
+const DEFAULT_YEAR_MONTH = '2026-06';
 
 const classKeys: ClassKey[] = [
   '600-monwed',
@@ -79,6 +82,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isClassKey(value: unknown): value is ClassKey {
   return typeof value === 'string' && classKeys.includes(value as ClassKey);
+}
+
+function normalizeYearMonth(value: unknown) {
+  const yearMonth = String(value ?? '').trim();
+  return /^\d{4}-\d{2}$/.test(yearMonth) ? yearMonth : DEFAULT_YEAR_MONTH;
 }
 
 function normalizeVideoRole(value: unknown): VideoRole {
@@ -230,11 +238,13 @@ export async function POST(request: NextRequest) {
     }
 
     const classKey = body.classKey;
+    const yearMonth = normalizeYearMonth(body.yearMonth ?? body.monthKey);
     const newCard = normalizeCard(body.card, classKey);
 
     const { data, error: selectError } = await supabaseAdmin
       .from('class_updates')
-      .select('class_key, global_notice_text, cards')
+      .select('year_month, class_key, global_notice_text, cards')
+      .eq('year_month', yearMonth)
       .eq('class_key', classKey)
       .maybeSingle();
 
@@ -252,6 +262,7 @@ export async function POST(request: NextRequest) {
     const nextCards = [newCard, ...existingCards];
 
     const upsertRow = {
+      year_month: yearMonth,
       class_key: classKey,
       global_notice_text: row?.global_notice_text ?? '',
       cards: nextCards,
@@ -259,7 +270,7 @@ export async function POST(request: NextRequest) {
 
     const { error: upsertError } = await supabaseAdmin
       .from('class_updates')
-      .upsert(upsertRow, { onConflict: 'class_key' });
+      .upsert(upsertRow, { onConflict: 'year_month,class_key' });
 
     if (upsertError) {
       console.error('add-class-update-card upsert error:', upsertError);
@@ -272,6 +283,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
+      yearMonth,
       classKey,
       card: newCard,
       cardsCount: nextCards.length,

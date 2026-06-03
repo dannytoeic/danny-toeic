@@ -1,7 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 
 type ClassKey = '600-monwed' | '600-tuthu' | '800-monwed' | '800-tuthu';
+
+const DEFAULT_YEAR_MONTH = '2026-06';
 
 type ClassUpdateResult = Record<
   ClassKey,
@@ -29,11 +31,44 @@ function isClassKey(value: string): value is ClassKey {
   );
 }
 
-export async function GET() {
+function normalizeYearMonth(value: unknown) {
+  const yearMonth = String(value ?? '').trim();
+  return /^\d{4}-\d{2}$/.test(yearMonth) ? yearMonth : DEFAULT_YEAR_MONTH;
+}
+
+function isMissingYearMonthError(error: unknown) {
+  const item = error as { code?: string; message?: string } | null;
+  return item?.code === '42703' || String(item?.message ?? '').includes('year_month');
+}
+
+export async function GET(request: NextRequest) {
   try {
-    const { data, error } = await supabaseAdmin
+    const yearMonth = normalizeYearMonth(request.nextUrl.searchParams.get('yearMonth'));
+
+    let { data, error } = await supabaseAdmin
       .from('class_updates')
-      .select('class_key, global_notice_text, cards');
+      .select('year_month, class_key, global_notice_text, cards')
+      .eq('year_month', yearMonth);
+
+    if (error) {
+      if (isMissingYearMonthError(error)) {
+        if (yearMonth !== '2026-05') {
+          return NextResponse.json({
+            success: true,
+            yearMonth,
+            items: buildDefaultResult(),
+            classUpdates: buildDefaultResult(),
+          });
+        }
+
+        const legacyResult = await supabaseAdmin
+          .from('class_updates')
+          .select('class_key, global_notice_text, cards');
+
+        data = legacyResult.data as typeof data;
+        error = legacyResult.error;
+      }
+    }
 
     if (error) {
       console.error('get-class-updates error:', error);
@@ -69,6 +104,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
+      yearMonth,
       items: result,
       classUpdates: result,
     });

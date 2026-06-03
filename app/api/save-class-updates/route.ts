@@ -3,6 +3,8 @@ import { supabaseAdmin } from '../../../lib/supabase-admin';
 
 type ClassKey = '600-monwed' | '600-tuthu' | '800-monwed' | '800-tuthu';
 
+const DEFAULT_YEAR_MONTH = '2026-06';
+
 type ClassUpdateItem = {
   globalNoticeText?: string;
   cards?: unknown[];
@@ -34,9 +36,15 @@ const classKeys: ClassKey[] = [
   '800-tuthu',
 ];
 
+function normalizeYearMonth(value: unknown) {
+  const yearMonth = String(value ?? '').trim();
+  return /^\d{4}-\d{2}$/.test(yearMonth) ? yearMonth : DEFAULT_YEAR_MONTH;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const yearMonth = normalizeYearMonth(body?.yearMonth ?? body?.monthKey);
 
     const incoming: ClassUpdateMap =
       body?.items && typeof body.items === 'object'
@@ -51,6 +59,7 @@ export async function POST(request: NextRequest) {
       const source = incoming[classKey] ?? {};
 
       return {
+        year_month: yearMonth,
         class_key: classKey,
         global_notice_text: String(source.globalNoticeText ?? '').trim(),
         cards: Array.isArray(source.cards) ? source.cards : [],
@@ -59,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     const { error } = await supabaseAdmin
       .from('class_updates')
-      .upsert(rows, { onConflict: 'class_key' });
+      .upsert(rows, { onConflict: 'year_month,class_key' });
 
     if (error) {
       console.error('save-class-updates error:', error);
@@ -82,6 +91,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: '반별 자료가 저장되었습니다.',
+      yearMonth,
       items: result,
       classUpdates: result,
     });

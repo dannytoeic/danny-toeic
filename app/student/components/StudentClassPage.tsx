@@ -12,6 +12,7 @@ type LoggedInStudent = {
   classKey?: string;
   classKeys?: string[];
   monthKey?: string;
+  month_key?: string;
   expiresAt?: string;
   isActive?: boolean;
 };
@@ -307,8 +308,14 @@ export default function StudentClassPage({
 
     async function fetchUpdates() {
       try {
+        const studentMonthKey = student?.monthKey || student?.month_key || '';
+        const params = new URLSearchParams({ classKey });
+        if (studentMonthKey) {
+          params.set('monthKey', studentMonthKey);
+        }
+
         const response = await fetch(
-          `/api/get-class-updates-for-student?classKey=${classKey}`,
+          `/api/get-class-updates-for-student?${params.toString()}`,
           { cache: 'no-store' }
         );
         const result = await response.json();
@@ -329,7 +336,7 @@ export default function StudentClassPage({
     }
 
     fetchUpdates();
-  }, [isChecking, classKey]);
+  }, [isChecking, classKey, student?.monthKey, student?.month_key]);
 
   const pageData = updates[classKey];
 
