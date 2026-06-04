@@ -244,6 +244,7 @@ export default function StudentClassPage({
   const [student, setStudent] = useState<LoggedInStudent | null>(null);
   const [isChecking, setIsChecking] = useState(true);
   const [updates, setUpdates] = useState<ClassUpdatesMap>(emptyClassUpdates);
+  const [updatesYearMonth, setUpdatesYearMonth] = useState('');
   const [message, setMessage] = useState('수업 카드를 불러오는 중...');
   const [isMobile, setIsMobile] = useState(false);
 
@@ -325,12 +326,15 @@ export default function StudentClassPage({
             ...emptyClassUpdates,
             ...(result.updates ?? {}),
           });
+          setUpdatesYearMonth(String(result.yearMonth ?? result.monthKey ?? ''));
           setMessage('');
         } else {
+          setUpdatesYearMonth('');
           setMessage(result.message ?? '수업 카드를 불러오지 못했습니다.');
         }
       } catch (error) {
         console.error(error);
+        setUpdatesYearMonth('');
         setMessage('수업 카드를 불러오는 중 오류가 발생했습니다.');
       }
     }
@@ -339,6 +343,7 @@ export default function StudentClassPage({
   }, [isChecking, classKey, student?.monthKey, student?.month_key]);
 
   const pageData = updates[classKey];
+  const showMayHeaderImages = updatesYearMonth === '2026-05';
 
   const cards = useMemo<StudentApiCard[]>(() => {
     const raw = pageData?.cards ?? [];
@@ -643,6 +648,8 @@ export default function StudentClassPage({
             Danny Voca 단어암기
           </a>
 
+          {showMayHeaderImages ? (
+            <>
           <div style={discountBannerWrapStyle}>
             <Image
               src="/images/pagoda-discount-banner.png"
@@ -670,6 +677,8 @@ export default function StudentClassPage({
               style={discountBannerImageStyle}
             />
           </div>
+            </>
+          ) : null}
         </section>
 
         <section
