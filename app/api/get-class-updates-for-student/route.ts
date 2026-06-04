@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 
 type ClassUpdateRow = {
-  year_month: string;
   class_key: string;
+  year_month: string | null;
   global_notice_text: string | null;
   cards: unknown[] | null;
 };
 
 type ClassKey = '600-monwed' | '600-tuthu' | '800-monwed' | '800-tuthu';
 
-const DEFAULT_YEAR_MONTH = '2026-06';
+const STUDENT_VISIBLE_YEAR_MONTH = '2026-06';
 
 type VideoItem = {
   id?: string;
@@ -67,11 +67,6 @@ function resolveClassKey(request: NextRequest): ClassKey | '' {
   if (pathnameClassKey) return pathnameClassKey;
 
   return '';
-}
-
-function normalizeYearMonth(value: unknown) {
-  const yearMonth = String(value ?? '').trim();
-  return /^\d{4}-\d{2}$/.test(yearMonth) ? yearMonth : DEFAULT_YEAR_MONTH;
 }
 
 function isMissingYearMonthError(error: unknown) {
@@ -140,10 +135,7 @@ function normalizeCardForStudent(raw: unknown, classKey: ClassKey) {
 export async function GET(request: NextRequest) {
   try {
     const classKey = resolveClassKey(request);
-    const monthKey = normalizeYearMonth(
-      request.nextUrl.searchParams.get('monthKey') ??
-        request.nextUrl.searchParams.get('yearMonth')
-    );
+    const yearMonth = STUDENT_VISIBLE_YEAR_MONTH;
 
     if (!classKey) {
       return NextResponse.json(
@@ -154,26 +146,15 @@ export async function GET(request: NextRequest) {
 
     let { data, error } = await supabaseAdmin
       .from('class_updates')
-      .select('year_month, class_key, global_notice_text, cards')
-      .eq('year_month', monthKey)
+      .select('class_key, year_month, global_notice_text, cards')
       .eq('class_key', classKey)
+      .eq('year_month', yearMonth)
       .maybeSingle();
 
     if (error) {
       if (isMissingYearMonthError(error)) {
-        if (monthKey !== '2026-05') {
-          data = null;
-          error = null;
-        } else {
-          const legacyResult = await supabaseAdmin
-            .from('class_updates')
-            .select('class_key, global_notice_text, cards')
-            .eq('class_key', classKey)
-            .maybeSingle();
-
-          data = legacyResult.data as typeof data;
-          error = legacyResult.error;
-        }
+        data = null;
+        error = null;
       }
     }
 
@@ -208,8 +189,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       classKey,
-      monthKey,
-      yearMonth: monthKey,
+      monthKey: row?.year_month || yearMonth,
+      yearMonth: row?.year_month || yearMonth,
 
       // 새 구조
       item,

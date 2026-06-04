@@ -13,6 +13,8 @@ type ClassUpdateResult = Record<
   }
 >;
 
+type MonthlyClassUpdateResult = Record<string, ClassUpdateResult>;
+
 function buildDefaultResult(): ClassUpdateResult {
   return {
     '600-monwed': { globalNoticeText: '', cards: [] },
@@ -43,21 +45,30 @@ function isMissingYearMonthError(error: unknown) {
 
 export async function GET(request: NextRequest) {
   try {
-    const yearMonth = normalizeYearMonth(request.nextUrl.searchParams.get('yearMonth'));
+    const requestedYearMonth = normalizeYearMonth(
+      request.nextUrl.searchParams.get('yearMonth')
+    );
 
     let { data, error } = await supabaseAdmin
       .from('class_updates')
       .select('year_month, class_key, global_notice_text, cards')
-      .eq('year_month', yearMonth);
+      .order('year_month', { ascending: false })
+      .order('class_key', { ascending: true });
 
     if (error) {
       if (isMissingYearMonthError(error)) {
-        if (yearMonth !== '2026-05') {
+        if (requestedYearMonth !== '2026-05') {
+          const empty = buildDefaultResult();
           return NextResponse.json({
             success: true,
-            yearMonth,
-            items: buildDefaultResult(),
-            classUpdates: buildDefaultResult(),
+            yearMonth: requestedYearMonth,
+            operatingYearMonth: DEFAULT_YEAR_MONTH,
+            months: [DEFAULT_YEAR_MONTH],
+            monthItems: {
+              [requestedYearMonth]: empty,
+            },
+            items: empty,
+            classUpdates: empty,
           });
         }
 
@@ -80,31 +91,53 @@ export async function GET(request: NextRequest) {
     }
 
     const result = buildDefaultResult();
+    const monthItems: MonthlyClassUpdateResult = {};
 
     if (Array.isArray(data)) {
       for (const rawRow of data) {
         const row = rawRow as {
           class_key?: string;
+          year_month?: string | null;
           global_notice_text?: string | null;
           cards?: unknown[] | null;
         };
 
         const classKey = String(row.class_key ?? '').trim();
+        const yearMonth = String(row.year_month ?? '').trim() || '2026-05';
 
         if (!isClassKey(classKey)) {
           continue;
         }
 
-        result[classKey] = {
+        if (!monthItems[yearMonth]) {
+          monthItems[yearMonth] = buildDefaultResult();
+        }
+
+        monthItems[yearMonth][classKey] = {
           globalNoticeText: row.global_notice_text || '',
           cards: Array.isArray(row.cards) ? row.cards : [],
         };
       }
     }
 
+    const months = Object.keys(monthItems).sort().reverse();
+    const selectedYearMonth = requestedYearMonth;
+    const selectedItems =
+      monthItems[selectedYearMonth] ??
+      monthItems[DEFAULT_YEAR_MONTH] ??
+      monthItems[months[0]] ??
+      result;
+
+    for (const classKey of Object.keys(selectedItems) as ClassKey[]) {
+      result[classKey] = selectedItems[classKey];
+    }
+
     return NextResponse.json({
       success: true,
-      yearMonth,
+      yearMonth: selectedYearMonth,
+      operatingYearMonth: DEFAULT_YEAR_MONTH,
+      months,
+      monthItems,
       items: result,
       classUpdates: result,
     });

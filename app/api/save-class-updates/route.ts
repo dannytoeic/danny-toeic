@@ -94,6 +94,9 @@ export async function POST(request: NextRequest) {
       yearMonth,
       items: result,
       classUpdates: result,
+      monthItems: {
+        [yearMonth]: result,
+      },
     });
   } catch (error) {
     console.error('save-class-updates catch error:', error);

@@ -62,6 +62,9 @@ type ClassUpdateItem = {
 };
 
 type ClassUpdateMap = Record<ClassKey, ClassUpdateItem>;
+type MonthlyClassUpdateMap = Record<string, ClassUpdateMap>;
+
+const OPERATING_YEAR_MONTH = '2026-06';
 
 const CLASS_OPTIONS: Array<{ key: ClassKey; label: string; mode: '600' | '800' }> = [
   { key: '600-monwed', label: '600 월수반', mode: '600' },
@@ -300,6 +303,19 @@ function normalizeData(raw: unknown): ClassUpdateMap {
   return base;
 }
 
+function normalizeMonthData(raw: unknown): MonthlyClassUpdateMap {
+  const source = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const result: MonthlyClassUpdateMap = {};
+
+  for (const [yearMonth, value] of Object.entries(source)) {
+    const normalizedYearMonth = yearMonth.trim();
+    if (!normalizedYearMonth) continue;
+    result[normalizedYearMonth] = normalizeData(value);
+  }
+
+  return result;
+}
+
 function sortCards(cards: ClassCard[]) {
   const pinned = cards.filter((card) => card.isPinned);
   const normal = cards.filter((card) => !card.isPinned);
@@ -316,7 +332,11 @@ export default function ClassUpdatesAdminPage() {
   const [isMobile, setIsMobile] = useState(false);
 
   const [selectedClassKey, setSelectedClassKey] = useState<ClassKey>('600-monwed');
-  const [selectedYearMonth, setSelectedYearMonth] = useState('2026-06');
+  const [selectedYearMonth, setSelectedYearMonth] = useState(OPERATING_YEAR_MONTH);
+  const [availableYearMonths, setAvailableYearMonths] = useState<string[]>([
+    OPERATING_YEAR_MONTH,
+  ]);
+  const [monthDataMap, setMonthDataMap] = useState<MonthlyClassUpdateMap>({});
   const [dataMap, setDataMap] = useState<ClassUpdateMap>(buildEmptyData());
   const [collapsedCardIds, setCollapsedCardIds] = useState<string[]>([]);
   const [savedSnapshot, setSavedSnapshot] = useState('');
@@ -361,7 +381,32 @@ export default function ClassUpdatesAdminPage() {
         return;
       }
 
-      const normalized = normalizeData(result.items ?? result.classUpdates ?? {});
+      const normalizedMonths = normalizeMonthData(result.monthItems ?? {});
+      const monthsFromResult = Array.isArray(result.months)
+        ? result.months.map((item: unknown) => String(item).trim()).filter(Boolean)
+        : Object.keys(normalizedMonths).sort().reverse();
+      const months =
+        monthsFromResult.length > 0
+          ? monthsFromResult
+          : [String(result.yearMonth ?? OPERATING_YEAR_MONTH)];
+      const resultYearMonth = String(result.yearMonth ?? selectedYearMonth).trim();
+      const nextSelectedYearMonth = months.includes(selectedYearMonth)
+        ? selectedYearMonth
+        : months.includes(resultYearMonth)
+        ? resultYearMonth
+        : months.includes(OPERATING_YEAR_MONTH)
+        ? OPERATING_YEAR_MONTH
+        : months[0];
+      const fallbackData = normalizeData(result.items ?? result.classUpdates ?? {});
+      const nextMonthDataMap =
+        Object.keys(normalizedMonths).length > 0
+          ? normalizedMonths
+          : { [nextSelectedYearMonth]: fallbackData };
+      const normalized = nextMonthDataMap[nextSelectedYearMonth] ?? buildEmptyData();
+
+      setAvailableYearMonths(months);
+      setSelectedYearMonth(nextSelectedYearMonth);
+      setMonthDataMap(nextMonthDataMap);
       setDataMap(normalized);
       setSavedSnapshot(JSON.stringify(normalized));
     } catch (error) {
@@ -383,6 +428,28 @@ export default function ClassUpdatesAdminPage() {
   useEffect(() => {
     setCollapsedCardIds([]);
   }, [selectedClassKey, selectedYearMonth]);
+
+  function changeYearMonth(yearMonth: string) {
+    if (isDirty) {
+      const ok = window.confirm('저장되지 않은 변경사항이 있습니다. 월을 변경하시겠습니까?');
+      if (!ok) return;
+    }
+
+    setSelectedYearMonth(yearMonth);
+    const nextData = monthDataMap[yearMonth] ?? buildEmptyData();
+    setDataMap(nextData);
+    setSavedSnapshot(JSON.stringify(nextData));
+    setCollapsedCardIds([]);
+    setMessage('');
+  }
+
+  useEffect(() => {
+    if (isLoading) return;
+    setMonthDataMap((prev) => ({
+      ...prev,
+      [selectedYearMonth]: dataMap,
+    }));
+  }, [dataMap, isLoading, selectedYearMonth]);
 
   const selectedMeta = CLASS_OPTIONS.find((item) => item.key === selectedClassKey)!;
   const selectedItem = dataMap[selectedClassKey];
@@ -626,6 +693,15 @@ export default function ClassUpdatesAdminPage() {
       }
 
       const normalized = normalizeData(result.items ?? result.classUpdates ?? dataMap);
+      setMonthDataMap((prev) => ({
+        ...prev,
+        [selectedYearMonth]: normalized,
+      }));
+      setAvailableYearMonths((prev) =>
+        prev.includes(selectedYearMonth)
+          ? prev
+          : [selectedYearMonth, ...prev].sort().reverse()
+      );
       setDataMap(normalized);
       setSavedSnapshot(JSON.stringify(normalized));
       setMessage('반별 자료가 저장되었습니다.');
@@ -869,7 +945,7 @@ export default function ClassUpdatesAdminPage() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(5, auto)',
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(6, auto)',
                 gap: '8px',
                 alignItems: 'center',
                 justifyContent: 'stretch',
@@ -879,12 +955,13 @@ export default function ClassUpdatesAdminPage() {
             >
               <select
                 value={selectedYearMonth}
-                onChange={(e) => setSelectedYearMonth(e.target.value)}
+                onChange={(e) => changeYearMonth(e.target.value)}
                 style={{ ...inputStyle, minWidth: 0 }}
               >
-                {MONTH_OPTIONS.map((option) => (
-                  <option key={option.key} value={option.key}>
-                    {option.label}
+                {availableYearMonths.map((yearMonth) => (
+                  <option key={yearMonth} value={yearMonth}>
+                    {MONTH_OPTIONS.find((option) => option.key === yearMonth)?.label ??
+                      yearMonth}
                   </option>
                 ))}
               </select>
