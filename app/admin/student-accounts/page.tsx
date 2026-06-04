@@ -27,6 +27,8 @@ const CLASS_OPTIONS = [
   { key: '800-tuthu', label: '800 화목반' },
 ];
 
+const ACCESS_CLASS_OPTIONS = CLASS_OPTIONS.filter((option) => option.key);
+
 const classLabelMap: Record<string, string> = {
   '600-monwed': '600 월수반',
   '600-tuthu': '600 화목반',
@@ -167,17 +169,25 @@ export default function StudentAccountsAdminPage() {
       prev.map((item, i) => {
         if (i !== index) return item;
 
-        const next = { ...item, ...patch };
+        return { ...item, ...patch };
+      })
+    );
+  }
 
-        if (patch.classKey !== undefined) {
-          next.classKeys = patch.classKey ? [patch.classKey] : [];
-        }
+  function toggleClassAccess(index: number, classKey: string, checked: boolean) {
+    setItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item;
 
-        if (patch.classKeys !== undefined) {
-          next.classKey = patch.classKeys[0] || '';
-        }
+        const currentKeys = Array.isArray(item.classKeys) ? item.classKeys : [];
+        const nextKeys = checked
+          ? Array.from(new Set([...currentKeys, classKey]))
+          : currentKeys.filter((key) => key !== classKey);
 
-        return next;
+        return {
+          ...item,
+          classKeys: nextKeys,
+        };
       })
     );
   }
@@ -611,7 +621,6 @@ export default function StudentAccountsAdminPage() {
                           realIndex >= 0 &&
                           updateItem(realIndex, {
                             classKey: e.target.value,
-                            classKeys: e.target.value ? [e.target.value] : [],
                           })
                         }
                         style={inputStyle}
@@ -623,6 +632,58 @@ export default function StudentAccountsAdminPage() {
                           </option>
                         ))}
                       </select>
+                    </div>
+
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <div style={labelStyle}>수강 반 권한</div>
+                      <div style={{ ...helperStyle, marginBottom: '8px' }}>
+                        체크된 반의 게시판만 학생에게 노출됩니다. 체크가 없으면 기존 대표 반 1개로 접근합니다.
+                      </div>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                          gap: '8px',
+                        }}
+                      >
+                        {ACCESS_CLASS_OPTIONS.map((option) => {
+                          const explicitKeys = Array.isArray(item.classKeys)
+                            ? item.classKeys.filter(Boolean)
+                            : [];
+                          const accessKeys =
+                            explicitKeys.length > 0 ? explicitKeys : normalizeClassKeys(item);
+
+                          return (
+                            <label
+                              key={option.key}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                minHeight: '42px',
+                                padding: '9px 11px',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '10px',
+                                backgroundColor: '#ffffff',
+                                color: '#374151',
+                                fontSize: '13px',
+                                fontWeight: 700,
+                                boxSizing: 'border-box',
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={accessKeys.includes(option.key)}
+                                onChange={(e) =>
+                                  realIndex >= 0 &&
+                                  toggleClassAccess(realIndex, option.key, e.target.checked)
+                                }
+                              />
+                              {option.label}
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     <div>

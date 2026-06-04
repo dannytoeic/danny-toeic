@@ -129,6 +129,7 @@ export async function POST(request: NextRequest) {
         classKey: item.classKey,
         classKeys: item.classKeys ?? [],
       });
+      const representativeClassKey = String(item.classKey ?? '').trim();
 
       const username = String(item.username ?? item.id ?? '').trim();
 
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest) {
         password: String(item.password ?? '').trim(),
         name: String(item.name ?? '').trim(),
         contact: String(item.contact ?? '').trim(),
-        class_key: classKeys[0] || '',
+        class_key: representativeClassKey || classKeys[0] || '',
         class_keys: classKeys,
         month_key: String(item.monthKey ?? '').trim(),
         expires_at: String(item.expiresAt ?? '').trim() || null,
