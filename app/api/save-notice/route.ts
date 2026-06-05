@@ -4,12 +4,25 @@ import { supabaseAdmin } from '../../../lib/supabase-admin';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+function normalizeNoticeContent(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value
+      .map((line) => String(line ?? '').trim())
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  return String(value ?? '').trim();
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
     const title = String(body.title ?? '').trim();
-    const contentText = String(body.contentText ?? '').trim();
+    const contentText = normalizeNoticeContent(
+      body.contentText ?? body.content ?? body.body ?? body.message ?? body.notice_content
+    );
 
     if (!title) {
       return NextResponse.json(
