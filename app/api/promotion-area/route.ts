@@ -21,6 +21,14 @@ type PromotionAreaRow = {
   updated_at: string | null;
 };
 
+function isMissingTableError(error: unknown) {
+  const obj = (error ?? {}) as Record<string, unknown>;
+  const code = String(obj.code ?? '');
+  const message = String(obj.message ?? '');
+
+  return code === '42P01' || message.includes('promotion_area');
+}
+
 function normalizeImageUrl(value: unknown) {
   const url = String(value ?? '').trim();
 
@@ -89,6 +97,13 @@ export async function GET(request: Request) {
       .maybeSingle();
 
     if (error) {
+      if (isMissingTableError(error)) {
+        return NextResponse.json({
+          success: true,
+          promotionArea: toPayload(null, adminMode),
+        });
+      }
+
       console.error('promotion-area GET error:', error);
       return NextResponse.json(
         { success: false, message: '홍보영역을 불러오지 못했습니다.' },
@@ -130,6 +145,14 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error('promotion-area POST error:', error);
+
+      if (isMissingTableError(error)) {
+        return NextResponse.json(
+          { success: false, message: '홍보영역 DB migration이 필요합니다.' },
+          { status: 500 }
+        );
+      }
+
       return NextResponse.json(
         { success: false, message: '홍보영역 저장 중 오류가 발생했습니다.' },
         { status: 500 }
