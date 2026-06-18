@@ -20,6 +20,19 @@ type NoticeItem = {
   content: string;
 };
 
+type PromotionImage = {
+  id: string;
+  url: string;
+  alt: string;
+  sortOrder: number;
+};
+
+type PromotionArea = {
+  isEnabled: boolean;
+  title: string;
+  images: PromotionImage[];
+};
+
 const classPageMap: Record<string, string> = {
   '600-monwed': '/student/class-600-monwed',
   '600-tuthu': '/student/class-600-tuthu',
@@ -60,6 +73,41 @@ function pickNoticeList(result: unknown): NoticeItem[] {
   return [];
 }
 
+function normalizePromotionImages(raw: unknown): PromotionImage[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((item, index) => {
+      const obj = (item ?? {}) as Record<string, unknown>;
+      const url = String(obj.url ?? '').trim();
+
+      if (!url) return null;
+
+      return {
+        id: String(obj.id ?? `promotion-image-${index + 1}`),
+        url,
+        alt: String(obj.alt ?? ''),
+        sortOrder: Number.isFinite(Number(obj.sortOrder)) ? Number(obj.sortOrder) : index + 1,
+      };
+    })
+    .filter((item): item is PromotionImage => Boolean(item))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+function normalizePromotionArea(raw: unknown): PromotionArea | null {
+  const obj = (raw ?? {}) as Record<string, unknown>;
+  const images = normalizePromotionImages(obj.images);
+  const isEnabled = Boolean(obj.isEnabled);
+
+  if (!isEnabled || images.length === 0) return null;
+
+  return {
+    isEnabled,
+    title: String(obj.title ?? ''),
+    images,
+  };
+}
+
 async function safeFetchJson(url: string) {
   const response = await fetch(url);
   const contentType = response.headers.get('content-type') || '';
@@ -96,6 +144,7 @@ export default function StudentHomePage() {
   const [isChecking, setIsChecking] = useState(true);
   const [notices, setNotices] = useState<NoticeItem[]>([]);
   const [noticeMessage, setNoticeMessage] = useState('');
+  const [promotionArea, setPromotionArea] = useState<PromotionArea | null>(null);
 
   useEffect(() => {
     const savedStudent = localStorage.getItem('loggedInStudent');
@@ -156,6 +205,26 @@ export default function StudentHomePage() {
     }
 
     loadNotices();
+  }, [isChecking]);
+
+  useEffect(() => {
+    if (isChecking) return;
+
+    async function loadPromotionArea() {
+      try {
+        const result = await safeFetchJson('/api/promotion-area');
+        if (result?.success) {
+          setPromotionArea(normalizePromotionArea(result.promotionArea));
+          return;
+        }
+      } catch (error) {
+        console.error('promotion area fetch error:', error);
+      }
+
+      setPromotionArea(null);
+    }
+
+    loadPromotionArea();
   }, [isChecking]);
 
   function handleLogout() {
@@ -324,6 +393,39 @@ export default function StudentHomePage() {
               </div>
             )}
           </div>
+
+          {promotionArea && (
+            <div
+              style={{
+                backgroundColor: 'white',
+                padding: '24px',
+                borderRadius: '18px',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 4px 18px rgba(15, 23, 42, 0.04)',
+              }}
+            >
+              <h2 style={{ fontSize: '24px', marginTop: 0, marginBottom: '14px' }}>
+                {promotionArea.title || '홍보영역'}
+              </h2>
+
+              <div style={{ display: 'grid', gap: '14px' }}>
+                {promotionArea.images.map((image, index) => (
+                  <img
+                    key={image.id}
+                    src={image.url}
+                    alt={image.alt || `${promotionArea.title || '홍보 이미지'} ${index + 1}`}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      height: 'auto',
+                      borderRadius: '16px',
+                      border: '1px solid #ece7e1',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           <div
             style={{
