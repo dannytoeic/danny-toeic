@@ -5,6 +5,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const PROMOTION_AREA_ID = 'student_home';
+const FALLBACK_NOTICE_KEY = 'promotion_area';
 
 type PromotionImage = {
   id: string;
@@ -18,6 +19,13 @@ type PromotionAreaRow = {
   is_enabled: boolean | null;
   title: string | null;
   images: unknown;
+  updated_at: string | null;
+};
+
+type FallbackPromotionRow = {
+  notice_key: string;
+  title: string | null;
+  content_text: string | null;
   updated_at: string | null;
 };
 
@@ -85,6 +93,93 @@ function toPayload(row: PromotionAreaRow | null, adminMode: boolean) {
   };
 }
 
+function fallbackRowToPayload(row: FallbackPromotionRow | null, adminMode: boolean) {
+  let parsed: Record<string, unknown> = {};
+
+  try {
+    parsed = JSON.parse(String(row?.content_text ?? '{}')) as Record<string, unknown>;
+  } catch {
+    parsed = {};
+  }
+
+  const images = normalizeImages(parsed.images);
+  const isEnabled = Boolean(parsed.isEnabled);
+
+  if (!adminMode && (!isEnabled || images.length === 0)) {
+    return {
+      isEnabled: false,
+      title: '',
+      images: [],
+      updatedAt: row?.updated_at ?? null,
+    };
+  }
+
+  return {
+    isEnabled,
+    title: String(row?.title ?? parsed.title ?? ''),
+    images,
+    updatedAt: row?.updated_at ?? null,
+  };
+}
+
+async function getFallbackPromotionArea(adminMode: boolean) {
+  const { data, error } = await supabaseAdmin
+    .from('site_notices')
+    .select('notice_key, title, content_text, updated_at')
+    .eq('notice_key', FALLBACK_NOTICE_KEY)
+    .maybeSingle();
+
+  if (error) {
+    console.error('promotion-area fallback GET error:', error);
+    return NextResponse.json(
+      { success: false, message: '홍보영역을 불러오지 못했습니다.' },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    promotionArea: fallbackRowToPayload((data as FallbackPromotionRow | null) ?? null, adminMode),
+  });
+}
+
+async function saveFallbackPromotionArea(
+  isEnabled: boolean,
+  title: string,
+  images: PromotionImage[]
+) {
+  const { error } = await supabaseAdmin.from('site_notices').upsert(
+    {
+      notice_key: FALLBACK_NOTICE_KEY,
+      title,
+      content_text: JSON.stringify({
+        isEnabled,
+        title,
+        images,
+      }),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'notice_key' }
+  );
+
+  if (error) {
+    console.error('promotion-area fallback POST error:', error);
+    return NextResponse.json(
+      { success: false, message: '홍보영역 저장 중 오류가 발생했습니다.' },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    promotionArea: {
+      isEnabled,
+      title,
+      images,
+    },
+  });
+}
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
@@ -98,10 +193,7 @@ export async function GET(request: Request) {
 
     if (error) {
       if (isMissingTableError(error)) {
-        return NextResponse.json({
-          success: true,
-          promotionArea: toPayload(null, adminMode),
-        });
+        return getFallbackPromotionArea(adminMode);
       }
 
       console.error('promotion-area GET error:', error);
@@ -147,10 +239,7 @@ export async function POST(request: Request) {
       console.error('promotion-area POST error:', error);
 
       if (isMissingTableError(error)) {
-        return NextResponse.json(
-          { success: false, message: '홍보영역 DB migration이 필요합니다.' },
-          { status: 500 }
-        );
+        return saveFallbackPromotionArea(isEnabled, title, images);
       }
 
       return NextResponse.json(
