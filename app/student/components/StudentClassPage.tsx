@@ -76,6 +76,19 @@ type ClassPageData = {
   cards: StudentApiCard[];
 };
 
+type PromotionImage = {
+  id: string;
+  url: string;
+  alt: string;
+  sortOrder: number;
+};
+
+type PromotionArea = {
+  isEnabled: boolean;
+  title: string;
+  images: PromotionImage[];
+};
+
 type ClassUpdatesMap = Record<string, ClassPageData>;
 
 type StudentClassPageProps = {
@@ -105,6 +118,41 @@ function splitLines(text?: string) {
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean);
+}
+
+function normalizePromotionImages(raw: unknown): PromotionImage[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((item, index) => {
+      const obj = (item ?? {}) as Record<string, unknown>;
+      const url = String(obj.url ?? '').trim();
+
+      if (!url) return null;
+
+      return {
+        id: String(obj.id ?? `promotion-image-${index + 1}`),
+        url,
+        alt: String(obj.alt ?? ''),
+        sortOrder: Number.isFinite(Number(obj.sortOrder)) ? Number(obj.sortOrder) : index + 1,
+      };
+    })
+    .filter((item): item is PromotionImage => Boolean(item))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+function normalizePromotionArea(raw: unknown): PromotionArea | null {
+  const obj = (raw ?? {}) as Record<string, unknown>;
+  const images = normalizePromotionImages(obj.images);
+  const isEnabled = Boolean(obj.isEnabled);
+
+  if (!isEnabled || images.length === 0) return null;
+
+  return {
+    isEnabled,
+    title: String(obj.title ?? ''),
+    images,
+  };
 }
 
 function makeLinkRows(
@@ -247,6 +295,7 @@ export default function StudentClassPage({
   const [updatesYearMonth, setUpdatesYearMonth] = useState('');
   const [message, setMessage] = useState('수업 카드를 불러오는 중...');
   const [isMobile, setIsMobile] = useState(false);
+  const [promotionArea, setPromotionArea] = useState<PromotionArea | null>(null);
 
   useEffect(() => {
     function updateViewport() {
@@ -341,6 +390,28 @@ export default function StudentClassPage({
 
     fetchUpdates();
   }, [isChecking, classKey, student?.monthKey, student?.month_key]);
+
+  useEffect(() => {
+    if (isChecking) return;
+
+    async function fetchPromotionArea() {
+      try {
+        const response = await fetch('/api/promotion-area', { cache: 'no-store' });
+        const result = await response.json();
+
+        if (result.success) {
+          setPromotionArea(normalizePromotionArea(result.promotionArea));
+          return;
+        }
+      } catch (error) {
+        console.error('promotion area fetch error:', error);
+      }
+
+      setPromotionArea(null);
+    }
+
+    fetchPromotionArea();
+  }, [isChecking]);
 
   const pageData = updates[classKey];
   const showMayHeaderImages = updatesYearMonth === '2026-05';
@@ -470,6 +541,40 @@ export default function StudentClassPage({
     height: 'auto',
     objectFit: 'contain',
     borderRadius: isMobile ? '12px' : '16px',
+  };
+
+  const promotionCardStyle: React.CSSProperties = {
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    boxSizing: 'border-box',
+    marginTop: isMobile ? '16px' : '20px',
+    padding: isMobile ? '16px' : '20px',
+    borderRadius: isMobile ? '16px' : '18px',
+    border: '1px solid rgba(226, 232, 240, 0.14)',
+    backgroundColor: '#1b222c',
+    boxShadow: '0 12px 28px rgba(0, 0, 0, 0.22)',
+  };
+
+  const promotionTitleStyle: React.CSSProperties = {
+    margin: 0,
+    marginBottom: isMobile ? '12px' : '16px',
+    color: '#fbfaf7',
+    fontSize: isMobile ? '22px' : '28px',
+    fontWeight: 900,
+    lineHeight: 1.25,
+    letterSpacing: '-0.01em',
+    wordBreak: 'keep-all',
+  };
+
+  const promotionImageStyle: React.CSSProperties = {
+    display: 'block',
+    width: '100%',
+    maxWidth: '100%',
+    height: 'auto',
+    borderRadius: isMobile ? '12px' : '16px',
+    border: '1px solid rgba(226, 232, 240, 0.14)',
+    backgroundColor: '#0f141b',
   };
 
   const topLabelStyle: React.CSSProperties = {
@@ -647,6 +752,22 @@ export default function StudentClassPage({
           >
             Danny Voca 단어암기
           </a>
+
+          {promotionArea ? (
+            <div style={promotionCardStyle}>
+              <h2 style={promotionTitleStyle}>{promotionArea.title || '홍보영역'}</h2>
+              <div style={{ display: 'grid', gap: isMobile ? '12px' : '16px' }}>
+                {promotionArea.images.map((image, index) => (
+                  <img
+                    key={image.id}
+                    src={image.url}
+                    alt={image.alt || `${promotionArea.title || '홍보 이미지'} ${index + 1}`}
+                    style={promotionImageStyle}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           {showMayHeaderImages ? (
             <>
