@@ -369,12 +369,7 @@ export default function HomePage() {
                   const labels = cell.isCurrentMonth ? specialMap.get(cell.day) ?? [] : [];
                   const isSpecial = labels.some((label) => !label.includes('토익'));
                   const isToeic = labels.some((label) => label.includes('토익'));
-                  const displayLabels = [
-                    ...(isMonWed ? ['월수반'] : []),
-                    ...(isTueThu ? ['화목반'] : []),
-                    ...(isSixHundredOnly ? ['600수업만'] : []),
-                    ...labels,
-                  ];
+                  const displayLabels = labels;
 
                   let backgroundColor = 'transparent';
                   let textColor = '#44403c';
@@ -512,22 +507,6 @@ export default function HomePage() {
         >
           <div
             style={{
-              display: 'grid',
-              gap: '4px',
-              padding: isMobile ? '10px' : '12px',
-              borderRadius: '14px',
-              backgroundColor: '#fafaf9',
-              border: '1px solid #e7e5e4',
-              lineHeight: 1.55,
-            }}
-          >
-            <div>600반: 18일 수업 (월수 9일 / 화목 9일)</div>
-            <div>800반: 16일 수업 (월수 8일 / 화목 8일)</div>
-            <div>600수업만 있는 날: 별도 색깔 표시</div>
-          </div>
-
-          <div
-            style={{
               display: 'flex',
               justifyContent: 'flex-end',
               gap: isMobile ? '10px' : '18px',
@@ -571,7 +550,7 @@ export default function HomePage() {
                   display: 'inline-block',
                 }}
               />
-              600수업만 있는 날
+              600반 추가수업
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -614,7 +593,28 @@ export default function HomePage() {
             {calendarMessage}
           </div>
         ) : calendarItem ? (
-          board
+          <>
+            {board}
+            <div
+              style={{
+                display: 'grid',
+                gap: '4px',
+                marginTop: isMobile ? '10px' : '14px',
+                padding: isMobile ? '10px' : '12px',
+                borderRadius: '14px',
+                backgroundColor: '#fafaf9',
+                border: '1px solid #e7e5e4',
+                color: '#57534e',
+                fontSize: isMobile ? '11px' : '14px',
+                fontWeight: 600,
+                lineHeight: 1.55,
+              }}
+            >
+              <div>600반: 18일 수업 (월수 9일 / 화목 9일)</div>
+              <div>800반: 16일 수업 (월수 8일 / 화목 8일)</div>
+              <div>600반 추가수업: 별도 색깔 표시</div>
+            </div>
+          </>
         ) : null}
       </section>
     );
