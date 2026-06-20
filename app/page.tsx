@@ -272,7 +272,7 @@ export default function HomePage() {
 
   const monWedFill = '#cbbfb0';
   const tueThuFill = '#57534e';
-  const sixHundredOnlyFill = '#d97706';
+  const sixHundredOnlyFill = '#E5E7EB';
   const toeicFill = '#2563eb';
   const specialFill = '#0f766e';
   const sharedHeaderBg = '#f3f0e8';
@@ -379,7 +379,7 @@ export default function HomePage() {
                     textColor = '#d6d3d1';
                   } else if (isSixHundredOnly) {
                     backgroundColor = sixHundredOnlyFill;
-                    textColor = 'white';
+                    textColor = '#111827';
                   } else if (isTueThu) {
                     backgroundColor = tueThuFill;
                     textColor = 'white';
@@ -390,10 +390,8 @@ export default function HomePage() {
 
                   if (cell.isCurrentMonth && isSpecial) {
                     border = `3px solid ${specialFill}`;
-                    if (!isMonWed && !isTueThu && !isSixHundredOnly) {
-                      backgroundColor = 'transparent';
-                      textColor = specialFill;
-                    }
+                    backgroundColor = 'transparent';
+                    textColor = specialFill;
                   } else if (cell.isCurrentMonth && isToeic) {
                     border = `2px solid ${toeicFill}`;
                     if (!isMonWed && !isTueThu && !isSixHundredOnly) {
@@ -524,7 +522,7 @@ export default function HomePage() {
                   display: 'inline-block',
                 }}
               />
-              월수반: 해당 색깔 표시
+              월수반
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -537,7 +535,7 @@ export default function HomePage() {
                   display: 'inline-block',
                 }}
               />
-              화목반: 해당 색깔 표시
+              화목반
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -576,7 +574,20 @@ export default function HomePage() {
                   display: 'inline-block',
                 }}
               />
-              특강/월간데니 등 기타 일정
+              D-1특강
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span
+                style={{
+                  width: isMobile ? '9px' : '14px',
+                  height: isMobile ? '9px' : '14px',
+                  borderRadius: '999px',
+                  border: `2px solid ${specialFill}`,
+                  display: 'inline-block',
+                }}
+              />
+              월간데니
             </div>
           </div>
         </div>

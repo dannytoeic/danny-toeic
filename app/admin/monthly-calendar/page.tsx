@@ -124,7 +124,7 @@ export default function MonthlyCalendarAdminPage() {
   const [monWedText, setMonWedText] = useState('6, 11, 13, 18, 20, 27');
   const [tueThuText, setTueThuText] = useState('7, 12, 14, 19, 21, 26, 28');
   const [sixHundredOnlyText, setSixHundredOnlyText] = useState('');
-  const [specialText, setSpecialText] = useState('8: 관리특강\n16: 관리특강');
+  const [specialText, setSpecialText] = useState('8: 월간데니\n16: 월간데니');
   const [d1Text, setD1Text] = useState('30: D-1 특강');
   const [toeicText, setToeicText] = useState('31');
   const [memo, setMemo] = useState('');
@@ -239,7 +239,7 @@ export default function MonthlyCalendarAdminPage() {
   );
   const toeicTestDates = useMemo(() => parseNumberLine(toeicText), [toeicText]);
   const specialDates = useMemo(
-    () => parseSpecialLines(specialText, '관리특강'),
+    () => parseSpecialLines(specialText, '월간데니'),
     [specialText]
   );
   const d1SpecialDates = useMemo(
@@ -322,9 +322,9 @@ export default function MonthlyCalendarAdminPage() {
     setter(toNumberLine(next.sort((a, b) => a - b)));
   }
 
-  function updateSpecialDate(day: number, checked: boolean, label = '특강/월간데니') {
+  function updateSpecialDate(day: number, checked: boolean, label = '월간데니') {
     const withoutDay = specialDates.filter((item) => item.day !== day);
-    const next = checked ? [...withoutDay, { day, label: label.trim() || '특강/월간데니' }] : withoutDay;
+    const next = checked ? [...withoutDay, { day, label: label.trim() || '월간데니' }] : withoutDay;
     setSpecialText(toSpecialLines(next.sort((a, b) => a.day - b.day)));
   }
 
@@ -438,7 +438,7 @@ export default function MonthlyCalendarAdminPage() {
 
   const monWedFill = '#cbbfb0';
   const tueThuFill = '#57534e';
-  const sixHundredOnlyFill = '#d97706';
+  const sixHundredOnlyFill = '#E5E7EB';
   const toeicFill = '#2563eb';
   const specialFill = '#0f766e';
 
@@ -465,7 +465,7 @@ export default function MonthlyCalendarAdminPage() {
   return (
     <AdminShell
       title="월간 캘린더 관리"
-      description="월수반 수업일, 화목반 수업일, 특강 날짜, 토익시험일을 입력하고 학생용 한달일정을 관리합니다."
+      description="월수반 수업일, 화목반 수업일, 월간데니, D-1특강, 토익시험일을 입력하고 학생용 한달일정을 관리합니다."
     >
       <div
         style={{
@@ -553,7 +553,7 @@ export default function MonthlyCalendarAdminPage() {
             </div>
 
             <div style={{ gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>600수업만 있는 날</label>
+              <label style={labelStyle}>600반 추가수업</label>
               <textarea
                 value={sixHundredOnlyText}
                 onChange={(e) => setSixHundredOnlyText(e.target.value)}
@@ -629,7 +629,7 @@ export default function MonthlyCalendarAdminPage() {
                             )
                           }
                         />
-                        600수업만
+                        600반 추가수업
                       </label>
                       <label style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                         <input
@@ -657,7 +657,7 @@ export default function MonthlyCalendarAdminPage() {
                               updateSpecialDate(day, e.target.checked, special?.label)
                             }
                           />
-                          기타 일정
+                          월간데니
                         </label>
                         <input
                           value={special?.label ?? ''}
@@ -671,7 +671,7 @@ export default function MonthlyCalendarAdminPage() {
                             padding: '8px 10px',
                             opacity: special ? 1 : 0.55,
                           }}
-                          placeholder="특강/월간데니"
+                          placeholder="월간데니"
                         />
                       </div>
                     </div>
@@ -681,12 +681,12 @@ export default function MonthlyCalendarAdminPage() {
             </div>
 
             <div>
-              <label style={labelStyle}>관리특강 날짜</label>
+              <label style={labelStyle}>월간데니 날짜</label>
               <textarea
                 value={specialText}
                 onChange={(e) => setSpecialText(e.target.value)}
                 style={textareaStyle}
-                placeholder={'예:\n8: 관리특강\n16: 관리특강'}
+                placeholder={'예:\n8: 월간데니\n16: 월간데니'}
               />
             </div>
 
@@ -1034,7 +1034,7 @@ export default function MonthlyCalendarAdminPage() {
                       display: 'inline-block',
                     }}
                   />
-                  600수업만 있는 날
+                  600반 추가수업
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1047,7 +1047,20 @@ export default function MonthlyCalendarAdminPage() {
                       display: 'inline-block',
                     }}
                   />
-                  특강/월간데니 등 기타 일정
+                  D-1특강
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span
+                    style={{
+                      width: '14px',
+                      height: '14px',
+                      borderRadius: '999px',
+                      border: `2px solid ${specialFill}`,
+                      display: 'inline-block',
+                    }}
+                  />
+                  월간데니
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1104,7 +1117,7 @@ export default function MonthlyCalendarAdminPage() {
                     const displayLabels = [
                       ...(isMonWed ? ['월수반'] : []),
                       ...(isTueThu ? ['화목반'] : []),
-                      ...(isSixHundredOnly ? ['600수업만'] : []),
+                      ...(isSixHundredOnly ? ['600반 추가수업'] : []),
                       ...labels,
                     ];
 
@@ -1116,7 +1129,7 @@ export default function MonthlyCalendarAdminPage() {
                       textColor = '#cbd5e1';
                     } else if (isSixHundredOnly) {
                       backgroundColor = sixHundredOnlyFill;
-                      textColor = 'white';
+                      textColor = '#111827';
                     } else if (isTueThu) {
                       backgroundColor = tueThuFill;
                       textColor = 'white';
@@ -1127,10 +1140,8 @@ export default function MonthlyCalendarAdminPage() {
 
                     if (cell.isCurrentMonth && isSpecial) {
                       border = isMobile ? `2px solid ${specialFill}` : `3px solid ${specialFill}`;
-                      if (!isMonWed && !isTueThu && !isSixHundredOnly) {
-                        backgroundColor = 'transparent';
-                        textColor = specialFill;
-                      }
+                      backgroundColor = 'transparent';
+                      textColor = specialFill;
                     } else if (cell.isCurrentMonth && isToeic) {
                       border = isMobile ? `1.5px solid ${toeicFill}` : `2px solid ${toeicFill}`;
                       if (!isMonWed && !isTueThu && !isSixHundredOnly) {
