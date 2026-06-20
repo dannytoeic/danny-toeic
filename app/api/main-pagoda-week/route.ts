@@ -139,12 +139,23 @@ function fallbackRowToPayload(row: FallbackPagodaWeekRow | null, adminMode: bool
   };
 }
 
-async function getFallbackPagodaWeek(adminMode: boolean) {
-  const { data, error } = await supabaseAdmin
+async function getFallbackPagodaWeekRow() {
+  return supabaseAdmin
     .from('site_notices')
     .select('notice_key, title, content_text, updated_at')
     .eq('notice_key', FALLBACK_NOTICE_KEY)
     .maybeSingle();
+}
+
+function getUpdatedTime(value: string | null | undefined) {
+  if (!value) return 0;
+
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+async function getFallbackPagodaWeek(adminMode: boolean) {
+  const { data, error } = await getFallbackPagodaWeekRow();
 
   if (error) {
     const detail = getErrorDetail(error);
@@ -234,9 +245,27 @@ export async function GET(request: Request) {
       );
     }
 
+    const { data: fallbackData, error: fallbackError } = await getFallbackPagodaWeekRow();
+
+    if (fallbackError) {
+      const detail = getErrorDetail(fallbackError);
+      console.error('main-pagoda-week fallback compare GET error:', detail);
+    }
+
+    const primaryRow = (data as MainPagodaWeekRow | null) ?? null;
+    const fallbackRow = !fallbackError
+      ? ((fallbackData as FallbackPagodaWeekRow | null) ?? null)
+      : null;
+    const shouldUseFallback =
+      Boolean(fallbackRow) &&
+      (!primaryRow ||
+        getUpdatedTime(fallbackRow?.updated_at) > getUpdatedTime(primaryRow?.updated_at));
+
     return NextResponse.json({
       success: true,
-      pagodaWeek: toPayload((data as MainPagodaWeekRow | null) ?? null, adminMode),
+      pagodaWeek: shouldUseFallback
+        ? fallbackRowToPayload(fallbackRow, adminMode)
+        : toPayload(primaryRow, adminMode),
     });
   } catch (error) {
     console.error('main-pagoda-week GET catch error:', error);

@@ -381,10 +381,11 @@ export default function MonthlyCalendarAdminPage() {
       const result = await response.json();
 
       if (result.success) {
-        setPagodaWeek((current) => ({
-          ...current,
-          image: result.pagodaWeek?.image ?? current.image,
-        }));
+        setPagodaWeek({
+          isEnabled: Boolean(result.pagodaWeek?.isEnabled),
+          title: String(result.pagodaWeek?.title ?? pagodaWeek.title),
+          image: result.pagodaWeek?.image ?? null,
+        });
         setPagodaMessage('메인 파고다위크 설정이 저장되었습니다.');
       } else {
         setPagodaMessage(result.message ?? '파고다위크 설정 저장에 실패했습니다.');
