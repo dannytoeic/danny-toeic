@@ -94,15 +94,17 @@ export async function POST(request: NextRequest) {
     }
 
     const { data } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(storagePath);
+    const version = String(Date.now());
 
     return NextResponse.json({
       success: true,
       image: {
-        id: `main-pagoda-week-${Date.now()}`,
+        id: `main-pagoda-week-${version}`,
         url: data.publicUrl,
         alt: '파고다위크 안내',
         storagePath,
         sortOrder: 1,
+        version,
       },
     });
   } catch (error) {

@@ -30,6 +30,21 @@ type PagodaWeekImage = {
   sortOrder: number;
 };
 
+const NO_STORE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+  Pragma: 'no-cache',
+};
+
+function jsonNoStore(body: unknown, init?: ResponseInit) {
+  return NextResponse.json(body, {
+    ...init,
+    headers: {
+      ...NO_STORE_HEADERS,
+      ...(init?.headers ?? {}),
+    },
+  });
+}
+
 function normalizeImageUrl(value: unknown) {
   const url = String(value ?? '').trim();
 
@@ -92,13 +107,15 @@ function normalizeImages(value: unknown): PagodaWeekImage[] {
 function toPayload(row: MainPagodaWeekRow | null, adminMode: boolean) {
   const images = normalizeImages(row?.images);
   const isEnabled = Boolean(row?.is_enabled);
+  const updatedAt = row?.updated_at ?? null;
 
   if (!adminMode && (!isEnabled || images.length === 0)) {
     return {
       isEnabled: false,
       title: '',
       image: null,
-      updatedAt: row?.updated_at ?? null,
+      updatedAt,
+      version: updatedAt,
     };
   }
 
@@ -106,7 +123,8 @@ function toPayload(row: MainPagodaWeekRow | null, adminMode: boolean) {
     isEnabled,
     title: String(row?.title ?? '파고다위크 안내'),
     image: images[0] ?? null,
-    updatedAt: row?.updated_at ?? null,
+    updatedAt,
+    version: updatedAt,
   };
 }
 
@@ -121,13 +139,15 @@ function fallbackRowToPayload(row: FallbackPagodaWeekRow | null, adminMode: bool
 
   const images = normalizeImages(parsed.image ? [parsed.image] : parsed.images);
   const isEnabled = Boolean(parsed.isEnabled);
+  const updatedAt = row?.updated_at ?? null;
 
   if (!adminMode && (!isEnabled || images.length === 0)) {
     return {
       isEnabled: false,
       title: '',
       image: null,
-      updatedAt: row?.updated_at ?? null,
+      updatedAt,
+      version: updatedAt,
     };
   }
 
@@ -135,7 +155,8 @@ function fallbackRowToPayload(row: FallbackPagodaWeekRow | null, adminMode: bool
     isEnabled,
     title: String(row?.title ?? parsed.title ?? '파고다위크 안내'),
     image: images[0] ?? null,
-    updatedAt: row?.updated_at ?? null,
+    updatedAt,
+    version: updatedAt,
   };
 }
 
@@ -160,7 +181,7 @@ async function getFallbackPagodaWeek(adminMode: boolean) {
   if (error) {
     const detail = getErrorDetail(error);
     console.error('main-pagoda-week fallback GET error:', detail);
-    return NextResponse.json(
+    return jsonNoStore(
       {
         success: false,
         message: `메인 파고다위크 이미지를 불러오지 못했습니다. (${detail.code || detail.message})`,
@@ -169,7 +190,7 @@ async function getFallbackPagodaWeek(adminMode: boolean) {
     );
   }
 
-  return NextResponse.json({
+  return jsonNoStore({
     success: true,
     pagodaWeek: fallbackRowToPayload((data as FallbackPagodaWeekRow | null) ?? null, adminMode),
   });
@@ -210,7 +231,7 @@ async function saveFallbackPagodaWeek(
   if (error) {
     const detail = getErrorDetail(error);
     console.error('main-pagoda-week fallback POST error:', detail);
-    return NextResponse.json(
+    return jsonNoStore(
       {
         success: false,
         message: `메인 파고다위크 이미지 저장 중 오류가 발생했습니다. (${detail.code || detail.message})`,
@@ -219,12 +240,14 @@ async function saveFallbackPagodaWeek(
     );
   }
 
-  return NextResponse.json({
+  return jsonNoStore({
     success: true,
     pagodaWeek: {
       isEnabled,
       title,
       image,
+      updatedAt,
+      version: updatedAt,
     },
   });
 }
@@ -248,7 +271,7 @@ export async function GET(request: Request) {
         return getFallbackPagodaWeek(adminMode);
       }
 
-      return NextResponse.json(
+      return jsonNoStore(
         {
           success: false,
           message: `메인 파고다위크 이미지를 불러오지 못했습니다. (${detail.code || detail.message})`,
@@ -273,7 +296,7 @@ export async function GET(request: Request) {
       (!primaryRow ||
         getUpdatedTime(fallbackRow?.updated_at) > getUpdatedTime(primaryRow?.updated_at));
 
-    return NextResponse.json({
+    return jsonNoStore({
       success: true,
       pagodaWeek: shouldUseFallback
         ? fallbackRowToPayload(fallbackRow, adminMode)
@@ -281,7 +304,7 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('main-pagoda-week GET catch error:', error);
-    return NextResponse.json(
+    return jsonNoStore(
       { success: false, message: '메인 파고다위크 이미지를 불러오지 못했습니다.' },
       { status: 500 }
     );
@@ -316,7 +339,7 @@ export async function POST(request: Request) {
         return saveFallbackPagodaWeek(isEnabled, title, imageToSave, updatedAt);
       }
 
-      return NextResponse.json(
+      return jsonNoStore(
         {
           success: false,
           message: `메인 파고다위크 이미지 저장 중 오류가 발생했습니다. (${detail.code || detail.message})`,
@@ -338,17 +361,19 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({
+    return jsonNoStore({
       success: true,
       pagodaWeek: {
         isEnabled,
         title,
         image: imageToSave,
+        updatedAt,
+        version: updatedAt,
       },
     });
   } catch (error) {
     console.error('main-pagoda-week POST catch error:', error);
-    return NextResponse.json(
+    return jsonNoStore(
       { success: false, message: '메인 파고다위크 이미지 저장 중 오류가 발생했습니다.' },
       { status: 500 }
     );

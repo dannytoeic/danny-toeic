@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getLoggedInAdmin } from '../adminGuard';
 import AdminShell from '../AdminShell';
@@ -36,7 +36,16 @@ type MainPagodaWeek = {
   isEnabled: boolean;
   title: string;
   image: PagodaWeekImage | null;
+  updatedAt?: string | null;
+  version?: string | null;
 };
+
+function cacheBustedImageUrl(url: string, version?: string | null) {
+  if (!version) return url;
+
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}v=${encodeURIComponent(version)}`;
+}
 
 function parseNumberLine(text: string): number[] {
   return text
@@ -138,6 +147,7 @@ export default function MonthlyCalendarAdminPage() {
   const [pagodaMessage, setPagodaMessage] = useState('');
   const [isPagodaSaving, setIsPagodaSaving] = useState(false);
   const [isUploadingPagoda, setIsUploadingPagoda] = useState(false);
+  const pagodaFileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -204,7 +214,7 @@ export default function MonthlyCalendarAdminPage() {
 
     async function loadPagodaWeek() {
       try {
-        const response = await fetch('/api/main-pagoda-week?admin=1');
+        const response = await fetch('/api/main-pagoda-week?admin=1', { cache: 'no-store' });
         const result = await response.json();
 
         if (result.success && result.pagodaWeek) {
@@ -212,6 +222,8 @@ export default function MonthlyCalendarAdminPage() {
             isEnabled: Boolean(result.pagodaWeek.isEnabled),
             title: String(result.pagodaWeek.title ?? '파고다위크 안내'),
             image: result.pagodaWeek.image ?? null,
+            updatedAt: result.pagodaWeek.updatedAt ?? null,
+            version: result.pagodaWeek.version ?? result.pagodaWeek.updatedAt ?? null,
           });
         }
       } catch (error) {
@@ -355,6 +367,8 @@ export default function MonthlyCalendarAdminPage() {
         setPagodaWeek((current) => ({
           ...current,
           image: result.image,
+          updatedAt: null,
+          version: String(Date.now()),
         }));
         setPagodaMessage('이미지가 업로드되었습니다. 저장하기를 눌러 메인에 반영하세요.');
       } else {
@@ -385,6 +399,8 @@ export default function MonthlyCalendarAdminPage() {
           isEnabled: Boolean(result.pagodaWeek?.isEnabled),
           title: String(result.pagodaWeek?.title ?? pagodaWeek.title),
           image: result.pagodaWeek?.image ?? null,
+          updatedAt: result.pagodaWeek?.updatedAt ?? null,
+          version: result.pagodaWeek?.version ?? result.pagodaWeek?.updatedAt ?? null,
         });
         setPagodaMessage('메인 파고다위크 설정이 저장되었습니다.');
       } else {
@@ -854,9 +870,13 @@ export default function MonthlyCalendarAdminPage() {
               >
                 {isUploadingPagoda ? '업로드 중...' : pagodaWeek.image ? '이미지 교체' : '이미지 업로드'}
                 <input
+                  ref={pagodaFileInputRef}
                   type="file"
                   accept="image/*"
-                  onChange={(e) => handlePagodaUpload(e.target.files?.[0] ?? null)}
+                  onChange={(e) => {
+                    handlePagodaUpload(e.target.files?.[0] ?? null);
+                    e.currentTarget.value = '';
+                  }}
                   disabled={isUploadingPagoda}
                   style={{ display: 'none' }}
                 />
@@ -868,6 +888,8 @@ export default function MonthlyCalendarAdminPage() {
                   setPagodaWeek((current) => ({
                     ...current,
                     image: null,
+                    updatedAt: null,
+                    version: String(Date.now()),
                   }))
                 }
                 disabled={!pagodaWeek.image}
@@ -908,7 +930,10 @@ export default function MonthlyCalendarAdminPage() {
 
             {pagodaWeek.image?.url ? (
               <img
-                src={pagodaWeek.image.url}
+                src={cacheBustedImageUrl(
+                  pagodaWeek.image.url,
+                  pagodaWeek.version ?? pagodaWeek.updatedAt
+                )}
                 alt={pagodaWeek.image.alt || pagodaWeek.title || '파고다위크 안내'}
                 style={{
                   width: '100%',

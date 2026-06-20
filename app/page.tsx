@@ -44,6 +44,8 @@ type MainPagodaWeek = {
   isEnabled: boolean;
   title: string;
   image: PagodaWeekImage | null;
+  updatedAt?: string | null;
+  version?: string | null;
 };
 
 type TimetableRow = {
@@ -111,6 +113,13 @@ async function safeFetchJson<T>(url: string): Promise<T> {
   }
 
   return response.json();
+}
+
+function cacheBustedImageUrl(url: string, version?: string | null) {
+  if (!version) return url;
+
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}v=${encodeURIComponent(version)}`;
 }
 
 export default function HomePage() {
@@ -300,7 +309,10 @@ export default function HomePage() {
         }}
       >
         <img
-          src={pagodaWeek.image.url}
+          src={cacheBustedImageUrl(
+            pagodaWeek.image.url,
+            pagodaWeek.version ?? pagodaWeek.updatedAt
+          )}
           alt={pagodaWeek.image.alt || pagodaWeek.title || '파고다위크 안내'}
           style={{
             display: 'block',
