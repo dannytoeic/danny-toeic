@@ -175,10 +175,11 @@ async function getFallbackPagodaWeek(adminMode: boolean) {
   });
 }
 
-async function saveFallbackPagodaWeek(
+async function upsertFallbackPagodaWeek(
   isEnabled: boolean,
   title: string,
-  image: PagodaWeekImage | null
+  image: PagodaWeekImage | null,
+  updatedAt: string
 ) {
   const { error } = await supabaseAdmin.from('site_notices').upsert(
     {
@@ -190,10 +191,21 @@ async function saveFallbackPagodaWeek(
         image,
         images: image ? [image] : [],
       }),
-      updated_at: new Date().toISOString(),
+      updated_at: updatedAt,
     },
     { onConflict: 'notice_key' }
   );
+
+  return error;
+}
+
+async function saveFallbackPagodaWeek(
+  isEnabled: boolean,
+  title: string,
+  image: PagodaWeekImage | null,
+  updatedAt = new Date().toISOString()
+) {
+  const error = await upsertFallbackPagodaWeek(isEnabled, title, image, updatedAt);
 
   if (error) {
     const detail = getErrorDetail(error);
@@ -283,6 +295,7 @@ export async function POST(request: Request) {
     const title = String(body.title ?? '파고다위크 안내').trim();
     const image = normalizeImages(body.image ? [body.image] : []);
     const imageToSave = image[0] ?? null;
+    const updatedAt = new Date().toISOString();
 
     const { error } = await supabaseAdmin.from('promotion_area').upsert(
       {
@@ -290,7 +303,7 @@ export async function POST(request: Request) {
         is_enabled: isEnabled,
         title,
         images: imageToSave ? [imageToSave] : [],
-        updated_at: new Date().toISOString(),
+        updated_at: updatedAt,
       },
       { onConflict: 'area_key' }
     );
@@ -300,7 +313,7 @@ export async function POST(request: Request) {
       console.error('main-pagoda-week POST error:', detail);
 
       if (isMissingPromotionAreaError(error)) {
-        return saveFallbackPagodaWeek(isEnabled, title, imageToSave);
+        return saveFallbackPagodaWeek(isEnabled, title, imageToSave, updatedAt);
       }
 
       return NextResponse.json(
@@ -309,6 +322,19 @@ export async function POST(request: Request) {
           message: `메인 파고다위크 이미지 저장 중 오류가 발생했습니다. (${detail.code || detail.message})`,
         },
         { status: 500 }
+      );
+    }
+
+    const fallbackSyncError = await upsertFallbackPagodaWeek(
+      isEnabled,
+      title,
+      imageToSave,
+      updatedAt
+    );
+    if (fallbackSyncError) {
+      console.error(
+        'main-pagoda-week fallback sync POST error:',
+        getErrorDetail(fallbackSyncError)
       );
     }
 
