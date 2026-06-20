@@ -13,6 +13,7 @@ type IncomingMonthlyCalendarItem = {
   monWedDates?: number[];
   tueThuDates?: number[];
   sixHundredOnlyDates?: number[];
+  monthlyDennyDates?: number[];
   specialDates?: SpecialDate[];
   d1SpecialDates?: SpecialDate[];
   toeicTestDates?: number[];
@@ -78,6 +79,9 @@ function mapRowToItem(row: MonthlyCalendarRow) {
   const sixHundredOnlyDates = specialDates
     .filter((item) => SIX_HUNDRED_ONLY_LABELS.has(item.label))
     .map((item) => item.day);
+  const monthlyDennyDates = specialDates
+    .filter((item) => item.label === MONTHLY_DANNY_LABEL)
+    .map((item) => item.day);
 
   return {
     yearMonth: row.year_month,
@@ -86,7 +90,10 @@ function mapRowToItem(row: MonthlyCalendarRow) {
     monWedDates: Array.isArray(row.mon_wed_dates) ? row.mon_wed_dates : [],
     tueThuDates: Array.isArray(row.tue_thu_dates) ? row.tue_thu_dates : [],
     sixHundredOnlyDates,
-    specialDates: specialDates.filter((item) => !SIX_HUNDRED_ONLY_LABELS.has(item.label)),
+    monthlyDennyDates,
+    specialDates: specialDates.filter(
+      (item) => !SIX_HUNDRED_ONLY_LABELS.has(item.label) && item.label !== MONTHLY_DANNY_LABEL
+    ),
     d1SpecialDates: Array.isArray(row.d1_special_dates)
       ? row.d1_special_dates.map((item) => ({
           ...item,
@@ -119,8 +126,17 @@ export async function POST(request: NextRequest) {
 
     const specialDates = normalizeSpecialDates(item.specialDates);
     const sixHundredOnlyDates = normalizeNumberArray(item.sixHundredOnlyDates);
+    const monthlyDennyDates = normalizeNumberArray(item.monthlyDennyDates);
     const mergedSpecialDates = [
-      ...specialDates.filter((specialDate) => !SIX_HUNDRED_ONLY_LABELS.has(specialDate.label)),
+      ...specialDates.filter(
+        (specialDate) =>
+          !SIX_HUNDRED_ONLY_LABELS.has(specialDate.label) &&
+          specialDate.label !== MONTHLY_DANNY_LABEL
+      ),
+      ...monthlyDennyDates.map((day) => ({
+        day,
+        label: MONTHLY_DANNY_LABEL,
+      })),
       ...sixHundredOnlyDates.map((day) => ({
         day,
         label: SIX_HUNDRED_ONLY_LABEL,

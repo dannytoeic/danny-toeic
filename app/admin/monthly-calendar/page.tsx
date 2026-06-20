@@ -17,6 +17,7 @@ type MonthlyCalendarItem = {
   monWedDates: number[];
   tueThuDates: number[];
   sixHundredOnlyDates?: number[];
+  monthlyDennyDates?: number[];
   specialDates: SpecialDate[];
   d1SpecialDates: SpecialDate[];
   toeicTestDates: number[];
@@ -124,7 +125,8 @@ export default function MonthlyCalendarAdminPage() {
   const [monWedText, setMonWedText] = useState('6, 11, 13, 18, 20, 27');
   const [tueThuText, setTueThuText] = useState('7, 12, 14, 19, 21, 26, 28');
   const [sixHundredOnlyText, setSixHundredOnlyText] = useState('');
-  const [specialText, setSpecialText] = useState('8: 월간데니\n16: 월간데니');
+  const [monthlyDennyText, setMonthlyDennyText] = useState('8, 16');
+  const [specialText, setSpecialText] = useState('');
   const [d1Text, setD1Text] = useState('30: D-1 특강');
   const [toeicText, setToeicText] = useState('31');
   const [memo, setMemo] = useState('');
@@ -180,6 +182,7 @@ export default function MonthlyCalendarAdminPage() {
         setMonWedText(toNumberLine(item.monWedDates ?? []));
         setTueThuText(toNumberLine(item.tueThuDates ?? []));
         setSixHundredOnlyText(toNumberLine(item.sixHundredOnlyDates ?? []));
+        setMonthlyDennyText(toNumberLine(item.monthlyDennyDates ?? []));
         setSpecialText(toSpecialLines(item.specialDates ?? []));
         setD1Text(toSpecialLines(item.d1SpecialDates ?? []));
         setToeicText(toNumberLine(item.toeicTestDates ?? []));
@@ -237,6 +240,10 @@ export default function MonthlyCalendarAdminPage() {
     () => parseNumberLine(sixHundredOnlyText),
     [sixHundredOnlyText]
   );
+  const monthlyDennyDates = useMemo(
+    () => parseNumberLine(monthlyDennyText),
+    [monthlyDennyText]
+  );
   const toeicTestDates = useMemo(() => parseNumberLine(toeicText), [toeicText]);
   const specialDates = useMemo(
     () => parseSpecialLines(specialText, '월간데니'),
@@ -251,6 +258,11 @@ export default function MonthlyCalendarAdminPage() {
 
   const specialMap = useMemo(() => {
     const map = new Map<number, string[]>();
+
+    for (const day of monthlyDennyDates) {
+      const prev = map.get(day) ?? [];
+      map.set(day, [...prev, '월간데니']);
+    }
 
     for (const item of specialDates) {
       const prev = map.get(item.day) ?? [];
@@ -268,7 +280,7 @@ export default function MonthlyCalendarAdminPage() {
     }
 
     return map;
-  }, [specialDates, d1SpecialDates, toeicTestDates]);
+  }, [monthlyDennyDates, specialDates, d1SpecialDates, toeicTestDates]);
 
   async function handleSave() {
     setIsSaving(true);
@@ -282,6 +294,7 @@ export default function MonthlyCalendarAdminPage() {
         monWedDates,
         tueThuDates,
         sixHundredOnlyDates,
+        monthlyDennyDates,
         specialDates,
         d1SpecialDates,
         toeicTestDates,
@@ -320,17 +333,6 @@ export default function MonthlyCalendarAdminPage() {
       : currentValues.filter((value) => value !== day);
 
     setter(toNumberLine(next.sort((a, b) => a - b)));
-  }
-
-  function updateSpecialDate(day: number, checked: boolean, label = '월간데니') {
-    const withoutDay = specialDates.filter((item) => item.day !== day);
-    const next = checked ? [...withoutDay, { day, label: label.trim() || '월간데니' }] : withoutDay;
-    setSpecialText(toSpecialLines(next.sort((a, b) => a.day - b.day)));
-  }
-
-  function updateSpecialLabel(day: number, label: string) {
-    const next = specialDates.map((item) => (item.day === day ? { ...item, label } : item));
-    setSpecialText(toSpecialLines(next));
   }
 
   async function handlePagodaUpload(file: File | null) {
@@ -579,7 +581,7 @@ export default function MonthlyCalendarAdminPage() {
               >
                 {Array.from({ length: new Date(year, month, 0).getDate() }, (_, index) => {
                   const day = index + 1;
-                  const special = specialDates.find((item) => item.day === day);
+                  const isMonthlyDenny = monthlyDennyDates.includes(day);
 
                   return (
                     <div
@@ -652,24 +654,26 @@ export default function MonthlyCalendarAdminPage() {
                         <label style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                           <input
                             type="checkbox"
-                            checked={Boolean(special)}
+                            checked={isMonthlyDenny}
                             onChange={(e) =>
-                              updateSpecialDate(day, e.target.checked, special?.label)
+                              setNumberList(
+                                monthlyDennyDates,
+                                setMonthlyDennyText,
+                                day,
+                                e.target.checked
+                              )
                             }
                           />
                           월간데니
                         </label>
                         <input
-                          value={special?.label ?? ''}
-                          onChange={(e) => {
-                            if (!special) updateSpecialDate(day, true, e.target.value);
-                            else updateSpecialLabel(day, e.target.value);
-                          }}
-                          disabled={!special}
+                          value={isMonthlyDenny ? '월간데니' : ''}
+                          readOnly
+                          disabled={!isMonthlyDenny}
                           style={{
                             ...inputStyle,
                             padding: '8px 10px',
-                            opacity: special ? 1 : 0.55,
+                            opacity: isMonthlyDenny ? 1 : 0.55,
                           }}
                           placeholder="월간데니"
                         />
@@ -683,10 +687,10 @@ export default function MonthlyCalendarAdminPage() {
             <div>
               <label style={labelStyle}>월간데니 날짜</label>
               <textarea
-                value={specialText}
-                onChange={(e) => setSpecialText(e.target.value)}
+                value={monthlyDennyText}
+                onChange={(e) => setMonthlyDennyText(e.target.value)}
                 style={textareaStyle}
-                placeholder={'예:\n8: 월간데니\n16: 월간데니'}
+                placeholder="예: 8, 16"
               />
             </div>
 
@@ -1117,7 +1121,6 @@ export default function MonthlyCalendarAdminPage() {
                     const displayLabels = [
                       ...(isMonWed ? ['월수반'] : []),
                       ...(isTueThu ? ['화목반'] : []),
-                      ...(isSixHundredOnly ? ['600반 추가수업'] : []),
                       ...labels,
                     ];
 
@@ -1128,8 +1131,11 @@ export default function MonthlyCalendarAdminPage() {
                     if (!cell.isCurrentMonth) {
                       textColor = '#cbd5e1';
                     } else if (isSixHundredOnly) {
-                      backgroundColor = sixHundredOnlyFill;
-                      textColor = 'white';
+                      backgroundColor = 'transparent';
+                      textColor = sixHundredOnlyFill;
+                      border = isMobile
+                        ? `2px solid ${sixHundredOnlyFill}`
+                        : `3px solid ${sixHundredOnlyFill}`;
                     } else if (isTueThu) {
                       backgroundColor = tueThuFill;
                       textColor = 'white';
@@ -1181,6 +1187,21 @@ export default function MonthlyCalendarAdminPage() {
                         >
                           {cell.day}
                         </div>
+
+                        {cell.isCurrentMonth && isSixHundredOnly && (
+                          <div
+                            style={{
+                              marginTop: isMobile ? '3px' : '5px',
+                              textAlign: 'center',
+                              fontSize: isMobile ? '8px' : '11px',
+                              color: sixHundredOnlyFill,
+                              lineHeight: 1,
+                              fontWeight: 800,
+                            }}
+                          >
+                            600
+                          </div>
+                        )}
 
                         {cell.isCurrentMonth && displayLabels.length > 0 && (
                           <div

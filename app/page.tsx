@@ -27,6 +27,7 @@ type MonthlyCalendarItem = {
   monWedDates: number[];
   tueThuDates: number[];
   sixHundredOnlyDates?: number[];
+  monthlyDennyDates?: number[];
   specialDates: SpecialDate[];
   d1SpecialDates: SpecialDate[];
   toeicTestDates?: number[];
@@ -200,6 +201,11 @@ export default function HomePage() {
     for (const item of calendarItem.specialDates ?? []) {
       const prev = map.get(item.day) ?? [];
       map.set(item.day, [...prev, item.label]);
+    }
+
+    for (const day of calendarItem.monthlyDennyDates ?? []) {
+      const prev = map.get(day) ?? [];
+      map.set(day, [...prev, '월간데니']);
     }
 
     for (const item of calendarItem.d1SpecialDates ?? []) {
@@ -378,8 +384,9 @@ export default function HomePage() {
                   if (!cell.isCurrentMonth) {
                     textColor = '#d6d3d1';
                   } else if (isSixHundredOnly) {
-                    backgroundColor = sixHundredOnlyFill;
-                    textColor = 'white';
+                    backgroundColor = 'transparent';
+                    textColor = sixHundredOnlyFill;
+                    border = `3px solid ${sixHundredOnlyFill}`;
                   } else if (isTueThu) {
                     backgroundColor = tueThuFill;
                     textColor = 'white';
@@ -429,6 +436,21 @@ export default function HomePage() {
                       >
                         {cell.day}
                       </div>
+
+                      {cell.isCurrentMonth && isSixHundredOnly && (
+                        <div
+                          style={{
+                            marginTop: '4px',
+                            textAlign: 'center',
+                            fontSize: isMobile ? '9px' : '12px',
+                            color: sixHundredOnlyFill,
+                            lineHeight: 1,
+                            fontWeight: 800,
+                          }}
+                        >
+                          600
+                        </div>
+                      )}
 
                       {cell.isCurrentMonth && displayLabels.length > 0 && (
                         <div
