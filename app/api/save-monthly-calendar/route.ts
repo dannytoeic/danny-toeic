@@ -12,6 +12,7 @@ type IncomingMonthlyCalendarItem = {
   month?: number;
   monWedDates?: number[];
   tueThuDates?: number[];
+  sixHundredOnlyDates?: number[];
   specialDates?: SpecialDate[];
   d1SpecialDates?: SpecialDate[];
   toeicTestDates?: number[];
@@ -32,6 +33,8 @@ type MonthlyCalendarRow = {
   created_at?: string | null;
   updated_at?: string | null;
 };
+
+const SIX_HUNDRED_ONLY_LABEL = '600수업만 있는 날';
 
 function normalizeNumberArray(value: unknown): number[] {
   if (!Array.isArray(value)) return [];
@@ -58,13 +61,19 @@ function normalizeSpecialDates(value: unknown): SpecialDate[] {
 }
 
 function mapRowToItem(row: MonthlyCalendarRow) {
+  const specialDates = Array.isArray(row.special_dates) ? row.special_dates : [];
+  const sixHundredOnlyDates = specialDates
+    .filter((item) => item.label === SIX_HUNDRED_ONLY_LABEL)
+    .map((item) => item.day);
+
   return {
     yearMonth: row.year_month,
     year: row.year,
     month: row.month,
     monWedDates: Array.isArray(row.mon_wed_dates) ? row.mon_wed_dates : [],
     tueThuDates: Array.isArray(row.tue_thu_dates) ? row.tue_thu_dates : [],
-    specialDates: Array.isArray(row.special_dates) ? row.special_dates : [],
+    sixHundredOnlyDates,
+    specialDates: specialDates.filter((item) => item.label !== SIX_HUNDRED_ONLY_LABEL),
     d1SpecialDates: Array.isArray(row.d1_special_dates) ? row.d1_special_dates : [],
     toeicTestDates: Array.isArray(row.toeic_test_dates) ? row.toeic_test_dates : [],
     memo: row.memo || '',
@@ -90,13 +99,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const specialDates = normalizeSpecialDates(item.specialDates);
+    const sixHundredOnlyDates = normalizeNumberArray(item.sixHundredOnlyDates);
+    const mergedSpecialDates = [
+      ...specialDates.filter((specialDate) => specialDate.label !== SIX_HUNDRED_ONLY_LABEL),
+      ...sixHundredOnlyDates.map((day) => ({
+        day,
+        label: SIX_HUNDRED_ONLY_LABEL,
+      })),
+    ];
+
     const rowToSave = {
       year_month: yearMonth,
       year,
       month,
       mon_wed_dates: normalizeNumberArray(item.monWedDates),
       tue_thu_dates: normalizeNumberArray(item.tueThuDates),
-      special_dates: normalizeSpecialDates(item.specialDates),
+      special_dates: mergedSpecialDates,
       d1_special_dates: normalizeSpecialDates(item.d1SpecialDates),
       toeic_test_dates: normalizeNumberArray(item.toeicTestDates),
       memo: String(item.memo ?? '').trim(),

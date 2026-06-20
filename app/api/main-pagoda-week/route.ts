@@ -1,0 +1,158 @@
+import { NextResponse } from 'next/server';
+import { supabaseAdmin } from '../../../lib/supabase-admin';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+const AREA_KEY = 'main_pagoda_week';
+
+type MainPagodaWeekRow = {
+  area_key: string;
+  is_enabled: boolean | null;
+  title: string | null;
+  images: unknown;
+  updated_at: string | null;
+};
+
+type PagodaWeekImage = {
+  id: string;
+  url: string;
+  alt: string;
+  storagePath: string;
+  sortOrder: number;
+};
+
+function normalizeImageUrl(value: unknown) {
+  const url = String(value ?? '').trim();
+
+  if (!url) return '';
+  if (url.startsWith('/') || url.startsWith('https://') || url.startsWith('http://')) return url;
+
+  return '';
+}
+
+function normalizeImages(value: unknown): PagodaWeekImage[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item, index) => {
+      const obj = (item ?? {}) as Record<string, unknown>;
+      const url = normalizeImageUrl(obj.url);
+
+      if (!url) return null;
+
+      return {
+        id: String(obj.id ?? `main-pagoda-week-${index + 1}`),
+        url,
+        alt: String(obj.alt ?? '파고다위크 안내'),
+        storagePath: String(obj.storagePath ?? ''),
+        sortOrder: Number.isFinite(Number(obj.sortOrder)) ? Number(obj.sortOrder) : index + 1,
+      };
+    })
+    .filter((item): item is PagodaWeekImage => Boolean(item))
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .slice(0, 1)
+    .map((item) => ({
+      id: item.id,
+      url: item.url,
+      alt: item.alt,
+      storagePath: item.storagePath,
+      sortOrder: 1,
+    }));
+}
+
+function toPayload(row: MainPagodaWeekRow | null, adminMode: boolean) {
+  const images = normalizeImages(row?.images);
+  const isEnabled = Boolean(row?.is_enabled);
+
+  if (!adminMode && (!isEnabled || images.length === 0)) {
+    return {
+      isEnabled: false,
+      title: '',
+      image: null,
+      updatedAt: row?.updated_at ?? null,
+    };
+  }
+
+  return {
+    isEnabled,
+    title: String(row?.title ?? '파고다위크 안내'),
+    image: images[0] ?? null,
+    updatedAt: row?.updated_at ?? null,
+  };
+}
+
+export async function GET(request: Request) {
+  try {
+    const url = new URL(request.url);
+    const adminMode = url.searchParams.get('admin') === '1';
+
+    const { data, error } = await supabaseAdmin
+      .from('promotion_area')
+      .select('area_key, is_enabled, title, images, updated_at')
+      .eq('area_key', AREA_KEY)
+      .maybeSingle();
+
+    if (error) {
+      console.error('main-pagoda-week GET error:', error);
+      return NextResponse.json(
+        { success: false, message: '메인 파고다위크 이미지를 불러오지 못했습니다.' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      pagodaWeek: toPayload((data as MainPagodaWeekRow | null) ?? null, adminMode),
+    });
+  } catch (error) {
+    console.error('main-pagoda-week GET catch error:', error);
+    return NextResponse.json(
+      { success: false, message: '메인 파고다위크 이미지를 불러오지 못했습니다.' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const isEnabled = Boolean(body.isEnabled);
+    const title = String(body.title ?? '파고다위크 안내').trim();
+    const image = normalizeImages(body.image ? [body.image] : []);
+
+    const { error } = await supabaseAdmin.from('promotion_area').upsert(
+      {
+        area_key: AREA_KEY,
+        is_enabled: isEnabled,
+        title,
+        images: image,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'area_key' }
+    );
+
+    if (error) {
+      console.error('main-pagoda-week POST error:', error);
+      return NextResponse.json(
+        { success: false, message: '메인 파고다위크 이미지 저장 중 오류가 발생했습니다.' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      pagodaWeek: {
+        isEnabled,
+        title,
+        image: image[0] ?? null,
+      },
+    });
+  } catch (error) {
+    console.error('main-pagoda-week POST catch error:', error);
+    return NextResponse.json(
+      { success: false, message: '메인 파고다위크 이미지 저장 중 오류가 발생했습니다.' },
+      { status: 500 }
+    );
+  }
+}

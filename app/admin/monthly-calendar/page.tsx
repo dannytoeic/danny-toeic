@@ -16,10 +16,25 @@ type MonthlyCalendarItem = {
   month: number;
   monWedDates: number[];
   tueThuDates: number[];
+  sixHundredOnlyDates?: number[];
   specialDates: SpecialDate[];
   d1SpecialDates: SpecialDate[];
   toeicTestDates: number[];
   memo: string;
+};
+
+type PagodaWeekImage = {
+  id: string;
+  url: string;
+  alt: string;
+  storagePath?: string;
+  sortOrder: number;
+};
+
+type MainPagodaWeek = {
+  isEnabled: boolean;
+  title: string;
+  image: PagodaWeekImage | null;
 };
 
 function parseNumberLine(text: string): number[] {
@@ -108,10 +123,19 @@ export default function MonthlyCalendarAdminPage() {
   const [month, setMonth] = useState(5);
   const [monWedText, setMonWedText] = useState('6, 11, 13, 18, 20, 27');
   const [tueThuText, setTueThuText] = useState('7, 12, 14, 19, 21, 26, 28');
+  const [sixHundredOnlyText, setSixHundredOnlyText] = useState('');
   const [specialText, setSpecialText] = useState('8: 관리특강\n16: 관리특강');
   const [d1Text, setD1Text] = useState('30: D-1 특강');
   const [toeicText, setToeicText] = useState('31');
   const [memo, setMemo] = useState('');
+  const [pagodaWeek, setPagodaWeek] = useState<MainPagodaWeek>({
+    isEnabled: false,
+    title: '파고다위크 안내',
+    image: null,
+  });
+  const [pagodaMessage, setPagodaMessage] = useState('');
+  const [isPagodaSaving, setIsPagodaSaving] = useState(false);
+  const [isUploadingPagoda, setIsUploadingPagoda] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -155,6 +179,7 @@ export default function MonthlyCalendarAdminPage() {
         setMonth(item.month);
         setMonWedText(toNumberLine(item.monWedDates ?? []));
         setTueThuText(toNumberLine(item.tueThuDates ?? []));
+        setSixHundredOnlyText(toNumberLine(item.sixHundredOnlyDates ?? []));
         setSpecialText(toSpecialLines(item.specialDates ?? []));
         setD1Text(toSpecialLines(item.d1SpecialDates ?? []));
         setToeicText(toNumberLine(item.toeicTestDates ?? []));
@@ -172,6 +197,30 @@ export default function MonthlyCalendarAdminPage() {
   }, [isChecking]);
 
   useEffect(() => {
+    if (isChecking) return;
+
+    async function loadPagodaWeek() {
+      try {
+        const response = await fetch('/api/main-pagoda-week?admin=1');
+        const result = await response.json();
+
+        if (result.success && result.pagodaWeek) {
+          setPagodaWeek({
+            isEnabled: Boolean(result.pagodaWeek.isEnabled),
+            title: String(result.pagodaWeek.title ?? '파고다위크 안내'),
+            image: result.pagodaWeek.image ?? null,
+          });
+        }
+      } catch (error) {
+        console.error(error);
+        setPagodaMessage('파고다위크 이미지를 불러오지 못했습니다.');
+      }
+    }
+
+    loadPagodaWeek();
+  }, [isChecking]);
+
+  useEffect(() => {
     const [y, m] = yearMonth.split('-');
     const nextYear = Number(y);
     const nextMonth = Number(m);
@@ -184,6 +233,10 @@ export default function MonthlyCalendarAdminPage() {
 
   const monWedDates = useMemo(() => parseNumberLine(monWedText), [monWedText]);
   const tueThuDates = useMemo(() => parseNumberLine(tueThuText), [tueThuText]);
+  const sixHundredOnlyDates = useMemo(
+    () => parseNumberLine(sixHundredOnlyText),
+    [sixHundredOnlyText]
+  );
   const toeicTestDates = useMemo(() => parseNumberLine(toeicText), [toeicText]);
   const specialDates = useMemo(
     () => parseSpecialLines(specialText, '관리특강'),
@@ -228,6 +281,7 @@ export default function MonthlyCalendarAdminPage() {
         month,
         monWedDates,
         tueThuDates,
+        sixHundredOnlyDates,
         specialDates,
         d1SpecialDates,
         toeicTestDates,
@@ -252,6 +306,92 @@ export default function MonthlyCalendarAdminPage() {
       setMessage('저장 중 오류가 발생했습니다.');
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  function setNumberList(
+    currentValues: number[],
+    setter: (value: string) => void,
+    day: number,
+    checked: boolean
+  ) {
+    const next = checked
+      ? Array.from(new Set([...currentValues, day]))
+      : currentValues.filter((value) => value !== day);
+
+    setter(toNumberLine(next.sort((a, b) => a - b)));
+  }
+
+  function updateSpecialDate(day: number, checked: boolean, label = '특강/월간데니') {
+    const withoutDay = specialDates.filter((item) => item.day !== day);
+    const next = checked ? [...withoutDay, { day, label: label.trim() || '특강/월간데니' }] : withoutDay;
+    setSpecialText(toSpecialLines(next.sort((a, b) => a.day - b.day)));
+  }
+
+  function updateSpecialLabel(day: number, label: string) {
+    const next = specialDates.map((item) => (item.day === day ? { ...item, label } : item));
+    setSpecialText(toSpecialLines(next));
+  }
+
+  async function handlePagodaUpload(file: File | null) {
+    if (!file) return;
+
+    setIsUploadingPagoda(true);
+    setPagodaMessage('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload-main-pagoda-week-image', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await response.json();
+
+      if (result.success && result.image) {
+        setPagodaWeek((current) => ({
+          ...current,
+          image: result.image,
+        }));
+        setPagodaMessage('이미지가 업로드되었습니다. 저장하기를 눌러 메인에 반영하세요.');
+      } else {
+        setPagodaMessage(result.message ?? '이미지 업로드에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error(error);
+      setPagodaMessage('이미지 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setIsUploadingPagoda(false);
+    }
+  }
+
+  async function handlePagodaSave() {
+    setIsPagodaSaving(true);
+    setPagodaMessage('');
+
+    try {
+      const response = await fetch('/api/main-pagoda-week', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pagodaWeek),
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        setPagodaWeek((current) => ({
+          ...current,
+          image: result.pagodaWeek?.image ?? current.image,
+        }));
+        setPagodaMessage('메인 파고다위크 설정이 저장되었습니다.');
+      } else {
+        setPagodaMessage(result.message ?? '파고다위크 설정 저장에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error(error);
+      setPagodaMessage('파고다위크 설정 저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsPagodaSaving(false);
     }
   }
 
@@ -298,6 +438,9 @@ export default function MonthlyCalendarAdminPage() {
 
   const monWedFill = '#cbbfb0';
   const tueThuFill = '#57534e';
+  const sixHundredOnlyFill = '#d97706';
+  const toeicFill = '#2563eb';
+  const specialFill = '#0f766e';
 
   if (isChecking || isLoading) {
     return (
@@ -409,6 +552,134 @@ export default function MonthlyCalendarAdminPage() {
               />
             </div>
 
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>600수업만 있는 날</label>
+              <textarea
+                value={sixHundredOnlyText}
+                onChange={(e) => setSixHundredOnlyText(e.target.value)}
+                style={{
+                  ...textareaStyle,
+                  minHeight: '80px',
+                }}
+                placeholder="예: 24, 25"
+              />
+            </div>
+
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>날짜별 캘린더 표시 직접 설정</label>
+              <div
+                style={{
+                  display: 'grid',
+                  gap: '8px',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '14px',
+                  padding: isMobile ? '10px' : '14px',
+                  backgroundColor: '#fcfcfb',
+                }}
+              >
+                {Array.from({ length: new Date(year, month, 0).getDate() }, (_, index) => {
+                  const day = index + 1;
+                  const special = specialDates.find((item) => item.day === day);
+
+                  return (
+                    <div
+                      key={day}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: isMobile ? '1fr' : '56px repeat(4, minmax(110px, auto)) minmax(160px, 1fr)',
+                        gap: '8px',
+                        alignItems: 'center',
+                        padding: '8px',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '12px',
+                        backgroundColor: 'white',
+                      }}
+                    >
+                      <strong style={{ color: '#111827' }}>{day}일</strong>
+                      <label style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={monWedDates.includes(day)}
+                          onChange={(e) =>
+                            setNumberList(monWedDates, setMonWedText, day, e.target.checked)
+                          }
+                        />
+                        월수반
+                      </label>
+                      <label style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={tueThuDates.includes(day)}
+                          onChange={(e) =>
+                            setNumberList(tueThuDates, setTueThuText, day, e.target.checked)
+                          }
+                        />
+                        화목반
+                      </label>
+                      <label style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={sixHundredOnlyDates.includes(day)}
+                          onChange={(e) =>
+                            setNumberList(
+                              sixHundredOnlyDates,
+                              setSixHundredOnlyText,
+                              day,
+                              e.target.checked
+                            )
+                          }
+                        />
+                        600수업만
+                      </label>
+                      <label style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={toeicTestDates.includes(day)}
+                          onChange={(e) =>
+                            setNumberList(toeicTestDates, setToeicText, day, e.target.checked)
+                          }
+                        />
+                        토익시험일
+                      </label>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: isMobile ? '1fr' : 'auto minmax(120px, 1fr)',
+                          gap: '8px',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <label style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={Boolean(special)}
+                            onChange={(e) =>
+                              updateSpecialDate(day, e.target.checked, special?.label)
+                            }
+                          />
+                          기타 일정
+                        </label>
+                        <input
+                          value={special?.label ?? ''}
+                          onChange={(e) => {
+                            if (!special) updateSpecialDate(day, true, e.target.value);
+                            else updateSpecialLabel(day, e.target.value);
+                          }}
+                          disabled={!special}
+                          style={{
+                            ...inputStyle,
+                            padding: '8px 10px',
+                            opacity: special ? 1 : 0.55,
+                          }}
+                          placeholder="특강/월간데니"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             <div>
               <label style={labelStyle}>관리특강 날짜</label>
               <textarea
@@ -471,6 +742,206 @@ export default function MonthlyCalendarAdminPage() {
               {message}
             </p>
           )}
+        </div>
+
+        <div
+          style={{
+            backgroundColor: 'white',
+            border: '1px solid #e2e8f0',
+            borderRadius: '16px',
+            padding: isMobile ? '14px' : '20px',
+            width: '100%',
+            minWidth: 0,
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '14px',
+              flexWrap: 'wrap',
+              marginBottom: '16px',
+            }}
+          >
+            <div>
+              <h2 style={{ margin: 0, fontSize: '22px', color: '#111827' }}>
+                메인 파고다위크 이미지
+              </h2>
+              <p style={{ margin: '8px 0 0', color: '#64748b', fontSize: '14px' }}>
+                메인 로그인 페이지 안내문 아래, 월간 캘린더 위에만 표시됩니다.
+              </p>
+            </div>
+
+            <label
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '10px 12px',
+                borderRadius: '999px',
+                border: '1px solid #cbd5e1',
+                color: '#111827',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={pagodaWeek.isEnabled}
+                onChange={(e) =>
+                  setPagodaWeek((current) => ({
+                    ...current,
+                    isEnabled: e.target.checked,
+                  }))
+                }
+                style={{ width: '18px', height: '18px' }}
+              />
+              {pagodaWeek.isEnabled ? 'ON' : 'OFF'}
+            </label>
+          </div>
+
+          <div style={{ display: 'grid', gap: '14px' }}>
+            <div>
+              <label style={labelStyle}>이미지 제목/대체문구</label>
+              <input
+                value={pagodaWeek.title}
+                onChange={(e) =>
+                  setPagodaWeek((current) => ({
+                    ...current,
+                    title: e.target.value,
+                    image: current.image
+                      ? {
+                          ...current.image,
+                          alt: e.target.value,
+                        }
+                      : current.image,
+                  }))
+                }
+                style={inputStyle}
+                placeholder="파고다위크 안내"
+              />
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                gap: '10px',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}
+            >
+              <label
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '12px 18px',
+                  backgroundColor: 'white',
+                  color: '#111827',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '10px',
+                  fontSize: '15px',
+                  cursor: isUploadingPagoda ? 'wait' : 'pointer',
+                  fontWeight: 700,
+                }}
+              >
+                {isUploadingPagoda ? '업로드 중...' : pagodaWeek.image ? '이미지 교체' : '이미지 업로드'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handlePagodaUpload(e.target.files?.[0] ?? null)}
+                  disabled={isUploadingPagoda}
+                  style={{ display: 'none' }}
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setPagodaWeek((current) => ({
+                    ...current,
+                    image: null,
+                  }))
+                }
+                disabled={!pagodaWeek.image}
+                style={{
+                  padding: '12px 18px',
+                  backgroundColor: '#fff1f2',
+                  color: '#be123c',
+                  border: '1px solid #fecaca',
+                  borderRadius: '10px',
+                  fontSize: '15px',
+                  cursor: pagodaWeek.image ? 'pointer' : 'not-allowed',
+                  opacity: pagodaWeek.image ? 1 : 0.45,
+                  fontWeight: 700,
+                }}
+              >
+                이미지 삭제
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePagodaSave}
+                disabled={isPagodaSaving}
+                style={{
+                  padding: '12px 20px',
+                  backgroundColor: '#111827',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontSize: '15px',
+                  cursor: 'pointer',
+                  opacity: isPagodaSaving ? 0.7 : 1,
+                  fontWeight: 700,
+                }}
+              >
+                {isPagodaSaving ? '저장 중...' : '파고다위크 저장'}
+              </button>
+            </div>
+
+            {pagodaWeek.image?.url ? (
+              <img
+                src={pagodaWeek.image.url}
+                alt={pagodaWeek.image.alt || pagodaWeek.title || '파고다위크 안내'}
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  borderRadius: '14px',
+                  border: '1px solid #e2e8f0',
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  border: '1px dashed #cbd5e1',
+                  borderRadius: '14px',
+                  padding: '24px',
+                  color: '#64748b',
+                  textAlign: 'center',
+                }}
+              >
+                등록된 파고다위크 이미지가 없습니다.
+              </div>
+            )}
+
+            {pagodaMessage && (
+              <p
+                style={{
+                  margin: 0,
+                  color:
+                    pagodaMessage.includes('저장') || pagodaMessage.includes('업로드')
+                      ? '#0f766e'
+                      : '#b91c1c',
+                  fontWeight: 600,
+                  lineHeight: 1.6,
+                }}
+              >
+                {pagodaMessage}
+              </p>
+            )}
+          </div>
         </div>
 
         <div
@@ -559,11 +1030,11 @@ export default function MonthlyCalendarAdminPage() {
                       width: '14px',
                       height: '14px',
                       borderRadius: '999px',
-                      border: `2px solid ${tueThuFill}`,
+                      backgroundColor: sixHundredOnlyFill,
                       display: 'inline-block',
                     }}
                   />
-                  특강
+                  600수업만 있는 날
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -572,7 +1043,20 @@ export default function MonthlyCalendarAdminPage() {
                       width: '14px',
                       height: '14px',
                       borderRadius: '999px',
-                      border: '1px solid #cbd5e1',
+                      border: `2px solid ${specialFill}`,
+                      display: 'inline-block',
+                    }}
+                  />
+                  특강/월간데니 등 기타 일정
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span
+                    style={{
+                      width: '14px',
+                      height: '14px',
+                      borderRadius: '999px',
+                      border: `2px solid ${toeicFill}`,
                       display: 'inline-block',
                     }}
                   />
@@ -612,9 +1096,17 @@ export default function MonthlyCalendarAdminPage() {
                   {week.map((cell, index) => {
                     const isMonWed = cell.isCurrentMonth && monWedDates.includes(cell.day);
                     const isTueThu = cell.isCurrentMonth && tueThuDates.includes(cell.day);
+                    const isSixHundredOnly =
+                      cell.isCurrentMonth && sixHundredOnlyDates.includes(cell.day);
                     const isToeic = cell.isCurrentMonth && toeicTestDates.includes(cell.day);
                     const labels = cell.isCurrentMonth ? specialMap.get(cell.day) ?? [] : [];
                     const isSpecial = labels.some((label) => !label.includes('토익'));
+                    const displayLabels = [
+                      ...(isMonWed ? ['월수반'] : []),
+                      ...(isTueThu ? ['화목반'] : []),
+                      ...(isSixHundredOnly ? ['600수업만'] : []),
+                      ...labels,
+                    ];
 
                     let backgroundColor = 'transparent';
                     let textColor = '#44403c';
@@ -622,6 +1114,9 @@ export default function MonthlyCalendarAdminPage() {
 
                     if (!cell.isCurrentMonth) {
                       textColor = '#cbd5e1';
+                    } else if (isSixHundredOnly) {
+                      backgroundColor = sixHundredOnlyFill;
+                      textColor = 'white';
                     } else if (isTueThu) {
                       backgroundColor = tueThuFill;
                       textColor = 'white';
@@ -631,14 +1126,16 @@ export default function MonthlyCalendarAdminPage() {
                     }
 
                     if (cell.isCurrentMonth && isSpecial) {
-                      border = isMobile ? `2px solid ${tueThuFill}` : `3px solid ${tueThuFill}`;
-                      backgroundColor = 'transparent';
-                      textColor = tueThuFill;
-                    } else if (cell.isCurrentMonth && isToeic) {
-                      border = isMobile ? '1.5px solid #cbd5e1' : '2px solid #cbd5e1';
-                      if (!isMonWed && !isTueThu) {
+                      border = isMobile ? `2px solid ${specialFill}` : `3px solid ${specialFill}`;
+                      if (!isMonWed && !isTueThu && !isSixHundredOnly) {
                         backgroundColor = 'transparent';
-                        textColor = '#64748b';
+                        textColor = specialFill;
+                      }
+                    } else if (cell.isCurrentMonth && isToeic) {
+                      border = isMobile ? `1.5px solid ${toeicFill}` : `2px solid ${toeicFill}`;
+                      if (!isMonWed && !isTueThu && !isSixHundredOnly) {
+                        backgroundColor = 'transparent';
+                        textColor = toeicFill;
                       }
                     }
 
@@ -674,7 +1171,7 @@ export default function MonthlyCalendarAdminPage() {
                           {cell.day}
                         </div>
 
-                        {cell.isCurrentMonth && labels.length > 0 && (
+                        {cell.isCurrentMonth && displayLabels.length > 0 && (
                           <div
                             style={{
                               marginTop: isMobile ? '4px' : '6px',
@@ -687,7 +1184,7 @@ export default function MonthlyCalendarAdminPage() {
                               overflowWrap: 'break-word',
                             }}
                           >
-                            {labels.join('\n')}
+                            {displayLabels.join('\n')}
                           </div>
                         )}
                       </div>

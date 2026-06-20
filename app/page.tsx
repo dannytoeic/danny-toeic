@@ -26,10 +26,23 @@ type MonthlyCalendarItem = {
   month: number;
   monWedDates: number[];
   tueThuDates: number[];
+  sixHundredOnlyDates?: number[];
   specialDates: SpecialDate[];
   d1SpecialDates: SpecialDate[];
   toeicTestDates?: number[];
   memo: string;
+};
+
+type PagodaWeekImage = {
+  id: string;
+  url: string;
+  alt: string;
+};
+
+type MainPagodaWeek = {
+  isEnabled: boolean;
+  title: string;
+  image: PagodaWeekImage | null;
 };
 
 type TimetableRow = {
@@ -109,6 +122,7 @@ export default function HomePage() {
 
   const [calendarItem, setCalendarItem] = useState<MonthlyCalendarItem | null>(null);
   const [timetableItem, setTimetableItem] = useState<MonthlyTimetableItem | null>(null);
+  const [pagodaWeek, setPagodaWeek] = useState<MainPagodaWeek | null>(null);
   const [calendarMessage, setCalendarMessage] = useState('');
   const [timetableMessage, setTimetableMessage] = useState('');
 
@@ -153,8 +167,24 @@ export default function HomePage() {
       }
     }
 
+    async function loadPagodaWeek() {
+      try {
+        const result = await safeFetchJson<{
+          success: boolean;
+          pagodaWeek?: MainPagodaWeek;
+        }>('/api/main-pagoda-week');
+
+        if (result.success && result.pagodaWeek) {
+          setPagodaWeek(result.pagodaWeek);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
     loadCalendar();
     loadTimetable();
+    loadPagodaWeek();
   }, []);
 
   const calendarWeeks = useMemo(() => {
@@ -242,12 +272,38 @@ export default function HomePage() {
 
   const monWedFill = '#cbbfb0';
   const tueThuFill = '#57534e';
+  const sixHundredOnlyFill = '#d97706';
+  const toeicFill = '#2563eb';
+  const specialFill = '#0f766e';
   const sharedHeaderBg = '#f3f0e8';
 
   function compactTimetableText(text: string, isMobile: boolean) {
     if (!isMobile) return text;
     if (text === '800 RC + LC') return '800 R+L';
     return text;
+  }
+
+  function renderPagodaWeekSection() {
+    if (!pagodaWeek?.isEnabled || !pagodaWeek.image?.url) return null;
+
+    return (
+      <section
+        style={{
+          ...shellCardStyle,
+          padding: '0',
+        }}
+      >
+        <img
+          src={pagodaWeek.image.url}
+          alt={pagodaWeek.image.alt || pagodaWeek.title || '파고다위크 안내'}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: 'auto',
+          }}
+        />
+      </section>
+    );
   }
 
   function renderCalendarSection(isMobile: boolean) {
@@ -307,9 +363,18 @@ export default function HomePage() {
                   const isTueThu =
                     cell.isCurrentMonth &&
                     (calendarItem?.tueThuDates ?? []).includes(cell.day);
+                  const isSixHundredOnly =
+                    cell.isCurrentMonth &&
+                    (calendarItem?.sixHundredOnlyDates ?? []).includes(cell.day);
                   const labels = cell.isCurrentMonth ? specialMap.get(cell.day) ?? [] : [];
                   const isSpecial = labels.some((label) => !label.includes('토익'));
                   const isToeic = labels.some((label) => label.includes('토익'));
+                  const displayLabels = [
+                    ...(isMonWed ? ['월수반'] : []),
+                    ...(isTueThu ? ['화목반'] : []),
+                    ...(isSixHundredOnly ? ['600수업만'] : []),
+                    ...labels,
+                  ];
 
                   let backgroundColor = 'transparent';
                   let textColor = '#44403c';
@@ -317,6 +382,9 @@ export default function HomePage() {
 
                   if (!cell.isCurrentMonth) {
                     textColor = '#d6d3d1';
+                  } else if (isSixHundredOnly) {
+                    backgroundColor = sixHundredOnlyFill;
+                    textColor = 'white';
                   } else if (isTueThu) {
                     backgroundColor = tueThuFill;
                     textColor = 'white';
@@ -326,14 +394,16 @@ export default function HomePage() {
                   }
 
                   if (cell.isCurrentMonth && isSpecial) {
-                    border = `3px solid ${tueThuFill}`;
-                    backgroundColor = 'transparent';
-                    textColor = tueThuFill;
-                  } else if (cell.isCurrentMonth && isToeic) {
-                    border = '2px solid #cbd5e1';
-                    if (!isMonWed && !isTueThu) {
+                    border = `3px solid ${specialFill}`;
+                    if (!isMonWed && !isTueThu && !isSixHundredOnly) {
                       backgroundColor = 'transparent';
-                      textColor = '#64748b';
+                      textColor = specialFill;
+                    }
+                  } else if (cell.isCurrentMonth && isToeic) {
+                    border = `2px solid ${toeicFill}`;
+                    if (!isMonWed && !isTueThu && !isSixHundredOnly) {
+                      backgroundColor = 'transparent';
+                      textColor = toeicFill;
                     }
                   }
 
@@ -367,7 +437,7 @@ export default function HomePage() {
                         {cell.day}
                       </div>
 
-                      {cell.isCurrentMonth && labels.length > 0 && (
+                      {cell.isCurrentMonth && displayLabels.length > 0 && (
                         <div
                           style={{
                             marginTop: '8px',
@@ -380,7 +450,7 @@ export default function HomePage() {
                             overflowWrap: 'anywhere',
                           }}
                         >
-                          {labels.join('\n')}
+                          {displayLabels.join('\n')}
                         </div>
                       )}
                     </div>
@@ -432,41 +502,103 @@ export default function HomePage() {
 
         <div
           style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: isMobile ? '10px' : '18px',
-            alignItems: 'center',
+            display: 'grid',
+            gap: isMobile ? '8px' : '10px',
             marginBottom: isMobile ? '6px' : '10px',
             color: '#57534e',
-            fontSize: isMobile ? '10px' : '14px',
+            fontSize: isMobile ? '11px' : '14px',
             fontWeight: 600,
-            flexWrap: 'wrap',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span
-              style={{
-                width: isMobile ? '9px' : '14px',
-                height: isMobile ? '9px' : '14px',
-                borderRadius: '999px',
-                backgroundColor: monWedFill,
-                display: 'inline-block',
-              }}
-            />
-            월수반
+          <div
+            style={{
+              display: 'grid',
+              gap: '4px',
+              padding: isMobile ? '10px' : '12px',
+              borderRadius: '14px',
+              backgroundColor: '#fafaf9',
+              border: '1px solid #e7e5e4',
+              lineHeight: 1.55,
+            }}
+          >
+            <div>600반: 18일 수업 (월수 9일 / 화목 9일)</div>
+            <div>800반: 16일 수업 (월수 8일 / 화목 8일)</div>
+            <div>600수업만 있는 날: 별도 색깔 표시</div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span
-              style={{
-                width: isMobile ? '9px' : '14px',
-                height: isMobile ? '9px' : '14px',
-                borderRadius: '999px',
-                backgroundColor: tueThuFill,
-                display: 'inline-block',
-              }}
-            />
-            화목반
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: isMobile ? '10px' : '18px',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span
+                style={{
+                  width: isMobile ? '9px' : '14px',
+                  height: isMobile ? '9px' : '14px',
+                  borderRadius: '999px',
+                  backgroundColor: monWedFill,
+                  display: 'inline-block',
+                }}
+              />
+              월수반: 해당 색깔 표시
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span
+                style={{
+                  width: isMobile ? '9px' : '14px',
+                  height: isMobile ? '9px' : '14px',
+                  borderRadius: '999px',
+                  backgroundColor: tueThuFill,
+                  display: 'inline-block',
+                }}
+              />
+              화목반: 해당 색깔 표시
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span
+                style={{
+                  width: isMobile ? '9px' : '14px',
+                  height: isMobile ? '9px' : '14px',
+                  borderRadius: '999px',
+                  backgroundColor: sixHundredOnlyFill,
+                  display: 'inline-block',
+                }}
+              />
+              600수업만 있는 날
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span
+                style={{
+                  width: isMobile ? '9px' : '14px',
+                  height: isMobile ? '9px' : '14px',
+                  borderRadius: '999px',
+                  border: `2px solid ${toeicFill}`,
+                  display: 'inline-block',
+                }}
+              />
+              토익시험일
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span
+                style={{
+                  width: isMobile ? '9px' : '14px',
+                  height: isMobile ? '9px' : '14px',
+                  borderRadius: '999px',
+                  border: `2px solid ${specialFill}`,
+                  display: 'inline-block',
+                }}
+              />
+              특강/월간데니 등 기타 일정
+            </div>
           </div>
         </div>
 
@@ -983,6 +1115,8 @@ export default function HomePage() {
             월간 일정과 시간표를 먼저 확인하신 뒤, 수강생 로그인을 진행해 주세요.
           </p>
         </header>
+
+        {renderPagodaWeekSection()}
 
         <div className="desktopOnly">
           <div
