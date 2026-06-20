@@ -163,7 +163,7 @@ export default function MonthlyCalendarAdminPage() {
 
     async function loadData() {
       try {
-        const response = await fetch('/api/get-monthly-calendar');
+        const response = await fetch('/api/get-monthly-calendar', { cache: 'no-store' });
         const result = await response.json();
 
         if (!result.success || !result.item) {
@@ -438,7 +438,7 @@ export default function MonthlyCalendarAdminPage() {
 
   const monWedFill = '#cbbfb0';
   const tueThuFill = '#57534e';
-  const sixHundredOnlyFill = '#E5E7EB';
+  const sixHundredOnlyFill = '#726554';
   const toeicFill = '#2563eb';
   const specialFill = '#0f766e';
 
@@ -1129,7 +1129,7 @@ export default function MonthlyCalendarAdminPage() {
                       textColor = '#cbd5e1';
                     } else if (isSixHundredOnly) {
                       backgroundColor = sixHundredOnlyFill;
-                      textColor = '#111827';
+                      textColor = 'white';
                     } else if (isTueThu) {
                       backgroundColor = tueThuFill;
                       textColor = 'white';

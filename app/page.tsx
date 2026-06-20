@@ -272,7 +272,7 @@ export default function HomePage() {
 
   const monWedFill = '#cbbfb0';
   const tueThuFill = '#57534e';
-  const sixHundredOnlyFill = '#E5E7EB';
+  const sixHundredOnlyFill = '#726554';
   const toeicFill = '#2563eb';
   const specialFill = '#0f766e';
   const sharedHeaderBg = '#f3f0e8';
@@ -379,7 +379,7 @@ export default function HomePage() {
                     textColor = '#d6d3d1';
                   } else if (isSixHundredOnly) {
                     backgroundColor = sixHundredOnlyFill;
-                    textColor = '#111827';
+                    textColor = 'white';
                   } else if (isTueThu) {
                     backgroundColor = tueThuFill;
                     textColor = 'white';

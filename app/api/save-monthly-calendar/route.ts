@@ -35,10 +35,13 @@ type MonthlyCalendarRow = {
 };
 
 const SIX_HUNDRED_ONLY_LABEL = '600반 추가수업';
+const MONTHLY_DANNY_LABEL = '월간데니';
 const SIX_HUNDRED_ONLY_LABELS = new Set(['600수업만 있는 날', '600반 추가수업']);
 
 function normalizeScheduleLabel(label: string) {
-  return label === '관리특강' ? '월간데니' : label;
+  const trimmed = label.trim();
+  if (trimmed.includes('관리특강') || trimmed.includes('월간데니')) return MONTHLY_DANNY_LABEL;
+  return trimmed;
 }
 
 function normalizeNumberArray(value: unknown): number[] {
@@ -84,7 +87,12 @@ function mapRowToItem(row: MonthlyCalendarRow) {
     tueThuDates: Array.isArray(row.tue_thu_dates) ? row.tue_thu_dates : [],
     sixHundredOnlyDates,
     specialDates: specialDates.filter((item) => !SIX_HUNDRED_ONLY_LABELS.has(item.label)),
-    d1SpecialDates: Array.isArray(row.d1_special_dates) ? row.d1_special_dates : [],
+    d1SpecialDates: Array.isArray(row.d1_special_dates)
+      ? row.d1_special_dates.map((item) => ({
+          ...item,
+          label: normalizeScheduleLabel(item.label),
+        }))
+      : [],
     toeicTestDates: Array.isArray(row.toeic_test_dates) ? row.toeic_test_dates : [],
     memo: row.memo || '',
     isCurrent: row.is_current,
