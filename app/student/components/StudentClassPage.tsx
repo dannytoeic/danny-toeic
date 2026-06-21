@@ -1,9 +1,14 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  StudentClassCalendar,
+  StudentClassCalendarItem,
+  StudentClassTimetable,
+  StudentClassTimetableItem,
+} from './StudentClassSchedule';
 
 type LoggedInStudent = {
   id: string;
@@ -292,10 +297,11 @@ export default function StudentClassPage({
   const [student, setStudent] = useState<LoggedInStudent | null>(null);
   const [isChecking, setIsChecking] = useState(true);
   const [updates, setUpdates] = useState<ClassUpdatesMap>(emptyClassUpdates);
-  const [updatesYearMonth, setUpdatesYearMonth] = useState('');
   const [message, setMessage] = useState('수업 카드를 불러오는 중...');
   const [isMobile, setIsMobile] = useState(false);
   const [promotionArea, setPromotionArea] = useState<PromotionArea | null>(null);
+  const [classCalendar, setClassCalendar] = useState<StudentClassCalendarItem | null>(null);
+  const [classTimetable, setClassTimetable] = useState<StudentClassTimetableItem | null>(null);
 
   useEffect(() => {
     function updateViewport() {
@@ -375,15 +381,12 @@ export default function StudentClassPage({
             ...emptyClassUpdates,
             ...(result.updates ?? {}),
           });
-          setUpdatesYearMonth(String(result.yearMonth ?? result.monthKey ?? ''));
           setMessage('');
         } else {
-          setUpdatesYearMonth('');
           setMessage(result.message ?? '수업 카드를 불러오지 못했습니다.');
         }
       } catch (error) {
         console.error(error);
-        setUpdatesYearMonth('');
         setMessage('수업 카드를 불러오는 중 오류가 발생했습니다.');
       }
     }
@@ -413,9 +416,26 @@ export default function StudentClassPage({
     fetchPromotionArea();
   }, [isChecking]);
 
-  const pageData = updates[classKey];
-  const showMayHeaderImages = updatesYearMonth === '2026-05';
+  useEffect(() => {
+    if (isChecking) return;
 
+    async function fetchClassSchedule() {
+      try {
+        const response = await fetch('/api/student-class-schedule', { cache: 'no-store' });
+        const result = await response.json();
+        if (result.success) {
+          setClassCalendar(result.calendar?.yearMonth ? result.calendar : null);
+          setClassTimetable(result.timetable?.yearMonth ? result.timetable : null);
+        }
+      } catch (error) {
+        console.error('student class schedule fetch error:', error);
+      }
+    }
+
+    fetchClassSchedule();
+  }, [isChecking]);
+
+  const pageData = updates[classKey];
   const cards = useMemo<StudentApiCard[]>(() => {
     const raw = pageData?.cards ?? [];
     return [...raw].sort((a, b) => {
@@ -520,27 +540,6 @@ export default function StudentClassPage({
     boxSizing: 'border-box',
     wordBreak: 'keep-all',
     textAlign: 'center',
-  };
-
-  const discountBannerWrapStyle: React.CSSProperties = {
-    width: '100%',
-    maxWidth: '100%',
-    minWidth: 0,
-    boxSizing: 'border-box',
-    marginTop: isMobile ? '16px' : '20px',
-    overflow: 'hidden',
-    borderRadius: isMobile ? '12px' : '16px',
-    boxShadow: '0 12px 28px rgba(0, 0, 0, 0.22)',
-    backgroundColor: '#0f141b',
-  };
-
-  const discountBannerImageStyle: React.CSSProperties = {
-    display: 'block',
-    width: '100%',
-    maxWidth: '100%',
-    height: 'auto',
-    objectFit: 'contain',
-    borderRadius: isMobile ? '12px' : '16px',
   };
 
   const promotionCardStyle: React.CSSProperties = {
@@ -756,51 +755,21 @@ export default function StudentClassPage({
           {promotionArea ? (
             <div style={promotionCardStyle}>
               <h2 style={promotionTitleStyle}>{promotionArea.title || '홍보영역'}</h2>
-              <div style={{ display: 'grid', gap: isMobile ? '12px' : '16px' }}>
-                {promotionArea.images.map((image, index) => (
-                  <img
-                    key={image.id}
-                    src={image.url}
-                    alt={image.alt || `${promotionArea.title || '홍보 이미지'} ${index + 1}`}
-                    style={promotionImageStyle}
-                  />
-                ))}
-              </div>
+              <img
+                src={promotionArea.images[0].url}
+                alt={promotionArea.images[0].alt || promotionArea.title || '파고다위크 안내'}
+                style={promotionImageStyle}
+              />
             </div>
           ) : null}
-
-          {showMayHeaderImages ? (
-            <>
-          <div style={discountBannerWrapStyle}>
-            <Image
-              src="/images/pagoda-discount-banner.png"
-              alt="Pagoda TOEIC 수강료 할인 안내"
-              width={1920}
-              height={1080}
-              priority
-              sizes="(max-width: 768px) 100vw, 1060px"
-              style={discountBannerImageStyle}
-            />
-          </div>
-
-          <div
-            style={{
-              ...discountBannerWrapStyle,
-              marginTop: isMobile ? '12px' : '16px',
-            }}
-          >
-            <Image
-              src="/images/june-calendar.png"
-              alt="6월 수업 캘린더"
-              width={866}
-              height={683}
-              sizes="(max-width: 768px) 100vw, 1060px"
-              style={discountBannerImageStyle}
-            />
-          </div>
-            </>
-          ) : null}
         </section>
+
+        {classCalendar || classTimetable ? (
+          <div style={{ display: 'grid', gap: isMobile ? '16px' : '22px', marginBottom: isMobile ? '20px' : '28px' }}>
+            {classCalendar ? <StudentClassCalendar item={classCalendar} isMobile={isMobile} /> : null}
+            {classTimetable ? <StudentClassTimetable item={classTimetable} isMobile={isMobile} /> : null}
+          </div>
+        ) : null}
 
         <section
           style={{

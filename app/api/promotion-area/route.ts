@@ -222,7 +222,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const isEnabled = Boolean(body.isEnabled);
     const title = String(body.title ?? '').trim();
-    const images = normalizeImages(body.images);
+    const images = normalizeImages(body.images).slice(0, 1);
 
     const { error } = await supabaseAdmin.from('promotion_area').upsert(
       {

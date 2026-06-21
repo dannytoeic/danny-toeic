@@ -1,15 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getLoggedInAdmin } from '../adminGuard';
 import AdminShell from '../AdminShell';
+import StudentClassScheduleAdmin from './StudentClassScheduleAdmin';
 
 type PromotionImage = {
   id: string;
   url: string;
   alt: string;
   sortOrder: number;
+  storagePath?: string;
 };
 
 type PromotionArea = {
@@ -17,15 +19,6 @@ type PromotionArea = {
   title: string;
   images: PromotionImage[];
 };
-
-function makePromotionImage(index: number): PromotionImage {
-  return {
-    id: `promotion-image-${Date.now()}-${index}`,
-    url: '',
-    alt: '',
-    sortOrder: index + 1,
-  };
-}
 
 function normalizePromotionImages(raw: unknown): PromotionImage[] {
   if (!Array.isArray(raw)) return [];
@@ -39,6 +32,7 @@ function normalizePromotionImages(raw: unknown): PromotionImage[] {
         url: String(obj.url ?? ''),
         alt: String(obj.alt ?? ''),
         sortOrder: Number.isFinite(Number(obj.sortOrder)) ? Number(obj.sortOrder) : index + 1,
+        storagePath: obj.storagePath ? String(obj.storagePath) : undefined,
       };
     })
     .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -63,6 +57,8 @@ export default function AdminNoticesPage() {
   });
   const [promotionMessage, setPromotionMessage] = useState('');
   const [isPromotionSaving, setIsPromotionSaving] = useState(false);
+  const [isPromotionUploading, setIsPromotionUploading] = useState(false);
+  const promotionFileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const admin = getLoggedInAdmin();
@@ -87,7 +83,7 @@ export default function AdminNoticesPage() {
           setPromotionArea({
             isEnabled: Boolean(result.promotionArea.isEnabled),
             title: String(result.promotionArea.title ?? ''),
-            images: normalizePromotionImages(result.promotionArea.images),
+            images: normalizePromotionImages(result.promotionArea.images).slice(0, 1),
           });
         }
       } catch (error) {
@@ -137,46 +133,35 @@ export default function AdminNoticesPage() {
     }));
   }
 
-  function addPromotionImage() {
+  function removePromotionImage() {
     setPromotionArea((current) => ({
       ...current,
-      images: [...current.images, makePromotionImage(current.images.length)],
+      images: [],
     }));
   }
 
-  function removePromotionImage(id: string) {
-    setPromotionArea((current) => ({
-      ...current,
-      images: current.images
-        .filter((image) => image.id !== id)
-        .map((image, index) => ({
-          ...image,
-          sortOrder: index + 1,
-        })),
-    }));
-  }
-
-  function movePromotionImage(id: string, direction: -1 | 1) {
-    setPromotionArea((current) => {
-      const images = [...current.images];
-      const index = images.findIndex((image) => image.id === id);
-      const nextIndex = index + direction;
-
-      if (index < 0 || nextIndex < 0 || nextIndex >= images.length) {
-        return current;
+  async function handlePromotionUpload(file: File | null) {
+    if (!file) return;
+    setIsPromotionUploading(true);
+    setPromotionMessage('');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('/api/upload-main-pagoda-week-image', { method: 'POST', body: formData });
+      const result = await response.json();
+      if (result.success && result.image) {
+        setPromotionArea((current) => ({ ...current, images: [{ ...result.image, sortOrder: 1 }] }));
+        setPromotionMessage('이미지가 업로드되었습니다. 홍보영역 저장을 눌러 반영하세요.');
+      } else {
+        setPromotionMessage(result.message ?? '이미지 업로드에 실패했습니다.');
       }
-
-      const [target] = images.splice(index, 1);
-      images.splice(nextIndex, 0, target);
-
-      return {
-        ...current,
-        images: images.map((image, imageIndex) => ({
-          ...image,
-          sortOrder: imageIndex + 1,
-        })),
-      };
-    });
+    } catch (error) {
+      console.error('promotion image upload error:', error);
+      setPromotionMessage('이미지 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setIsPromotionUploading(false);
+      if (promotionFileInputRef.current) promotionFileInputRef.current.value = '';
+    }
   }
 
   async function handlePromotionSave() {
@@ -184,7 +169,7 @@ export default function AdminNoticesPage() {
     setPromotionMessage('');
 
     try {
-      const images = promotionArea.images
+      const images = promotionArea.images.slice(0, 1)
         .map((image, index) => ({
           ...image,
           url: image.url.trim(),
@@ -354,7 +339,7 @@ export default function AdminNoticesPage() {
               홍보영역 관리
             </h2>
             <p style={{ margin: '8px 0 0', color: '#64748b', fontSize: '14px' }}>
-              학생 첫 화면의 전체공지 아래에 표시됩니다.
+              학생 반별 페이지의 Danny Voca 버튼 아래에 표시됩니다.
             </p>
           </div>
 
@@ -402,127 +387,36 @@ export default function AdminNoticesPage() {
         </div>
 
         <div style={{ display: 'grid', gap: '14px', marginBottom: '18px' }}>
-          {promotionArea.images.map((image, index) => (
-            <div
-              key={image.id}
-              style={{
-                border: '1px solid #e2e8f0',
-                borderRadius: '14px',
-                padding: '16px',
-                backgroundColor: '#fcfcfb',
-              }}
+          <strong style={{ color: '#111827' }}>파고다위크 이미지</strong>
+          <input
+            ref={promotionFileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={(event) => handlePromotionUpload(event.target.files?.[0] ?? null)}
+            style={{ display: 'none' }}
+          />
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => promotionFileInputRef.current?.click()}
+              disabled={isPromotionUploading}
+              style={{ padding: '11px 16px', borderRadius: '10px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#111827', fontWeight: 700, cursor: 'pointer' }}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  marginBottom: '12px',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <strong style={{ color: '#111827' }}>이미지 {index + 1}</strong>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    onClick={() => movePromotionImage(image.id, -1)}
-                    disabled={index === 0}
-                    style={{
-                      padding: '8px 10px',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: 'white',
-                      color: '#111827',
-                      cursor: index === 0 ? 'not-allowed' : 'pointer',
-                      opacity: index === 0 ? 0.45 : 1,
-                    }}
-                  >
-                    위로
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => movePromotionImage(image.id, 1)}
-                    disabled={index === promotionArea.images.length - 1}
-                    style={{
-                      padding: '8px 10px',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: 'white',
-                      color: '#111827',
-                      cursor:
-                        index === promotionArea.images.length - 1 ? 'not-allowed' : 'pointer',
-                      opacity: index === promotionArea.images.length - 1 ? 0.45 : 1,
-                    }}
-                  >
-                    아래로
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removePromotionImage(image.id)}
-                    style={{
-                      padding: '8px 10px',
-                      borderRadius: '10px',
-                      border: '1px solid #fecaca',
-                      backgroundColor: '#fff1f2',
-                      color: '#be123c',
-                      cursor: 'pointer',
-                      fontWeight: 700,
-                    }}
-                  >
-                    삭제
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gap: '10px' }}>
-                <input
-                  value={image.url}
-                  onChange={(e) => updatePromotionImage(image.id, { url: e.target.value })}
-                  style={inputStyle}
-                  placeholder="/images/july-calendar.png 또는 https://..."
-                />
-                <input
-                  value={image.alt}
-                  onChange={(e) => updatePromotionImage(image.id, { alt: e.target.value })}
-                  style={inputStyle}
-                  placeholder="이미지 설명"
-                />
-                {image.url.trim() ? (
-                  <img
-                    src={image.url.trim()}
-                    alt={image.alt || `홍보 이미지 ${index + 1}`}
-                    style={{
-                      width: '100%',
-                      height: 'auto',
-                      borderRadius: '12px',
-                      border: '1px solid #e2e8f0',
-                    }}
-                  />
-                ) : null}
-              </div>
-            </div>
-          ))}
+              {isPromotionUploading ? '업로드 중...' : promotionArea.images[0] ? '이미지 교체' : '이미지 업로드'}
+            </button>
+            {promotionArea.images[0] ? (
+              <button type="button" onClick={removePromotionImage} style={{ padding: '11px 16px', borderRadius: '10px', border: '1px solid #fecaca', backgroundColor: '#fff1f2', color: '#be123c', fontWeight: 700, cursor: 'pointer' }}>이미지 삭제</button>
+            ) : null}
+          </div>
+          {promotionArea.images[0] ? (
+            <>
+              <input value={promotionArea.images[0].alt} onChange={(e) => updatePromotionImage(promotionArea.images[0].id, { alt: e.target.value })} style={inputStyle} placeholder="파고다위크 이미지 설명" />
+              <img src={promotionArea.images[0].url} alt={promotionArea.images[0].alt || '파고다위크 안내'} style={{ width: '100%', height: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }} />
+            </>
+          ) : <div style={{ padding: '24px', border: '1px dashed #cbd5e1', borderRadius: '12px', color: '#64748b', textAlign: 'center' }}>등록된 파고다위크 이미지가 없습니다.</div>}
         </div>
 
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={addPromotionImage}
-            style={{
-              padding: '12px 18px',
-              backgroundColor: 'white',
-              color: '#111827',
-              border: '1px solid #cbd5e1',
-              borderRadius: '10px',
-              fontSize: '15px',
-              cursor: 'pointer',
-              fontWeight: 700,
-            }}
-          >
-            이미지 추가
-          </button>
-
           <button
             type="button"
             onClick={handlePromotionSave}
@@ -555,6 +449,8 @@ export default function AdminNoticesPage() {
           </p>
         )}
       </div>
+
+      <StudentClassScheduleAdmin />
     </AdminShell>
   );
 }
