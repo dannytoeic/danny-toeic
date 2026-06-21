@@ -575,8 +575,8 @@ export default function HomePage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <span
                 style={{
-                  width: isMobile ? '30px' : '44px',
-                  height: isMobile ? '30px' : '44px',
+                  width: isMobile ? '9px' : '14px',
+                  height: isMobile ? '9px' : '14px',
                   borderRadius: '999px',
                   border: `3px solid ${sixHundredOnlyFill}`,
                   display: 'inline-block',
