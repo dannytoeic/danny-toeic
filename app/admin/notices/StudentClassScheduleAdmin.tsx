@@ -35,6 +35,54 @@ function parseSpecial(value: string, defaultLabel: string) {
   }).filter((item) => Number.isInteger(item.day) && item.day >= 1 && item.day <= 31);
 }
 
+type CalendarDraft = {
+  monWedText: string;
+  tueThuText: string;
+  sixHundredOnlyText: string;
+  toeicText: string;
+  monthlyDennyText: string;
+  d1Text: string;
+  specialText: string;
+};
+
+const emptyCalendarDraft: CalendarDraft = {
+  monWedText: '',
+  tueThuText: '',
+  sixHundredOnlyText: '',
+  toeicText: '',
+  monthlyDennyText: '',
+  d1Text: '',
+  specialText: '',
+};
+
+function calendarToDraft(item: StudentClassCalendarItem): CalendarDraft {
+  return {
+    monWedText: item.monWedDates.join(', '),
+    tueThuText: item.tueThuDates.join(', '),
+    sixHundredOnlyText: item.sixHundredOnlyDates.join(', '),
+    toeicText: item.toeicTestDates.join(', '),
+    monthlyDennyText: item.monthlyDennyDates.join(', '),
+    d1Text: item.d1SpecialDates.map((value) => `${value.day}: ${value.label}`).join('\n'),
+    specialText: item.specialDates.map((value) => `${value.day}: ${value.label}`).join('\n'),
+  };
+}
+
+function buildCalendarItem(
+  calendar: StudentClassCalendarItem,
+  draft: CalendarDraft
+): StudentClassCalendarItem {
+  return {
+    ...calendar,
+    monWedDates: parseDays(draft.monWedText),
+    tueThuDates: parseDays(draft.tueThuText),
+    sixHundredOnlyDates: parseDays(draft.sixHundredOnlyText),
+    toeicTestDates: parseDays(draft.toeicText),
+    monthlyDennyDates: parseDays(draft.monthlyDennyText),
+    d1SpecialDates: parseSpecial(draft.d1Text, 'D-1특강'),
+    specialDates: parseSpecial(draft.specialText, '특별일정'),
+  };
+}
+
 const inputStyle: React.CSSProperties = {
   width: '100%', minWidth: 0, boxSizing: 'border-box', padding: '10px 12px',
   border: '1px solid #cbd5e1', borderRadius: '10px', backgroundColor: 'white', color: '#111827', fontSize: '14px',
@@ -51,6 +99,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 export default function StudentClassScheduleAdmin() {
   const [calendar, setCalendar] = useState<StudentClassCalendarItem>(emptyCalendar);
+  const [calendarDraft, setCalendarDraft] = useState<CalendarDraft>(emptyCalendarDraft);
+  const [calendarPreview, setCalendarPreview] = useState<StudentClassCalendarItem>(emptyCalendar);
   const [timetable, setTimetable] = useState<StudentClassTimetableItem>(emptyTimetable);
   const [calendarMessage, setCalendarMessage] = useState('');
   const [timetableMessage, setTimetableMessage] = useState('');
@@ -68,11 +118,24 @@ export default function StudentClassScheduleAdmin() {
       .then((response) => response.json())
       .then((result) => {
         if (!result.success) return;
-        if (result.calendar?.yearMonth) setCalendar({ ...emptyCalendar, ...result.calendar });
+        if (result.calendar?.yearMonth) {
+          const loadedCalendar = { ...emptyCalendar, ...result.calendar };
+          setCalendar(loadedCalendar);
+          setCalendarDraft(calendarToDraft(loadedCalendar));
+          setCalendarPreview(loadedCalendar);
+        }
         if (result.timetable?.yearMonth) setTimetable({ ...emptyTimetable, ...result.timetable, rows: result.timetable.rows?.length ? result.timetable.rows : DEFAULT_ROWS });
       })
       .catch((error) => console.error('student class schedule admin load error:', error));
   }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setCalendarPreview(buildCalendarItem(calendar, calendarDraft));
+    }, 200);
+
+    return () => window.clearTimeout(timer);
+  }, [calendar, calendarDraft]);
 
   function setYearMonth(value: string) {
     const [year, month] = value.split('-').map(Number);
@@ -82,8 +145,13 @@ export default function StudentClassScheduleAdmin() {
   async function saveCalendar(event: FormEvent) {
     event.preventDefault(); setCalendarSaving(true); setCalendarMessage('');
     try {
-      const response = await fetch('/api/student-class-schedule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'calendar', item: calendar }) });
+      const itemToSave = buildCalendarItem(calendar, calendarDraft);
+      const response = await fetch('/api/student-class-schedule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'calendar', item: itemToSave }) });
       const result = await response.json();
+      if (result.success) {
+        setCalendar(itemToSave);
+        setCalendarPreview(itemToSave);
+      }
       setCalendarMessage(result.success ? '반별 페이지용 캘린더가 저장되었습니다.' : result.message ?? '저장에 실패했습니다.');
     } catch { setCalendarMessage('캘린더 저장 중 오류가 발생했습니다.'); }
     finally { setCalendarSaving(false); }
@@ -110,18 +178,18 @@ export default function StudentClassScheduleAdmin() {
         <p style={{ color: '#64748b', lineHeight: 1.6 }}>로그인 메인 캘린더와 별도로 저장되며, 학생 반별 페이지에 표시됩니다.</p>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: '14px', marginBottom: '18px' }}>
           <Field label="기준 월"><input type="month" value={calendar.yearMonth} onChange={(e) => setYearMonth(e.target.value)} style={inputStyle} /></Field>
-          <Field label="월수반 날짜"><input value={calendar.monWedDates.join(', ')} onChange={(e) => setCalendar((c) => ({ ...c, monWedDates: parseDays(e.target.value) }))} placeholder="1, 3, 8, 10" style={inputStyle} /></Field>
-          <Field label="화목반 날짜"><input value={calendar.tueThuDates.join(', ')} onChange={(e) => setCalendar((c) => ({ ...c, tueThuDates: parseDays(e.target.value) }))} placeholder="2, 4, 9, 11" style={inputStyle} /></Field>
-          <Field label="600반 추가수업 날짜"><input value={calendar.sixHundredOnlyDates.join(', ')} onChange={(e) => setCalendar((c) => ({ ...c, sixHundredOnlyDates: parseDays(e.target.value) }))} style={inputStyle} /></Field>
-          <Field label="토익시험일"><input value={calendar.toeicTestDates.join(', ')} onChange={(e) => setCalendar((c) => ({ ...c, toeicTestDates: parseDays(e.target.value) }))} style={inputStyle} /></Field>
-          <Field label="월간데니 날짜"><input value={calendar.monthlyDennyDates.join(', ')} onChange={(e) => setCalendar((c) => ({ ...c, monthlyDennyDates: parseDays(e.target.value) }))} style={inputStyle} /></Field>
-          <Field label="D-1특강 (한 줄에 날짜: 문구)"><textarea value={calendar.d1SpecialDates.map((v) => `${v.day}: ${v.label}`).join('\n')} onChange={(e) => setCalendar((c) => ({ ...c, d1SpecialDates: parseSpecial(e.target.value, 'D-1특강') }))} style={{ ...inputStyle, minHeight: '90px', resize: 'vertical' }} /></Field>
-          <Field label="기타 특별일정 (한 줄에 날짜: 문구)"><textarea value={calendar.specialDates.map((v) => `${v.day}: ${v.label}`).join('\n')} onChange={(e) => setCalendar((c) => ({ ...c, specialDates: parseSpecial(e.target.value, '특별일정') }))} style={{ ...inputStyle, minHeight: '90px', resize: 'vertical' }} /></Field>
+          <Field label="월수반 날짜"><input value={calendarDraft.monWedText} onChange={(e) => setCalendarDraft((draft) => ({ ...draft, monWedText: e.target.value }))} placeholder="1, 3, 8, 10" style={inputStyle} /></Field>
+          <Field label="화목반 날짜"><input value={calendarDraft.tueThuText} onChange={(e) => setCalendarDraft((draft) => ({ ...draft, tueThuText: e.target.value }))} placeholder="2, 4, 9, 11" style={inputStyle} /></Field>
+          <Field label="600반 추가수업 날짜"><input value={calendarDraft.sixHundredOnlyText} onChange={(e) => setCalendarDraft((draft) => ({ ...draft, sixHundredOnlyText: e.target.value }))} style={inputStyle} /></Field>
+          <Field label="토익시험일"><input value={calendarDraft.toeicText} onChange={(e) => setCalendarDraft((draft) => ({ ...draft, toeicText: e.target.value }))} style={inputStyle} /></Field>
+          <Field label="월간데니 날짜"><input value={calendarDraft.monthlyDennyText} onChange={(e) => setCalendarDraft((draft) => ({ ...draft, monthlyDennyText: e.target.value }))} style={inputStyle} /></Field>
+          <Field label="D-1특강 (한 줄에 날짜: 문구)"><textarea value={calendarDraft.d1Text} onChange={(e) => setCalendarDraft((draft) => ({ ...draft, d1Text: e.target.value }))} style={{ ...inputStyle, minHeight: '90px', resize: 'vertical' }} /></Field>
+          <Field label="기타 특별일정 (한 줄에 날짜: 문구)"><textarea value={calendarDraft.specialText} onChange={(e) => setCalendarDraft((draft) => ({ ...draft, specialText: e.target.value }))} style={{ ...inputStyle, minHeight: '90px', resize: 'vertical' }} /></Field>
         </div>
         <Field label="캘린더 메모"><textarea value={calendar.memo} onChange={(e) => setCalendar((c) => ({ ...c, memo: e.target.value }))} style={{ ...inputStyle, minHeight: '90px', resize: 'vertical' }} /></Field>
         <div style={{ margin: '18px 0' }}><button disabled={calendarSaving} style={{ padding: '12px 18px', border: 0, borderRadius: '10px', backgroundColor: '#111827', color: 'white', fontWeight: 700 }}>{calendarSaving ? '저장 중...' : '반별 캘린더 저장'}</button></div>
         {calendarMessage ? <p style={{ color: calendarMessage.includes('저장되었습니다') ? '#0f766e' : '#b91c1c', fontWeight: 700 }}>{calendarMessage}</p> : null}
-        {calendar.yearMonth ? <StudentClassCalendar item={calendar} isMobile={isMobile} /> : null}
+        {calendarPreview.yearMonth ? <StudentClassCalendar item={calendarPreview} isMobile={isMobile} /> : null}
       </form>
 
       <form onSubmit={saveTimetable} style={cardStyle}>
