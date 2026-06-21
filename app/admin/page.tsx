@@ -31,9 +31,9 @@ const PRIMARY_ITEMS: MenuItem[] = [
     href: '/admin/monthly-timetable',
   },
   {
-    title: 'Danny Voca 관리',
-    description: 'Word 단어시험지를 업로드해 단어암기 카드 시제품으로 변환합니다.',
-    href: '/admin/danny-voca',
+    title: '🏋️ 오늘홈트 관리',
+    description: '600반 암기장 원문을 붙여넣어 A/B별 복습 훈련 카드를 만듭니다.',
+    href: '/admin/today-homework',
     badge: '신규',
   },
 ];

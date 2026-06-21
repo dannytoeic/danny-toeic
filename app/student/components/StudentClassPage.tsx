@@ -743,13 +743,17 @@ export default function StudentClassPage({
           <p style={descriptionStyle}>{description}</p>
 
           <a
-            href="/student/danny-voca"
+            href={
+              classKey.startsWith('600-')
+                ? `/student/today-homework?classKey=${encodeURIComponent(classKey)}`
+                : '/student/danny-voca'
+            }
             style={{
               ...vocaButtonStyle,
               marginTop: isMobile ? '18px' : '24px',
             }}
           >
-            Danny Voca 단어암기
+            {classKey.startsWith('600-') ? '🏋️ 오늘홈트' : 'Danny Voca 단어암기'}
           </a>
 
           {promotionArea ? (
