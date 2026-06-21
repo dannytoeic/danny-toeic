@@ -17,9 +17,10 @@ const CARD_TYPE_LABELS: Record<TodayHomeworkCardType, string> = {
   preposition: '전치사 암기형',
   meaning: '의미 암기형',
   'part-of-speech': '품사 판별형',
-  method: '풀이방법형',
+  rule: '규칙 암기형',
+  'method-order': '풀이순서형',
   condition: '조건 판단형',
-  general: '일반형',
+  general: '일반 암기형',
 };
 
 const fieldStyle: React.CSSProperties = {
@@ -83,7 +84,7 @@ export default function TodayHomeworkAdminPage() {
   function generateCards() {
     const cards = parseTodayHomeworkText(draft.rawText);
     setDraft((current) => ({ ...current, cards }));
-    setMessage(cards.length ? `${cards.length}개의 카드를 생성했습니다. 내용을 확인하고 저장해 주세요.` : '자동 감지된 카드가 없습니다. 원문의 줄바꿈과 형식을 확인해 주세요.');
+    setMessage(cards.length ? `${cards.length}개의 카드 후보를 만들었습니다. 수정·삭제 후 저장해야 학생에게 보입니다.` : '감지된 카드 후보가 없습니다. 원문의 줄바꿈과 형식을 확인해 주세요.');
   }
 
   async function saveSet() {
@@ -121,8 +122,8 @@ export default function TodayHomeworkAdminPage() {
           <label><strong>docx 내용 붙여넣기</strong><textarea value={draft.rawText} onChange={(event) => setDraft((current) => ({ ...current, rawText: event.target.value }))} placeholder="Word 문서의 내용을 그대로 복사해서 붙여넣으세요." style={{ ...fieldStyle, marginTop: '7px', minHeight: '300px', resize: 'vertical', lineHeight: 1.7, whiteSpace: 'pre-wrap' }} /></label>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}><input type="checkbox" checked={draft.isActive} onChange={(event) => setDraft((current) => ({ ...current, isActive: event.target.checked }))} />학생에게 표시</label>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <button type="button" onClick={generateCards} style={buttonStyle}>자동 카드 생성</button>
-            <button type="button" onClick={saveSet} disabled={isSaving || draft.cards.length === 0} style={{ ...buttonStyle, backgroundColor: '#0f766e', opacity: isSaving || draft.cards.length === 0 ? 0.5 : 1 }}>{isSaving ? '저장 중...' : '저장'}</button>
+            <button type="button" onClick={generateCards} style={buttonStyle}>카드 후보 생성</button>
+            <button type="button" onClick={saveSet} disabled={isSaving || draft.cards.length === 0} style={{ ...buttonStyle, backgroundColor: '#0f766e', opacity: isSaving || draft.cards.length === 0 ? 0.5 : 1 }}>{isSaving ? '저장 중...' : '검수 완료 후 저장'}</button>
             {selectedSavedSet ? <button type="button" onClick={deleteSet} style={{ ...buttonStyle, backgroundColor: '#be123c' }}>삭제</button> : null}
           </div>
           {message ? <div style={{ color: message.includes('실패') || message.includes('없습니다') ? '#b91c1c' : '#0f766e', fontWeight: 700 }}>{message}</div> : null}
@@ -130,7 +131,8 @@ export default function TodayHomeworkAdminPage() {
 
         {draft.cards.length ? (
           <section style={{ display: 'grid', gap: '14px' }}>
-            <h2 style={{ margin: 0 }}>생성 카드 미리보기 · {draft.cards.length}문제</h2>
+            <div style={{ padding: '14px 16px', borderRadius: '12px', backgroundColor: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', fontWeight: 800 }}>아래 내용은 카드 후보입니다. 저장 버튼을 누르기 전에는 학생에게 노출되지 않습니다.</div>
+            <h2 style={{ margin: 0 }}>카드 후보 검수 · {draft.cards.length}문제</h2>
             {draft.cards.map((card, index) => (
               <article key={card.id} style={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '18px', display: 'grid', gap: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}><strong>문제 {index + 1}</strong><button type="button" onClick={() => setDraft((current) => ({ ...current, cards: current.cards.filter((item) => item.id !== card.id) }))} style={{ border: 0, background: '#fff1f2', color: '#be123c', borderRadius: '8px', padding: '7px 10px', fontWeight: 700 }}>삭제</button></div>
@@ -148,4 +150,3 @@ export default function TodayHomeworkAdminPage() {
     </AdminShell>
   );
 }
-

@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 const SET_KEY_PREFIX = 'today_homework_set_';
 const PROGRESS_KEY_PREFIX = 'today_homework_progress_';
 const CARD_TYPES = new Set<TodayHomeworkCardType>([
-  'preposition', 'meaning', 'part-of-speech', 'method', 'condition', 'general',
+  'preposition', 'meaning', 'part-of-speech', 'rule', 'method-order', 'condition', 'general',
 ]);
 
 function safePart(value: unknown) {
@@ -25,7 +25,8 @@ function normalizeCards(value: unknown): TodayHomeworkCard[] {
   if (!Array.isArray(value)) return [];
   return value.map((item, index) => {
     const row = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
-    const requestedType = String(row.type ?? 'general') as TodayHomeworkCardType;
+    const storedType = String(row.type ?? 'general');
+    const requestedType = (storedType === 'method' ? 'method-order' : storedType) as TodayHomeworkCardType;
     return {
       id: String(row.id ?? `today-homework-card-${index + 1}`),
       type: CARD_TYPES.has(requestedType) ? requestedType : 'general',

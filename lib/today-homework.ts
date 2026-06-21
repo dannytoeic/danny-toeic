@@ -4,7 +4,8 @@ export type TodayHomeworkCardType =
   | 'preposition'
   | 'meaning'
   | 'part-of-speech'
-  | 'method'
+  | 'rule'
+  | 'method-order'
   | 'condition'
   | 'general';
 
@@ -75,14 +76,14 @@ export function parseTodayHomeworkText(rawText: string): TodayHomeworkCard[] {
   const lines = rawText
     .replace(/\r/g, '')
     .split('\n')
-    .map((line) => line.trim().replace(/^(?:[•·▪◦]|\d+[.)])\s*/, ''));
+    .map((line) => line.trim().replace(/^(?:[•·▪◦*]|\d+[.)])\s*/, ''));
   const cards: TodayHomeworkCard[] = [];
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
     if (!line) continue;
 
-    if (/풀이.*순서|아래 순서로 풀이/.test(line)) {
+    if (/풀이.*순서|아래 순서로 풀이|풀이방법/.test(line)) {
       const steps: string[] = [];
       for (let next = index + 1; next < lines.length; next += 1) {
         const step = lines[next].replace(/^[-•·\d.)\s]+/, '').trim();
@@ -96,7 +97,8 @@ export function parseTodayHomeworkText(rawText: string): TodayHomeworkCard[] {
         if (steps.length >= 6) break;
       }
       if (steps.length) {
-        cards.push(makeCard(cards.length, 'method', '동사자리라면 풀이 순서는?', '', steps.map((step, stepIndex) => `${stepIndex + 1}. ${step}`).join('\n')));
+        const topic = line.replace(/(?:은|는)?\s*(?:아래 순서로 )?풀이.*$/, '').trim() || '문제';
+        cards.push(makeCard(cards.length, 'method-order', `${topic} 풀이 순서는?`, '', steps.map((step, stepIndex) => `${stepIndex + 1}. ${step}`).join('\n')));
         continue;
       }
     }
@@ -105,6 +107,37 @@ export function parseTodayHomeworkText(rawText: string): TodayHomeworkCard[] {
     if (conditionMatch) {
       const hasObject = conditionMatch[1].startsWith('있');
       cards.push(makeCard(cards.length, 'condition', `빈칸이 동사자리가 아니다. 빈칸 뒤에 목적어가 ${hasObject ? '있다' : '없다'}.`, '정답 형태는?', conditionMatch[2]));
+      continue;
+    }
+
+    const havePpRule = line.match(/^(have\s+pp)\s+.*?사이.*?\(?\s*(명사|형용사|부사|동사)\s*\)?\s*자리/i);
+    if (havePpRule) {
+      cards.push(makeCard(cards.length, 'rule', havePpRule[1], 'have pp 사이에는 어떤 품사가 오는가?', havePpRule[2]));
+      continue;
+    }
+
+    const commaRule = line.match(/문장\s*앞\s*콤마.*?그\s*앞.*?\(?\s*(명사|형용사|부사|동사)\s*\)?\s*자리/);
+    if (commaRule) {
+      cards.push(makeCard(cards.length, 'rule', '문장 앞에 콤마가 있다.', '콤마 앞에는 어떤 품사가 오는가?', commaRule[1]));
+      continue;
+    }
+
+    const haveBlankRule = line.match(/^(have\s+[-_]+\s+to\s+V)\s*:\s*(.*?)\s*\(([^)]+)\)\s*$/i);
+    if (haveBlankRule) {
+      cards.push(makeCard(cards.length, 'rule', haveBlankRule[1], haveBlankRule[2] || '빈칸에 들어갈 단어는?', haveBlankRule[3]));
+      continue;
+    }
+
+    const answerCondition = line.match(/^(.+?(?:있으면|있다면))\s*정답은\s*:\s*\(([^)]+)\)\s*$/);
+    if (answerCondition) {
+      cards.push(makeCard(cards.length, 'condition', answerCondition[1], '정답은?', answerCondition[2]));
+      continue;
+    }
+
+    const explicitMeaning = line.match(/^(.+?)\s*의\s*의미는\s*:\s*\(?(.+?)\)?\s*$/);
+    if (explicitMeaning) {
+      const expression = explicitMeaning[1].replace(/[()]/g, '').replace(/\s+/g, ' ').trim();
+      cards.push(makeCard(cards.length, 'meaning', expression, '의미는?', explicitMeaning[2]));
       continue;
     }
 
@@ -125,6 +158,18 @@ export function parseTodayHomeworkText(rawText: string): TodayHomeworkCard[] {
           ? makeCard(cards.length, 'preposition', word, '전치사는?', preposition, meaning)
           : makeCard(cards.length, 'meaning', `${word} ${preposition}`, '의미는?', meaning)
       );
+      continue;
+    }
+
+    const sentenceBlank = line.match(/^(.+?)\((still|yet)\)(.+)$/i);
+    if (sentenceBlank) {
+      cards.push(makeCard(cards.length, 'rule', `${sentenceBlank[1]}_____ ${sentenceBlank[3]}`.replace(/\s+/g, ' ').trim(), '빈칸에 들어갈 단어는?', sentenceBlank[2].toLowerCase()));
+      continue;
+    }
+
+    const memorizedRule = line.match(/^(.+?)(?:은|는)\s*\(\s*([^)]+)\s*\)\s*$/);
+    if (memorizedRule) {
+      cards.push(makeCard(cards.length, 'rule', memorizedRule[1], '정답은?', memorizedRule[2]));
       continue;
     }
 
