@@ -119,7 +119,12 @@ export async function POST(request: Request) {
       if (!['A', 'B'].includes(track) || !Number.isInteger(dayNumber)) {
         return NextResponse.json({ success: false, message: '삭제할 세트를 확인해 주세요.' }, { status: 400 });
       }
-      const { error } = await supabaseAdmin.from('site_notices').delete().eq('notice_key', `${SET_KEY_PREFIX}${track}_day${dayNumber}`);
+      const { error } = await supabaseAdmin.from('site_notices').upsert({
+        notice_key: `${SET_KEY_PREFIX}${track}_day${dayNumber}`,
+        title: '',
+        content_text: JSON.stringify({ deleted: true }),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'notice_key' });
       if (error) throw error;
       return NextResponse.json({ success: true });
     }
