@@ -575,10 +575,10 @@ export default function HomePage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <span
                 style={{
-                  width: isMobile ? '9px' : '14px',
-                  height: isMobile ? '9px' : '14px',
+                  width: isMobile ? '30px' : '44px',
+                  height: isMobile ? '30px' : '44px',
                   borderRadius: '999px',
-                  backgroundColor: sixHundredOnlyFill,
+                  border: `3px solid ${sixHundredOnlyFill}`,
                   display: 'inline-block',
                 }}
               />
@@ -657,7 +657,7 @@ export default function HomePage() {
             >
               <div>600반: 18일 수업 (월수 9일 / 화목 9일)</div>
               <div>800반: 16일 수업 (월수 8일 / 화목 8일)</div>
-              <div>600반 추가수업: 별도 색깔 표시</div>
+              <div>600반 추가수업: 테두리 원으로 표시</div>
             </div>
           </>
         ) : null}
