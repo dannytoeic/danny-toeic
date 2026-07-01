@@ -38,7 +38,7 @@ function normalizeClassKeysByMonth(value: unknown): Record<string, string[]> {
         ? classKeys.map((item) => String(item).trim()).filter(Boolean)
         : [];
 
-      if (yearMonth && keys.length > 0) {
+      if (yearMonth && Array.isArray(classKeys)) {
         acc[yearMonth] = Array.from(new Set(keys));
       }
 
@@ -50,10 +50,12 @@ function normalizeClassKeysByMonth(value: unknown): Record<string, string[]> {
 
 function resolveOperatingClassKeys(row: StudentAccountRow) {
   const classKeysByMonth = normalizeClassKeysByMonth(row.class_keys_by_month);
-  const monthlyClassKeys = classKeysByMonth[OPERATING_YEAR_MONTH] ?? [];
 
-  if (monthlyClassKeys.length > 0) {
-    return { classKeys: monthlyClassKeys, classKeysByMonth };
+  if (Object.prototype.hasOwnProperty.call(classKeysByMonth, OPERATING_YEAR_MONTH)) {
+    return {
+      classKeys: classKeysByMonth[OPERATING_YEAR_MONTH] ?? [],
+      classKeysByMonth,
+    };
   }
 
   const legacyClassKeys = normalizeClassKeys(row);

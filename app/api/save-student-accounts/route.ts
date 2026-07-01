@@ -73,7 +73,7 @@ function normalizeClassKeysByMonth(value: unknown): Record<string, string[]> {
         ? classKeys.map((item) => String(item).trim()).filter(Boolean)
         : [];
 
-      if (yearMonth && keys.length > 0) {
+      if (yearMonth && Array.isArray(classKeys)) {
         acc[yearMonth] = Array.from(new Set(keys));
       }
 

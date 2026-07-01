@@ -4,7 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminShell from '../AdminShell';
 import { getLoggedInAdmin } from '../adminGuard';
-import { MONTH_LABELS, OPERATING_YEAR_MONTH } from '../../../lib/operating-month';
+import {
+  MONTH_LABELS,
+  OPERATING_YEAR_MONTH,
+  SUPPORTED_CLASS_UPDATE_MONTHS,
+} from '../../../lib/operating-month';
 
 type StudentAccountItem = {
   studentId: string;
@@ -51,12 +55,15 @@ function normalizeClassKeys(item: StudentAccountItem): string[] {
 }
 
 function getClassKeysForMonth(item: StudentAccountItem, yearMonth: string): string[] {
-  const monthlyKeys = item.classKeysByMonth?.[yearMonth];
-  if (Array.isArray(monthlyKeys)) {
-    return monthlyKeys.filter(Boolean);
+  if (
+    item.classKeysByMonth &&
+    Object.prototype.hasOwnProperty.call(item.classKeysByMonth, yearMonth)
+  ) {
+    const monthlyKeys = item.classKeysByMonth[yearMonth];
+    return Array.isArray(monthlyKeys) ? monthlyKeys.filter(Boolean) : [];
   }
 
-  if (item.monthKey === yearMonth) {
+  if (!item.classKeysByMonth && item.monthKey === yearMonth) {
     return normalizeClassKeys(item);
   }
 
@@ -168,7 +175,10 @@ export default function StudentAccountsAdminPage() {
       const classKeys = getClassKeysForMonth(item, accessYearMonth);
       const matchesClass = !classFilter || classKeys.includes(classFilter);
 
-      const matchesMonth = !monthFilter || item.monthKey === monthFilter;
+      const matchesMonth =
+        !monthFilter ||
+        item.monthKey === monthFilter ||
+        Object.prototype.hasOwnProperty.call(item.classKeysByMonth ?? {}, monthFilter);
 
       const matchesStatus =
         statusFilter === 'all'
@@ -241,14 +251,17 @@ export default function StudentAccountsAdminPage() {
 
     try {
       const normalized = items.map((item, index) => {
-        const classKeysByMonth = item.classKeysByMonth ?? {};
-        const operatingClassKeys = getClassKeysForMonth(item, OPERATING_YEAR_MONTH);
-        const classKeys =
-          operatingClassKeys.length > 0 ? operatingClassKeys : normalizeClassKeys(item);
-        const monthKey =
-          operatingClassKeys.length > 0
-            ? OPERATING_YEAR_MONTH
-            : item.monthKey?.trim() || '';
+        const classKeysByMonth = { ...(item.classKeysByMonth ?? {}) };
+        if (!Object.prototype.hasOwnProperty.call(classKeysByMonth, accessYearMonth)) {
+          classKeysByMonth[accessYearMonth] = getClassKeysForMonth(item, accessYearMonth);
+        }
+        const operatingClassKeys = getClassKeysForMonth(
+          { ...item, classKeysByMonth },
+          OPERATING_YEAR_MONTH
+        );
+        const legacyClassKeys = normalizeClassKeys(item);
+        const classKeys = operatingClassKeys.length > 0 ? operatingClassKeys : legacyClassKeys;
+        const monthKey = item.monthKey?.trim() || OPERATING_YEAR_MONTH;
 
         return {
           ...item,
@@ -294,6 +307,7 @@ export default function StudentAccountsAdminPage() {
   const months = Array.from(
     new Set([
       OPERATING_YEAR_MONTH,
+      ...SUPPORTED_CLASS_UPDATE_MONTHS,
       ...items.map((item) => item.monthKey).filter(Boolean),
       ...items.flatMap((item) => Object.keys(item.classKeysByMonth ?? {})),
     ])
