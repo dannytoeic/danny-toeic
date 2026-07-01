@@ -444,17 +444,7 @@ export default function StudentClassPage({
 
   const pageData = updates[classKey];
   const cards = useMemo<StudentApiCard[]>(() => {
-    const raw = pageData?.cards ?? [];
-    return [...raw].sort((a, b) => {
-      const pinA = a.isPinned ? 1 : 0;
-      const pinB = b.isPinned ? 1 : 0;
-
-      if (pinA !== pinB) return pinB - pinA;
-
-      const aTime = new Date(a.createdAt).getTime();
-      const bTime = new Date(b.createdAt).getTime();
-      return bTime - aTime;
-    });
+    return pageData?.cards ?? [];
   }, [pageData]);
 
   const pageStyle: React.CSSProperties = {

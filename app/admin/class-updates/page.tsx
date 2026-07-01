@@ -119,7 +119,7 @@ function createExtra(type: ExtraItem['type'] = 'text'): ExtraItem {
   };
 }
 
-function createEmptyCard(mode: '600' | '800'): ClassCard {
+function createEmptyCard(mode: '600' | '800', dayLabel = ''): ClassCard {
   const baseVideos =
     mode === '600' ? [createVideo('rc'), createVideo('lc')] : [createVideo('main')];
 
@@ -127,7 +127,7 @@ function createEmptyCard(mode: '600' | '800'): ClassCard {
     id: makeId('card'),
     createdAt: new Date().toISOString(),
     isPinned: false,
-    dayLabel: '',
+    dayLabel,
     dateLabel: '',
     noticeText: '',
     videos: baseVideos,
@@ -316,10 +316,14 @@ function normalizeMonthData(raw: unknown): MonthlyClassUpdateMap {
   return result;
 }
 
-function sortCards(cards: ClassCard[]) {
-  const pinned = cards.filter((card) => card.isPinned);
-  const normal = cards.filter((card) => !card.isPinned);
-  return [...pinned, ...normal];
+function getNextDayLabel(cards: ClassCard[]) {
+  const maxDay = cards.reduce((max, card) => {
+    const match = String(card.dayLabel ?? '').match(/day\s*(\d+)/i);
+    const day = match ? Number(match[1]) : 0;
+    return Number.isFinite(day) && day > max ? day : max;
+  }, 0);
+
+  return `Day ${maxDay + 1}`;
 }
 
 export default function ClassUpdatesAdminPage() {
@@ -453,7 +457,7 @@ export default function ClassUpdatesAdminPage() {
 
   const selectedMeta = CLASS_OPTIONS.find((item) => item.key === selectedClassKey)!;
   const selectedItem = dataMap[selectedClassKey];
-  const sortedCards = useMemo(() => sortCards(selectedItem.cards), [selectedItem.cards]);
+  const sortedCards = selectedItem.cards;
 
   const currentSnapshot = useMemo(() => JSON.stringify(dataMap), [dataMap]);
   const isDirty = !isLoading && savedSnapshot !== '' && currentSnapshot !== savedSnapshot;
@@ -546,8 +550,8 @@ export default function ClassUpdatesAdminPage() {
   }
 
   function addCard() {
-    const newCard = createEmptyCard(selectedMeta.mode);
-    replaceCards([newCard, ...selectedItem.cards]);
+    const newCard = createEmptyCard(selectedMeta.mode, getNextDayLabel(selectedItem.cards));
+    replaceCards([...selectedItem.cards, newCard]);
     setCollapsedCardIds((prev) => prev.filter((id) => id !== newCard.id));
     setMessage('');
   }
