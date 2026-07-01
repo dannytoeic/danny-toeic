@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { OPERATING_YEAR_MONTH } from '../../../lib/operating-month';
+import {
+  fetchStudentMonthPermissions,
+  getPermissionMapForOwner,
+  isMissingClassKeysByMonthColumnError,
+  normalizeClassKeysByMonth,
+  upsertStudentMonthPermissions,
+} from '../../../lib/student-month-permissions';
 
 type StudentAccountItem = {
   studentId: string;
@@ -63,37 +70,30 @@ function normalizeClassKeys(item: {
   return [];
 }
 
-function normalizeClassKeysByMonth(value: unknown): Record<string, string[]> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-
-  return Object.entries(value as Record<string, unknown>).reduce<Record<string, string[]>>(
-    (acc, [month, classKeys]) => {
-      const yearMonth = String(month ?? '').trim();
-      const keys = Array.isArray(classKeys)
-        ? classKeys.map((item) => String(item).trim()).filter(Boolean)
-        : [];
-
-      if (yearMonth && Array.isArray(classKeys)) {
-        acc[yearMonth] = Array.from(new Set(keys));
-      }
-
-      return acc;
-    },
-    {}
-  );
-}
-
-function mapRowToItem(row: StudentAccountRow): StudentAccountItem {
+function mapRowToItem(
+  row: StudentAccountRow,
+  permissionRows: Awaited<ReturnType<typeof fetchStudentMonthPermissions>>
+): StudentAccountItem {
   const classKeys = normalizeClassKeys({
     classKey: row.class_key,
     classKeys: row.class_keys,
   });
-  const classKeysByMonth = normalizeClassKeysByMonth(row.class_keys_by_month);
+  const columnClassKeysByMonth = normalizeClassKeysByMonth(row.class_keys_by_month);
+  const tableClassKeysByMonth = getPermissionMapForOwner(
+    { studentId: row.student_id, username: row.username },
+    permissionRows
+  );
   const legacyMonthKey = row.month_key || '';
+  const legacyClassKeysByMonth =
+    legacyMonthKey && legacyMonthKey !== OPERATING_YEAR_MONTH && classKeys.length > 0
+      ? { [legacyMonthKey]: classKeys }
+      : {};
   const effectiveClassKeysByMonth =
-    Object.keys(classKeysByMonth).length > 0 || !legacyMonthKey || classKeys.length === 0
-      ? classKeysByMonth
-      : { [legacyMonthKey]: classKeys };
+    Object.keys(tableClassKeysByMonth).length > 0
+      ? { ...columnClassKeysByMonth, ...tableClassKeysByMonth }
+      : Object.keys(columnClassKeysByMonth).length > 0
+      ? columnClassKeysByMonth
+      : legacyClassKeysByMonth;
 
   return {
     studentId: row.student_id || '',
@@ -114,6 +114,11 @@ function mapRowToItem(row: StudentAccountRow): StudentAccountItem {
 
 export async function GET() {
   try {
+    const permissionRows = await fetchStudentMonthPermissions();
+    if (permissionRows.error) {
+      console.error('student_month_permissions GET error:', permissionRows.error);
+    }
+
     let { data, error } = await supabaseAdmin
       .from('student_accounts')
       .select(
@@ -121,7 +126,7 @@ export async function GET() {
       )
       .order('created_at', { ascending: false });
 
-    if (error?.code === '42703' || String(error?.message ?? '').includes('class_keys_by_month')) {
+    if (isMissingClassKeysByMonthColumnError(error)) {
       const legacyResult = await supabaseAdmin
         .from('student_accounts')
         .select(
@@ -143,7 +148,7 @@ export async function GET() {
     }
 
     const items = Array.isArray(data)
-      ? (data as StudentAccountRow[]).map(mapRowToItem)
+      ? (data as StudentAccountRow[]).map((row) => mapRowToItem(row, permissionRows))
       : [];
 
     return NextResponse.json({
@@ -164,6 +169,12 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const items: StudentAccountItem[] = Array.isArray(body?.items) ? body.items : [];
+    const debugPayload = items.map((item) => ({
+      username: item.username ?? item.id,
+      studentId: item.studentId,
+      classKeysByMonth: normalizeClassKeysByMonth(item.classKeysByMonth),
+    }));
+    console.log('save-student-accounts monthly payload:', JSON.stringify(debugPayload));
 
     const normalized: NormalizedStudentAccountRow[] = items.reduce<
       NormalizedStudentAccountRow[]
@@ -175,7 +186,7 @@ export async function POST(request: NextRequest) {
       const classKeysByMonth = normalizeClassKeysByMonth(item.classKeysByMonth);
       if (classKeys.length > 0 && Object.keys(classKeysByMonth).length === 0) {
         const monthKey = String(item.monthKey ?? '').trim();
-        if (monthKey) {
+        if (monthKey && monthKey !== OPERATING_YEAR_MONTH) {
           classKeysByMonth[monthKey] = classKeys;
         }
       }
@@ -206,6 +217,49 @@ export async function POST(request: NextRequest) {
       return acc;
     }, []);
 
+    const monthlyStorageRequired = normalized.some(
+      (row) => Object.keys(row.class_keys_by_month).length > 0
+    );
+    const permissionStorageProbe = await fetchStudentMonthPermissions();
+    const columnProbe = await supabaseAdmin
+      .from('student_accounts')
+      .select('class_keys_by_month')
+      .limit(1);
+    const columnAvailableBeforeSave = !isMissingClassKeysByMonthColumnError(columnProbe.error);
+
+    if (permissionStorageProbe.error || (columnProbe.error && columnAvailableBeforeSave)) {
+      console.error('monthly permission storage probe error:', {
+        tableError: permissionStorageProbe.error,
+        columnError: columnProbe.error,
+      });
+
+      return NextResponse.json(
+        { success: false, message: 'Monthly student permissions storage could not be checked.' },
+        { status: 500 }
+      );
+    }
+
+    if (
+      monthlyStorageRequired &&
+      !permissionStorageProbe.available &&
+      !columnAvailableBeforeSave
+    ) {
+      console.error('monthly permission storage missing before save:', {
+        monthlyStorageRequired,
+        tableAvailable: permissionStorageProbe.available,
+        columnAvailable: columnAvailableBeforeSave,
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            'Monthly student permissions storage is missing. Run the Supabase migration first.',
+        },
+        { status: 500 }
+      );
+    }
+
     const { data: existingRows, error: existingError } = await supabaseAdmin
       .from('student_accounts')
       .select('username');
@@ -230,10 +284,9 @@ export async function POST(request: NextRequest) {
         .from('student_accounts')
         .upsert(normalized, { onConflict: 'username' });
 
-      if (
-        upsertError?.code === '42703' ||
-        String(upsertError?.message ?? '').includes('class_keys_by_month')
-      ) {
+      let columnAvailable = columnAvailableBeforeSave;
+      if (isMissingClassKeysByMonthColumnError(upsertError)) {
+        columnAvailable = false;
         const legacyRows = normalized.map(({ class_keys_by_month, ...row }) => row);
         const legacyResult = await supabaseAdmin
           .from('student_accounts')
@@ -247,6 +300,44 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(
           { success: false, message: '학생 계정 저장에 실패했습니다.' },
+          { status: 500 }
+        );
+      }
+
+      const permissionWrite = await upsertStudentMonthPermissions(
+        normalized.map((row) => ({
+          studentId: row.student_id,
+          username: row.username,
+          classKeysByMonth: row.class_keys_by_month,
+        }))
+      );
+
+      console.log(
+        'save-student-accounts monthly write result:',
+        JSON.stringify({
+          tableAvailable: permissionWrite.available,
+          rowsWritten: permissionWrite.rowsWritten,
+          columnAvailable,
+          error: permissionWrite.error,
+        })
+      );
+
+      if (permissionWrite.error) {
+        console.error('student_month_permissions upsert error:', permissionWrite.error);
+
+        return NextResponse.json(
+          { success: false, message: 'Monthly student permissions could not be saved.' },
+          { status: 500 }
+        );
+      }
+
+      if (!permissionWrite.available && !columnAvailable) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              'Monthly student permissions storage is missing. Run the Supabase migration first.',
+          },
           { status: 500 }
         );
       }
@@ -279,7 +370,7 @@ export async function POST(request: NextRequest) {
       )
       .order('created_at', { ascending: false });
 
-    if (finalError?.code === '42703' || String(finalError?.message ?? '').includes('class_keys_by_month')) {
+    if (isMissingClassKeysByMonthColumnError(finalError)) {
       const legacyResult = await supabaseAdmin
         .from('student_accounts')
         .select(
@@ -300,8 +391,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const finalPermissionRows = await fetchStudentMonthPermissions();
+    if (finalPermissionRows.error) {
+      console.error('student_month_permissions final GET error:', finalPermissionRows.error);
+    }
+
     const finalItems = Array.isArray(finalRows)
-      ? (finalRows as StudentAccountRow[]).map(mapRowToItem)
+      ? (finalRows as StudentAccountRow[]).map((row) => mapRowToItem(row, finalPermissionRows))
       : [];
 
     return NextResponse.json({

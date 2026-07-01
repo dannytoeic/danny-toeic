@@ -13,6 +13,16 @@ alter table public.class_updates
 alter table public.student_accounts
   add column if not exists class_keys_by_month jsonb not null default '{}'::jsonb;
 
+create table if not exists public.student_month_permissions (
+  student_id text,
+  username text not null,
+  year_month text not null,
+  class_keys jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (username, year_month)
+);
+
 update public.student_accounts
 set class_keys_by_month = jsonb_build_object(month_key, to_jsonb(class_keys))
 where class_keys_by_month = '{}'::jsonb
@@ -20,6 +30,23 @@ where class_keys_by_month = '{}'::jsonb
   and btrim(month_key) <> ''
   and class_keys is not null
   and array_length(class_keys, 1) > 0;
+
+insert into public.student_month_permissions (student_id, username, year_month, class_keys)
+select
+  student_id,
+  username,
+  permissions.key,
+  permissions.value
+from public.student_accounts
+cross join lateral jsonb_each(class_keys_by_month) as permissions(key, value)
+where username is not null
+  and btrim(username) <> ''
+  and jsonb_typeof(permissions.value) = 'array'
+on conflict (username, year_month) do update
+set
+  student_id = excluded.student_id,
+  class_keys = excluded.class_keys,
+  updated_at = now();
 
 do $$
 declare
@@ -108,10 +135,13 @@ values
 on conflict (year_month, class_key) do nothing;
 
 alter table public.class_updates enable row level security;
+alter table public.student_month_permissions enable row level security;
 
 grant select on table public.class_updates to anon;
 grant select, insert, update, delete on table public.class_updates to authenticated;
 grant select, insert, update, delete on table public.class_updates to service_role;
+grant select, insert, update, delete on table public.student_month_permissions to authenticated;
+grant select, insert, update, delete on table public.student_month_permissions to service_role;
 
 do $$
 begin
@@ -149,6 +179,20 @@ begin
   ) then
     create policy class_updates_service_role_all
       on public.class_updates
+      for all
+      to service_role
+      using (true)
+      with check (true);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'student_month_permissions'
+      and policyname = 'student_month_permissions_service_role_all'
+  ) then
+    create policy student_month_permissions_service_role_all
+      on public.student_month_permissions
       for all
       to service_role
       using (true)

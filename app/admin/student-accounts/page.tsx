@@ -255,13 +255,8 @@ export default function StudentAccountsAdminPage() {
         if (!Object.prototype.hasOwnProperty.call(classKeysByMonth, accessYearMonth)) {
           classKeysByMonth[accessYearMonth] = getClassKeysForMonth(item, accessYearMonth);
         }
-        const operatingClassKeys = getClassKeysForMonth(
-          { ...item, classKeysByMonth },
-          OPERATING_YEAR_MONTH
-        );
-        const legacyClassKeys = normalizeClassKeys(item);
-        const classKeys = operatingClassKeys.length > 0 ? operatingClassKeys : legacyClassKeys;
         const monthKey = item.monthKey?.trim() || OPERATING_YEAR_MONTH;
+        const classKeys = getClassKeysForMonth({ ...item, classKeysByMonth }, monthKey);
 
         return {
           ...item,

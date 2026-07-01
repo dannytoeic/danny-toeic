@@ -86,18 +86,6 @@ function getStudentClassKeys(student: LoggedInStudent | null): string[] {
     return monthlyClassKeys.filter(Boolean);
   }
 
-  if (student.monthKey !== OPERATING_YEAR_MONTH) {
-    return [];
-  }
-
-  if (Array.isArray(student.classKeys) && student.classKeys.length > 0) {
-    return student.classKeys.filter(Boolean);
-  }
-
-  if (student.classKey) {
-    return [student.classKey];
-  }
-
   return [];
 }
 

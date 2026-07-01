@@ -117,11 +117,7 @@ function hasClassAccess(student: LoggedInStudent | null, classKey: string) {
   if (Array.isArray(monthlyClassKeys)) {
     return monthlyClassKeys.includes(classKey);
   }
-  if ((student.monthKey || student.month_key || '') !== OPERATING_YEAR_MONTH) return false;
-  if (student.classKey === classKey) return true;
-  if (Array.isArray(student.classKeys) && student.classKeys.includes(classKey)) {
-    return true;
-  }
+
   return false;
 }
 

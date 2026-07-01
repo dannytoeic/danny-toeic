@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { OPERATING_YEAR_MONTH } from '../../../lib/operating-month';
+import {
+  fetchStudentMonthPermissions,
+  getPermissionMapForOwner,
+  isMissingClassKeysByMonthColumnError,
+  normalizeClassKeysByMonth,
+} from '../../../lib/student-month-permissions';
 
 type StudentAccountRow = {
   student_id: string | null;
@@ -16,56 +22,22 @@ type StudentAccountRow = {
   is_active: boolean;
 };
 
-function normalizeClassKeys(row: StudentAccountRow): string[] {
-  if (Array.isArray(row.class_keys) && row.class_keys.length > 0) {
-    return row.class_keys.filter(Boolean);
-  }
-
-  if (row.class_key) {
-    return [row.class_key];
-  }
-
-  return [];
-}
-
-function normalizeClassKeysByMonth(value: unknown): Record<string, string[]> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-
-  return Object.entries(value as Record<string, unknown>).reduce<Record<string, string[]>>(
-    (acc, [month, classKeys]) => {
-      const yearMonth = String(month ?? '').trim();
-      const keys = Array.isArray(classKeys)
-        ? classKeys.map((item) => String(item).trim()).filter(Boolean)
-        : [];
-
-      if (yearMonth && Array.isArray(classKeys)) {
-        acc[yearMonth] = Array.from(new Set(keys));
-      }
-
-      return acc;
-    },
-    {}
-  );
-}
-
-function resolveOperatingClassKeys(row: StudentAccountRow) {
-  const classKeysByMonth = normalizeClassKeysByMonth(row.class_keys_by_month);
+function resolveOperatingClassKeys(
+  row: StudentAccountRow,
+  permissionRows: Awaited<ReturnType<typeof fetchStudentMonthPermissions>>
+) {
+  const classKeysByMonth = {
+    ...normalizeClassKeysByMonth(row.class_keys_by_month),
+    ...getPermissionMapForOwner(
+      { studentId: row.student_id, username: row.username },
+      permissionRows
+    ),
+  };
 
   if (Object.prototype.hasOwnProperty.call(classKeysByMonth, OPERATING_YEAR_MONTH)) {
     return {
       classKeys: classKeysByMonth[OPERATING_YEAR_MONTH] ?? [],
       classKeysByMonth,
-    };
-  }
-
-  const legacyClassKeys = normalizeClassKeys(row);
-  if (row.month_key === OPERATING_YEAR_MONTH && legacyClassKeys.length > 0) {
-    return {
-      classKeys: legacyClassKeys,
-      classKeysByMonth: {
-        ...classKeysByMonth,
-        [OPERATING_YEAR_MONTH]: legacyClassKeys,
-      },
     };
   }
 
@@ -94,7 +66,7 @@ export async function POST(request: NextRequest) {
       .eq('username', username)
       .maybeSingle();
 
-    if (error?.code === '42703' || String(error?.message ?? '').includes('class_keys_by_month')) {
+    if (isMissingClassKeysByMonthColumnError(error)) {
       const legacyResult = await supabaseAdmin
         .from('student_accounts')
         .select(
@@ -139,7 +111,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { classKeys, classKeysByMonth } = resolveOperatingClassKeys(row);
+    const permissionRows = await fetchStudentMonthPermissions();
+    if (permissionRows.error) {
+      console.error('student_month_permissions login error:', permissionRows.error);
+    }
+
+    const { classKeys, classKeysByMonth } = resolveOperatingClassKeys(row, permissionRows);
 
     return NextResponse.json({
       success: true,
