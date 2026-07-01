@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getLoggedInAdmin } from '../adminGuard';
 import AdminShell from '../AdminShell';
+import { OPERATING_YEAR_MONTH } from '../../../lib/operating-month';
 
 type SpecialDate = {
   day: number;
@@ -128,9 +129,9 @@ export default function MonthlyCalendarAdminPage() {
   const [message, setMessage] = useState('');
   const [isMobile, setIsMobile] = useState(false);
 
-  const [yearMonth, setYearMonth] = useState('2026-05');
+  const [yearMonth, setYearMonth] = useState(OPERATING_YEAR_MONTH);
   const [year, setYear] = useState(2026);
-  const [month, setMonth] = useState(5);
+  const [month, setMonth] = useState(7);
   const [monWedText, setMonWedText] = useState('6, 11, 13, 18, 20, 27');
   const [tueThuText, setTueThuText] = useState('7, 12, 14, 19, 21, 26, 28');
   const [sixHundredOnlyText, setSixHundredOnlyText] = useState('');
@@ -521,7 +522,7 @@ export default function MonthlyCalendarAdminPage() {
                 value={yearMonth}
                 onChange={(e) => setYearMonth(e.target.value)}
                 style={inputStyle}
-                placeholder="예: 2026-05"
+                placeholder="예: 2026-07"
               />
             </div>
 

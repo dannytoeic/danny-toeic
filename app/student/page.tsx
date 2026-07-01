@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { OPERATING_YEAR_MONTH } from '../../lib/operating-month';
 
 type LoggedInStudent = {
   id: string;
@@ -9,6 +10,7 @@ type LoggedInStudent = {
   username: string;
   classKey?: string;
   classKeys?: string[];
+  classKeysByMonth?: Record<string, string[]>;
   monthKey: string;
   expiresAt: string;
   isActive: boolean;
@@ -78,6 +80,15 @@ async function safeFetchJson(url: string) {
 
 function getStudentClassKeys(student: LoggedInStudent | null): string[] {
   if (!student) return [];
+
+  const monthlyClassKeys = student.classKeysByMonth?.[OPERATING_YEAR_MONTH];
+  if (Array.isArray(monthlyClassKeys)) {
+    return monthlyClassKeys.filter(Boolean);
+  }
+
+  if (student.monthKey !== OPERATING_YEAR_MONTH) {
+    return [];
+  }
 
   if (Array.isArray(student.classKeys) && student.classKeys.length > 0) {
     return student.classKeys.filter(Boolean);

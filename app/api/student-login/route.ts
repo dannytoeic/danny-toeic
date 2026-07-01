@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
+import { OPERATING_YEAR_MONTH } from '../../../lib/operating-month';
 
 type StudentAccountRow = {
   student_id: string | null;
@@ -9,6 +10,7 @@ type StudentAccountRow = {
   contact: string | null;
   class_key: string | null;
   class_keys: string[] | null;
+  class_keys_by_month?: Record<string, string[]> | null;
   month_key: string | null;
   expires_at: string | null;
   is_active: boolean;
@@ -26,6 +28,48 @@ function normalizeClassKeys(row: StudentAccountRow): string[] {
   return [];
 }
 
+function normalizeClassKeysByMonth(value: unknown): Record<string, string[]> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+
+  return Object.entries(value as Record<string, unknown>).reduce<Record<string, string[]>>(
+    (acc, [month, classKeys]) => {
+      const yearMonth = String(month ?? '').trim();
+      const keys = Array.isArray(classKeys)
+        ? classKeys.map((item) => String(item).trim()).filter(Boolean)
+        : [];
+
+      if (yearMonth && keys.length > 0) {
+        acc[yearMonth] = Array.from(new Set(keys));
+      }
+
+      return acc;
+    },
+    {}
+  );
+}
+
+function resolveOperatingClassKeys(row: StudentAccountRow) {
+  const classKeysByMonth = normalizeClassKeysByMonth(row.class_keys_by_month);
+  const monthlyClassKeys = classKeysByMonth[OPERATING_YEAR_MONTH] ?? [];
+
+  if (monthlyClassKeys.length > 0) {
+    return { classKeys: monthlyClassKeys, classKeysByMonth };
+  }
+
+  const legacyClassKeys = normalizeClassKeys(row);
+  if (row.month_key === OPERATING_YEAR_MONTH && legacyClassKeys.length > 0) {
+    return {
+      classKeys: legacyClassKeys,
+      classKeysByMonth: {
+        ...classKeysByMonth,
+        [OPERATING_YEAR_MONTH]: legacyClassKeys,
+      },
+    };
+  }
+
+  return { classKeys: [], classKeysByMonth };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -40,13 +84,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await supabaseAdmin
       .from('student_accounts')
       .select(
-        'student_id, username, password, name, contact, class_key, class_keys, month_key, expires_at, is_active'
+        'student_id, username, password, name, contact, class_key, class_keys, class_keys_by_month, month_key, expires_at, is_active'
       )
       .eq('username', username)
       .maybeSingle();
+
+    if (error?.code === '42703' || String(error?.message ?? '').includes('class_keys_by_month')) {
+      const legacyResult = await supabaseAdmin
+        .from('student_accounts')
+        .select(
+          'student_id, username, password, name, contact, class_key, class_keys, month_key, expires_at, is_active'
+        )
+        .eq('username', username)
+        .maybeSingle();
+
+      data = legacyResult.data as typeof data;
+      error = legacyResult.error;
+    }
 
     if (error) {
       console.error('student-login select error:', error);
@@ -80,7 +137,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const classKeys = normalizeClassKeys(row);
+    const { classKeys, classKeysByMonth } = resolveOperatingClassKeys(row);
 
     return NextResponse.json({
       success: true,
@@ -90,7 +147,8 @@ export async function POST(request: NextRequest) {
         username: row.username,
         classKey: row.class_key || classKeys[0] || '',
         classKeys,
-        monthKey: row.month_key || '',
+        classKeysByMonth,
+        monthKey: OPERATING_YEAR_MONTH,
         expiresAt: row.expires_at || '',
         isActive: row.is_active,
       },

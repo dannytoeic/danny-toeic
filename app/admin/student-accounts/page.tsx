@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminShell from '../AdminShell';
 import { getLoggedInAdmin } from '../adminGuard';
+import { MONTH_LABELS, OPERATING_YEAR_MONTH } from '../../../lib/operating-month';
 
 type StudentAccountItem = {
   studentId: string;
@@ -13,6 +14,7 @@ type StudentAccountItem = {
   password: string;
   classKey?: string;
   classKeys?: string[];
+  classKeysByMonth?: Record<string, string[]>;
   monthKey: string;
   expiresAt: string;
   isActive: boolean;
@@ -48,8 +50,21 @@ function normalizeClassKeys(item: StudentAccountItem): string[] {
   return [];
 }
 
-function getClassLabels(item: StudentAccountItem): string[] {
-  return normalizeClassKeys(item).map((key) => classLabelMap[key] ?? key);
+function getClassKeysForMonth(item: StudentAccountItem, yearMonth: string): string[] {
+  const monthlyKeys = item.classKeysByMonth?.[yearMonth];
+  if (Array.isArray(monthlyKeys)) {
+    return monthlyKeys.filter(Boolean);
+  }
+
+  if (item.monthKey === yearMonth) {
+    return normalizeClassKeys(item);
+  }
+
+  return [];
+}
+
+function getClassLabels(item: StudentAccountItem, yearMonth: string): string[] {
+  return getClassKeysForMonth(item, yearMonth).map((key) => classLabelMap[key] ?? key);
 }
 
 function createEmptyStudent(nextIndex: number): StudentAccountItem {
@@ -61,6 +76,7 @@ function createEmptyStudent(nextIndex: number): StudentAccountItem {
     password: '',
     classKey: '',
     classKeys: [],
+    classKeysByMonth: {},
     monthKey: '',
     expiresAt: '',
     isActive: true,
@@ -90,6 +106,7 @@ export default function StudentAccountsAdminPage() {
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
+  const [accessYearMonth, setAccessYearMonth] = useState(OPERATING_YEAR_MONTH);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   useEffect(() => {
@@ -138,7 +155,7 @@ export default function StudentAccountsAdminPage() {
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       const query = search.trim().toLowerCase();
-      const labels = getClassLabels(item);
+      const labels = getClassLabels(item, accessYearMonth);
 
       const matchesSearch =
         !query ||
@@ -148,7 +165,7 @@ export default function StudentAccountsAdminPage() {
         (item.monthKey || '').toLowerCase().includes(query) ||
         labels.some((label) => label.toLowerCase().includes(query));
 
-      const classKeys = normalizeClassKeys(item);
+      const classKeys = getClassKeysForMonth(item, accessYearMonth);
       const matchesClass = !classFilter || classKeys.includes(classFilter);
 
       const matchesMonth = !monthFilter || item.monthKey === monthFilter;
@@ -162,7 +179,7 @@ export default function StudentAccountsAdminPage() {
 
       return matchesSearch && matchesClass && matchesMonth && matchesStatus;
     });
-  }, [items, search, classFilter, monthFilter, statusFilter]);
+  }, [items, search, classFilter, monthFilter, statusFilter, accessYearMonth]);
 
   function updateItem(index: number, patch: Partial<StudentAccountItem>) {
     setItems((prev) =>
@@ -179,14 +196,19 @@ export default function StudentAccountsAdminPage() {
       prev.map((item, i) => {
         if (i !== index) return item;
 
-        const currentKeys = Array.isArray(item.classKeys) ? item.classKeys : [];
+        const currentKeys = getClassKeysForMonth(item, accessYearMonth);
         const nextKeys = checked
           ? Array.from(new Set([...currentKeys, classKey]))
           : currentKeys.filter((key) => key !== classKey);
+        const classKeysByMonth = {
+          ...(item.classKeysByMonth ?? {}),
+          [accessYearMonth]: nextKeys,
+        };
 
         return {
           ...item,
-          classKeys: nextKeys,
+          classKeysByMonth,
+          classKeys: accessYearMonth === item.monthKey ? nextKeys : item.classKeys ?? [],
         };
       })
     );
@@ -219,7 +241,14 @@ export default function StudentAccountsAdminPage() {
 
     try {
       const normalized = items.map((item, index) => {
-        const classKeys = normalizeClassKeys(item);
+        const classKeysByMonth = item.classKeysByMonth ?? {};
+        const operatingClassKeys = getClassKeysForMonth(item, OPERATING_YEAR_MONTH);
+        const classKeys =
+          operatingClassKeys.length > 0 ? operatingClassKeys : normalizeClassKeys(item);
+        const monthKey =
+          operatingClassKeys.length > 0
+            ? OPERATING_YEAR_MONTH
+            : item.monthKey?.trim() || '';
 
         return {
           ...item,
@@ -231,7 +260,8 @@ export default function StudentAccountsAdminPage() {
           password: item.password?.trim() || '',
           classKey: classKeys[0] || '',
           classKeys,
-          monthKey: item.monthKey?.trim() || '',
+          classKeysByMonth,
+          monthKey,
           expiresAt: item.expiresAt?.trim() || '',
           isActive: Boolean(item.isActive),
           createdAt: item.createdAt?.trim() || new Date().toISOString(),
@@ -262,8 +292,12 @@ export default function StudentAccountsAdminPage() {
   }
 
   const months = Array.from(
-    new Set(items.map((item) => item.monthKey).filter(Boolean))
-  ).sort();
+    new Set([
+      OPERATING_YEAR_MONTH,
+      ...items.map((item) => item.monthKey).filter(Boolean),
+      ...items.flatMap((item) => Object.keys(item.classKeysByMonth ?? {})),
+    ])
+  ).sort().reverse();
 
   const pageWrapStyle: React.CSSProperties = {
     maxWidth: '1240px',
@@ -430,6 +464,31 @@ export default function StudentAccountsAdminPage() {
 
           <div
             style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(180px, 260px) 1fr',
+              gap: '12px',
+              alignItems: 'center',
+              marginBottom: '14px',
+            }}
+          >
+            <select
+              value={accessYearMonth}
+              onChange={(e) => setAccessYearMonth(e.target.value)}
+              style={inputStyle}
+            >
+              {months.map((month) => (
+                <option key={month} value={month}>
+                  {MONTH_LABELS[month] ?? month}
+                </option>
+              ))}
+            </select>
+            <div style={helperStyle}>
+              선택한 월의 반 권한만 편집합니다. 2026년 7월 권한이 없는 기존 계정은 7월 반별 자료에 접근할 수 없습니다.
+            </div>
+          </div>
+
+          <div
+            style={{
               display: 'flex',
               justifyContent: 'space-between',
               gap: '12px',
@@ -478,12 +537,9 @@ export default function StudentAccountsAdminPage() {
         ) : (
           <div style={{ display: 'grid', gap: '16px' }}>
             {filteredItems.map((item, filteredIndex) => {
-              const realIndex = items.findIndex(
-                (source, sourceIndex) =>
-                  stableRowKey(source, sourceIndex) === stableRowKey(item, filteredIndex)
-              );
+              const realIndex = items.indexOf(item);
 
-              const classLabels = getClassLabels(item);
+              const classLabels = getClassLabels(item, accessYearMonth);
               const isExpired =
                 !!item.expiresAt &&
                 new Date(item.expiresAt).getTime() < new Date().setHours(0, 0, 0, 0);
@@ -635,9 +691,9 @@ export default function StudentAccountsAdminPage() {
                     </div>
 
                     <div style={{ gridColumn: '1 / -1' }}>
-                      <div style={labelStyle}>수강 반 권한</div>
+                      <div style={labelStyle}>{MONTH_LABELS[accessYearMonth] ?? accessYearMonth} 수강 반 권한</div>
                       <div style={{ ...helperStyle, marginBottom: '8px' }}>
-                        체크된 반의 게시판만 학생에게 노출됩니다. 체크가 없으면 기존 대표 반 1개로 접근합니다.
+                        체크된 반의 게시판만 해당 월 학생 페이지에 노출됩니다. 월별 권한은 서로 섞이지 않습니다.
                       </div>
                       <div
                         style={{
@@ -647,11 +703,7 @@ export default function StudentAccountsAdminPage() {
                         }}
                       >
                         {ACCESS_CLASS_OPTIONS.map((option) => {
-                          const explicitKeys = Array.isArray(item.classKeys)
-                            ? item.classKeys.filter(Boolean)
-                            : [];
-                          const accessKeys =
-                            explicitKeys.length > 0 ? explicitKeys : normalizeClassKeys(item);
+                          const accessKeys = getClassKeysForMonth(item, accessYearMonth);
 
                           return (
                             <label

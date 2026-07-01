@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { OPERATING_YEAR_MONTH } from '../../../lib/operating-month';
 import {
   StudentClassCalendar,
   StudentClassCalendarItem,
@@ -16,6 +17,7 @@ type LoggedInStudent = {
   username?: string;
   classKey?: string;
   classKeys?: string[];
+  classKeysByMonth?: Record<string, string[]>;
   monthKey?: string;
   month_key?: string;
   expiresAt?: string;
@@ -111,6 +113,11 @@ const emptyClassUpdates: ClassUpdatesMap = {
 
 function hasClassAccess(student: LoggedInStudent | null, classKey: string) {
   if (!student) return false;
+  const monthlyClassKeys = student.classKeysByMonth?.[OPERATING_YEAR_MONTH];
+  if (Array.isArray(monthlyClassKeys)) {
+    return monthlyClassKeys.includes(classKey);
+  }
+  if ((student.monthKey || student.month_key || '') !== OPERATING_YEAR_MONTH) return false;
   if (student.classKey === classKey) return true;
   if (Array.isArray(student.classKeys) && student.classKeys.includes(classKey)) {
     return true;

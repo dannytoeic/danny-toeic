@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
+import { OPERATING_YEAR_MONTH } from '../../../lib/operating-month';
 
 type ClassUpdateRow = {
   class_key: string;
@@ -10,7 +11,7 @@ type ClassUpdateRow = {
 
 type ClassKey = '600-monwed' | '600-tuthu' | '800-monwed' | '800-tuthu';
 
-const STUDENT_VISIBLE_YEAR_MONTH = '2026-06';
+const STUDENT_VISIBLE_YEAR_MONTH = OPERATING_YEAR_MONTH;
 
 type VideoItem = {
   id?: string;

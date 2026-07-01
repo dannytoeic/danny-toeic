@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminShell from '../AdminShell';
 import { getLoggedInAdmin } from '../adminGuard';
+import { MONTH_LABELS, OPERATING_YEAR_MONTH } from '../../../lib/operating-month';
 
 type ClassKey = '600-monwed' | '600-tuthu' | '800-monwed' | '800-tuthu';
 
@@ -64,8 +65,6 @@ type ClassUpdateItem = {
 type ClassUpdateMap = Record<ClassKey, ClassUpdateItem>;
 type MonthlyClassUpdateMap = Record<string, ClassUpdateMap>;
 
-const OPERATING_YEAR_MONTH = '2026-06';
-
 const CLASS_OPTIONS: Array<{ key: ClassKey; label: string; mode: '600' | '800' }> = [
   { key: '600-monwed', label: '600 월수반', mode: '600' },
   { key: '600-tuthu', label: '600 화목반', mode: '600' },
@@ -74,6 +73,7 @@ const CLASS_OPTIONS: Array<{ key: ClassKey; label: string; mode: '600' | '800' }
 ];
 
 const MONTH_OPTIONS = [
+  { key: '2026-07', label: '2026년 7월' },
   { key: '2026-06', label: '2026년 6월' },
   { key: '2026-05', label: '2026년 5월' },
 ];
@@ -960,7 +960,8 @@ export default function ClassUpdatesAdminPage() {
               >
                 {availableYearMonths.map((yearMonth) => (
                   <option key={yearMonth} value={yearMonth}>
-                    {MONTH_OPTIONS.find((option) => option.key === yearMonth)?.label ??
+                    {MONTH_LABELS[yearMonth] ??
+                      MONTH_OPTIONS.find((option) => option.key === yearMonth)?.label ??
                       yearMonth}
                   </option>
                 ))}

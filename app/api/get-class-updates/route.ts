@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
+import { OPERATING_YEAR_MONTH, SUPPORTED_CLASS_UPDATE_MONTHS, normalizeYearMonth } from '../../../lib/operating-month';
 
 type ClassKey = '600-monwed' | '600-tuthu' | '800-monwed' | '800-tuthu';
 
-const DEFAULT_YEAR_MONTH = '2026-06';
+const DEFAULT_YEAR_MONTH = OPERATING_YEAR_MONTH;
 
 type ClassUpdateResult = Record<
   ClassKey,
@@ -33,11 +34,6 @@ function isClassKey(value: string): value is ClassKey {
   );
 }
 
-function normalizeYearMonth(value: unknown) {
-  const yearMonth = String(value ?? '').trim();
-  return /^\d{4}-\d{2}$/.test(yearMonth) ? yearMonth : DEFAULT_YEAR_MONTH;
-}
-
 function isMissingYearMonthError(error: unknown) {
   const item = error as { code?: string; message?: string } | null;
   return item?.code === '42703' || String(item?.message ?? '').includes('year_month');
@@ -63,7 +59,7 @@ export async function GET(request: NextRequest) {
             success: true,
             yearMonth: requestedYearMonth,
             operatingYearMonth: DEFAULT_YEAR_MONTH,
-            months: [DEFAULT_YEAR_MONTH],
+            months: SUPPORTED_CLASS_UPDATE_MONTHS,
             monthItems: {
               [requestedYearMonth]: empty,
             },
@@ -120,7 +116,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const months = Object.keys(monthItems).sort().reverse();
+    const months = Array.from(
+      new Set([...SUPPORTED_CLASS_UPDATE_MONTHS, ...Object.keys(monthItems)])
+    ).sort().reverse();
     const selectedYearMonth = requestedYearMonth;
     const selectedItems =
       monthItems[selectedYearMonth] ??

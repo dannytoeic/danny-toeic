@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
+import { OPERATING_YEAR_MONTH, normalizeYearMonth } from '../../../lib/operating-month';
 
 type ClassKey = '600-monwed' | '600-tuthu' | '800-monwed' | '800-tuthu';
 
@@ -63,7 +64,7 @@ type ClassUpdateRow = {
   cards: unknown[] | null;
 };
 
-const DEFAULT_YEAR_MONTH = '2026-06';
+const DEFAULT_YEAR_MONTH = OPERATING_YEAR_MONTH;
 
 const classKeys: ClassKey[] = [
   '600-monwed',
@@ -82,11 +83,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isClassKey(value: unknown): value is ClassKey {
   return typeof value === 'string' && classKeys.includes(value as ClassKey);
-}
-
-function normalizeYearMonth(value: unknown) {
-  const yearMonth = String(value ?? '').trim();
-  return /^\d{4}-\d{2}$/.test(yearMonth) ? yearMonth : DEFAULT_YEAR_MONTH;
 }
 
 function normalizeVideoRole(value: unknown): VideoRole {

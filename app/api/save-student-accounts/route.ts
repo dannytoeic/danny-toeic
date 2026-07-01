@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
+import { OPERATING_YEAR_MONTH } from '../../../lib/operating-month';
 
 type StudentAccountItem = {
   studentId: string;
@@ -10,6 +11,7 @@ type StudentAccountItem = {
   contact?: string;
   classKey?: string;
   classKeys?: string[];
+  classKeysByMonth?: Record<string, string[]>;
   monthKey: string;
   expiresAt: string;
   isActive: boolean;
@@ -24,6 +26,7 @@ type StudentAccountRow = {
   contact: string | null;
   class_key: string | null;
   class_keys: string[] | null;
+  class_keys_by_month?: Record<string, string[]> | null;
   month_key: string | null;
   expires_at: string | null;
   is_active: boolean;
@@ -38,6 +41,7 @@ type NormalizedStudentAccountRow = {
   contact: string;
   class_key: string;
   class_keys: string[];
+  class_keys_by_month: Record<string, string[]>;
   month_key: string;
   expires_at: string | null;
   is_active: boolean;
@@ -59,11 +63,37 @@ function normalizeClassKeys(item: {
   return [];
 }
 
+function normalizeClassKeysByMonth(value: unknown): Record<string, string[]> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+
+  return Object.entries(value as Record<string, unknown>).reduce<Record<string, string[]>>(
+    (acc, [month, classKeys]) => {
+      const yearMonth = String(month ?? '').trim();
+      const keys = Array.isArray(classKeys)
+        ? classKeys.map((item) => String(item).trim()).filter(Boolean)
+        : [];
+
+      if (yearMonth && keys.length > 0) {
+        acc[yearMonth] = Array.from(new Set(keys));
+      }
+
+      return acc;
+    },
+    {}
+  );
+}
+
 function mapRowToItem(row: StudentAccountRow): StudentAccountItem {
   const classKeys = normalizeClassKeys({
     classKey: row.class_key,
     classKeys: row.class_keys,
   });
+  const classKeysByMonth = normalizeClassKeysByMonth(row.class_keys_by_month);
+  const legacyMonthKey = row.month_key || '';
+  const effectiveClassKeysByMonth =
+    Object.keys(classKeysByMonth).length > 0 || !legacyMonthKey || classKeys.length === 0
+      ? classKeysByMonth
+      : { [legacyMonthKey]: classKeys };
 
   return {
     studentId: row.student_id || '',
@@ -74,7 +104,8 @@ function mapRowToItem(row: StudentAccountRow): StudentAccountItem {
     contact: row.contact || '',
     classKey: row.class_key || classKeys[0] || '',
     classKeys,
-    monthKey: row.month_key || '',
+    classKeysByMonth: effectiveClassKeysByMonth,
+    monthKey: legacyMonthKey,
     expiresAt: row.expires_at || '',
     isActive: row.is_active,
     createdAt: row.created_at || '',
@@ -83,12 +114,24 @@ function mapRowToItem(row: StudentAccountRow): StudentAccountItem {
 
 export async function GET() {
   try {
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await supabaseAdmin
       .from('student_accounts')
       .select(
-        'student_id, username, password, name, contact, class_key, class_keys, month_key, expires_at, is_active, created_at'
+        'student_id, username, password, name, contact, class_key, class_keys, class_keys_by_month, month_key, expires_at, is_active, created_at'
       )
       .order('created_at', { ascending: false });
+
+    if (error?.code === '42703' || String(error?.message ?? '').includes('class_keys_by_month')) {
+      const legacyResult = await supabaseAdmin
+        .from('student_accounts')
+        .select(
+          'student_id, username, password, name, contact, class_key, class_keys, month_key, expires_at, is_active, created_at'
+        )
+        .order('created_at', { ascending: false });
+
+      data = legacyResult.data as typeof data;
+      error = legacyResult.error;
+    }
 
     if (error) {
       console.error('save-student-accounts GET error:', error);
@@ -129,6 +172,13 @@ export async function POST(request: NextRequest) {
         classKey: item.classKey,
         classKeys: item.classKeys ?? [],
       });
+      const classKeysByMonth = normalizeClassKeysByMonth(item.classKeysByMonth);
+      if (classKeys.length > 0 && Object.keys(classKeysByMonth).length === 0) {
+        const monthKey = String(item.monthKey ?? '').trim();
+        if (monthKey) {
+          classKeysByMonth[monthKey] = classKeys;
+        }
+      }
       const representativeClassKey = String(item.classKey ?? '').trim();
 
       const username = String(item.username ?? item.id ?? '').trim();
@@ -146,7 +196,8 @@ export async function POST(request: NextRequest) {
         contact: String(item.contact ?? '').trim(),
         class_key: representativeClassKey || classKeys[0] || '',
         class_keys: classKeys,
-        month_key: String(item.monthKey ?? '').trim(),
+        class_keys_by_month: classKeysByMonth,
+        month_key: String(item.monthKey ?? '').trim() || OPERATING_YEAR_MONTH,
         expires_at: String(item.expiresAt ?? '').trim() || null,
         is_active: Boolean(item.isActive),
         created_at: String(item.createdAt ?? '').trim() || new Date().toISOString(),
@@ -175,9 +226,21 @@ export async function POST(request: NextRequest) {
     const nextUsernames = normalized.map((row) => String(row.username));
 
     if (normalized.length > 0) {
-      const { error: upsertError } = await supabaseAdmin
+      let { error: upsertError } = await supabaseAdmin
         .from('student_accounts')
         .upsert(normalized, { onConflict: 'username' });
+
+      if (
+        upsertError?.code === '42703' ||
+        String(upsertError?.message ?? '').includes('class_keys_by_month')
+      ) {
+        const legacyRows = normalized.map(({ class_keys_by_month, ...row }) => row);
+        const legacyResult = await supabaseAdmin
+          .from('student_accounts')
+          .upsert(legacyRows, { onConflict: 'username' });
+
+        upsertError = legacyResult.error;
+      }
 
       if (upsertError) {
         console.error('save-student-accounts upsert error:', upsertError);
@@ -209,12 +272,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { data: finalRows, error: finalError } = await supabaseAdmin
+    let { data: finalRows, error: finalError } = await supabaseAdmin
       .from('student_accounts')
       .select(
-        'student_id, username, password, name, contact, class_key, class_keys, month_key, expires_at, is_active, created_at'
+        'student_id, username, password, name, contact, class_key, class_keys, class_keys_by_month, month_key, expires_at, is_active, created_at'
       )
       .order('created_at', { ascending: false });
+
+    if (finalError?.code === '42703' || String(finalError?.message ?? '').includes('class_keys_by_month')) {
+      const legacyResult = await supabaseAdmin
+        .from('student_accounts')
+        .select(
+          'student_id, username, password, name, contact, class_key, class_keys, month_key, expires_at, is_active, created_at'
+        )
+        .order('created_at', { ascending: false });
+
+      finalRows = legacyResult.data as typeof finalRows;
+      finalError = legacyResult.error;
+    }
 
     if (finalError) {
       console.error('save-student-accounts final select error:', finalError);

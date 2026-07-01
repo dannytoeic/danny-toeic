@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import AdminShell from '../AdminShell';
+import { OPERATING_YEAR_MONTH } from '../../../lib/operating-month';
 
 type TimetableRow = {
   time: string;
@@ -31,8 +32,8 @@ const DEFAULT_ROWS: TimetableRow[] = [
 
 function makeDefaultItem(): MonthlyTimetableItem {
   return {
-    yearMonth: '',
-    title: '',
+    yearMonth: OPERATING_YEAR_MONTH,
+    title: '7 July',
     rows: DEFAULT_ROWS,
     memo: '',
   };
@@ -207,7 +208,7 @@ export default function MonthlyTimetableAdminPage() {
               <input
                 value={item.yearMonth}
                 onChange={(e) => setItem((prev) => ({ ...prev, yearMonth: e.target.value }))}
-                placeholder="2026-05"
+                placeholder="2026-07"
                 style={inputStyle}
               />
             </div>
@@ -226,7 +227,7 @@ export default function MonthlyTimetableAdminPage() {
               <input
                 value={item.title}
                 onChange={(e) => setItem((prev) => ({ ...prev, title: e.target.value }))}
-                placeholder="5 May"
+                placeholder="7 July"
                 style={inputStyle}
               />
             </div>

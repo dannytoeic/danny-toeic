@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
+import { OPERATING_YEAR_MONTH, normalizeYearMonth } from '../../../lib/operating-month';
 
 type ClassKey = '600-monwed' | '600-tuthu' | '800-monwed' | '800-tuthu';
 
-const DEFAULT_YEAR_MONTH = '2026-06';
+const DEFAULT_YEAR_MONTH = OPERATING_YEAR_MONTH;
 
 type ClassUpdateItem = {
   globalNoticeText?: string;
@@ -35,11 +36,6 @@ const classKeys: ClassKey[] = [
   '800-monwed',
   '800-tuthu',
 ];
-
-function normalizeYearMonth(value: unknown) {
-  const yearMonth = String(value ?? '').trim();
-  return /^\d{4}-\d{2}$/.test(yearMonth) ? yearMonth : DEFAULT_YEAR_MONTH;
-}
 
 export async function POST(request: NextRequest) {
   try {
