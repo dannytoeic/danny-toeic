@@ -122,6 +122,7 @@ export async function POST(request: NextRequest) {
       success: true,
       student: {
         id: row.username,
+        studentId: row.student_id || '',
         name: row.name,
         username: row.username,
         classKey: row.class_key || classKeys[0] || '',

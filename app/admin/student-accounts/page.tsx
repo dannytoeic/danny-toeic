@@ -19,11 +19,23 @@ type StudentAccountItem = {
   classKey?: string;
   classKeys?: string[];
   classKeysByMonth?: Record<string, string[]>;
+  classAccessRanges?: Record<
+    string,
+    Record<string, { startCardId?: string | null; startOrder?: number | null }>
+  >;
   monthKey: string;
   expiresAt: string;
   isActive: boolean;
   createdAt?: string;
 };
+
+type ClassCardOption = {
+  id: string;
+  label: string;
+  order: number;
+};
+
+type ClassUpdateCardsByMonth = Record<string, Record<string, ClassCardOption[]>>;
 
 const CLASS_OPTIONS = [
   { key: '', label: '전체 반' },
@@ -74,6 +86,31 @@ function getClassLabels(item: StudentAccountItem, yearMonth: string): string[] {
   return getClassKeysForMonth(item, yearMonth).map((key) => classLabelMap[key] ?? key);
 }
 
+function normalizeCardOptions(cards: unknown[]): ClassCardOption[] {
+  return cards.reduce<ClassCardOption[]>((acc, raw, index) => {
+    const card = (raw ?? {}) as Record<string, unknown>;
+    const id = String(card.id ?? '').trim();
+
+    if (!id) return acc;
+
+    acc.push({
+      id,
+      label: String(card.dayLabel ?? '').trim() || `Day${index + 1}`,
+      order: index + 1,
+    });
+
+    return acc;
+  }, []);
+}
+
+function getAccessRange(
+  item: StudentAccountItem,
+  yearMonth: string,
+  classKey: string
+) {
+  return item.classAccessRanges?.[yearMonth]?.[classKey] ?? {};
+}
+
 function createEmptyStudent(nextIndex: number): StudentAccountItem {
   return {
     studentId: `stu${String(nextIndex).padStart(3, '0')}`,
@@ -84,6 +121,7 @@ function createEmptyStudent(nextIndex: number): StudentAccountItem {
     classKey: '',
     classKeys: [],
     classKeysByMonth: {},
+    classAccessRanges: {},
     monthKey: '',
     expiresAt: '',
     isActive: true,
@@ -108,6 +146,8 @@ export default function StudentAccountsAdminPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   const [items, setItems] = useState<StudentAccountItem[]>([]);
+  const [classUpdateCardsByMonth, setClassUpdateCardsByMonth] =
+    useState<ClassUpdateCardsByMonth>({});
   const [message, setMessage] = useState('');
 
   const [search, setSearch] = useState('');
@@ -158,6 +198,40 @@ export default function StudentAccountsAdminPage() {
     if (isChecking) return;
     loadItems();
   }, [isChecking]);
+
+  useEffect(() => {
+    if (isChecking || classUpdateCardsByMonth[accessYearMonth]) return;
+
+    async function loadClassUpdateCards() {
+      try {
+        const response = await fetch(
+          `/api/get-class-updates?yearMonth=${encodeURIComponent(accessYearMonth)}`,
+          { cache: 'no-store' }
+        );
+        const result = await response.json();
+        const source = result.items ?? result.classUpdates ?? {};
+        const nextCards = ACCESS_CLASS_OPTIONS.reduce<Record<string, ClassCardOption[]>>(
+          (acc, option) => {
+            const cards = Array.isArray(source?.[option.key]?.cards)
+              ? source[option.key].cards
+              : [];
+            acc[option.key] = normalizeCardOptions(cards);
+            return acc;
+          },
+          {}
+        );
+
+        setClassUpdateCardsByMonth((prev) => ({
+          ...prev,
+          [accessYearMonth]: nextCards,
+        }));
+      } catch (error) {
+        console.error('class update cards load error:', error);
+      }
+    }
+
+    loadClassUpdateCards();
+  }, [isChecking, accessYearMonth, classUpdateCardsByMonth]);
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
@@ -224,6 +298,32 @@ export default function StudentAccountsAdminPage() {
     );
   }
 
+  function updateClassAccessRange(
+    index: number,
+    classKey: string,
+    patch: { startCardId?: string | null; startOrder?: number | null }
+  ) {
+    setItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item;
+
+        return {
+          ...item,
+          classAccessRanges: {
+            ...(item.classAccessRanges ?? {}),
+            [accessYearMonth]: {
+              ...(item.classAccessRanges?.[accessYearMonth] ?? {}),
+              [classKey]: {
+                ...getAccessRange(item, accessYearMonth, classKey),
+                ...patch,
+              },
+            },
+          },
+        };
+      })
+    );
+  }
+
   function handleAddStudent() {
     setItems((prev) => [...prev, createEmptyStudent(prev.length + 1)]);
     setMessage('');
@@ -269,6 +369,7 @@ export default function StudentAccountsAdminPage() {
           classKey: classKeys[0] || '',
           classKeys,
           classKeysByMonth,
+          classAccessRanges: item.classAccessRanges ?? {},
           monthKey,
           expiresAt: item.expiresAt?.trim() || '',
           isActive: Boolean(item.isActive),
@@ -713,15 +814,24 @@ export default function StudentAccountsAdminPage() {
                       >
                         {ACCESS_CLASS_OPTIONS.map((option) => {
                           const accessKeys = getClassKeysForMonth(item, accessYearMonth);
+                          const hasAccess = accessKeys.includes(option.key);
+                          const cardOptions =
+                            classUpdateCardsByMonth[accessYearMonth]?.[option.key] ?? [];
+                          const accessRange = getAccessRange(
+                            item,
+                            accessYearMonth,
+                            option.key
+                          );
+                          const selectedStartCardId = String(
+                            accessRange.startCardId ?? ''
+                          ).trim();
 
                           return (
-                            <label
+                            <div
                               key={option.key}
                               style={{
-                                display: 'flex',
-                                alignItems: 'center',
+                                display: 'grid',
                                 gap: '8px',
-                                minHeight: '42px',
                                 padding: '9px 11px',
                                 border: '1px solid #d1d5db',
                                 borderRadius: '10px',
@@ -732,16 +842,81 @@ export default function StudentAccountsAdminPage() {
                                 boxSizing: 'border-box',
                               }}
                             >
-                              <input
-                                type="checkbox"
-                                checked={accessKeys.includes(option.key)}
-                                onChange={(e) =>
-                                  realIndex >= 0 &&
-                                  toggleClassAccess(realIndex, option.key, e.target.checked)
-                                }
-                              />
-                              {option.label}
-                            </label>
+                              <label
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  minHeight: '24px',
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={hasAccess}
+                                  onChange={(e) =>
+                                    realIndex >= 0 &&
+                                    toggleClassAccess(realIndex, option.key, e.target.checked)
+                                  }
+                                />
+                                {option.label}
+                              </label>
+
+                              {hasAccess ? (
+                                <div style={{ display: 'grid', gap: '6px' }}>
+                                  <select
+                                    value={selectedStartCardId ? 'specific' : 'all'}
+                                    onChange={(e) => {
+                                      if (realIndex < 0) return;
+
+                                      if (e.target.value === 'all') {
+                                        updateClassAccessRange(realIndex, option.key, {
+                                          startCardId: null,
+                                          startOrder: null,
+                                        });
+                                        return;
+                                      }
+
+                                      const firstCard = cardOptions[0];
+                                      updateClassAccessRange(realIndex, option.key, {
+                                        startCardId: firstCard?.id ?? null,
+                                        startOrder: firstCard?.order ?? null,
+                                      });
+                                    }}
+                                    style={{ ...inputStyle, padding: '8px 10px' }}
+                                  >
+                                    <option value="all">전체 카드</option>
+                                    <option value="specific">특정 카드부터</option>
+                                  </select>
+
+                                  {selectedStartCardId ? (
+                                    <select
+                                      value={selectedStartCardId}
+                                      onChange={(e) => {
+                                        if (realIndex < 0) return;
+                                        const selectedCard = cardOptions.find(
+                                          (card) => card.id === e.target.value
+                                        );
+
+                                        updateClassAccessRange(realIndex, option.key, {
+                                          startCardId: selectedCard?.id ?? null,
+                                          startOrder: selectedCard?.order ?? null,
+                                        });
+                                      }}
+                                      style={{ ...inputStyle, padding: '8px 10px' }}
+                                    >
+                                      {cardOptions.length === 0 ? (
+                                        <option value="">생성된 카드 없음</option>
+                                      ) : null}
+                                      {cardOptions.map((card) => (
+                                        <option key={card.id} value={card.id}>
+                                          {card.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </div>
                           );
                         })}
                       </div>

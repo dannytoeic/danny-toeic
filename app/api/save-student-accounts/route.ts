@@ -8,6 +8,16 @@ import {
   normalizeClassKeysByMonth,
   upsertStudentMonthPermissions,
 } from '../../../lib/student-month-permissions';
+import {
+  accessRangeKey,
+  fetchStudentClassAccessRanges,
+  upsertStudentClassAccessRanges,
+} from '../../../lib/student-class-access-ranges';
+
+type StudentClassAccessRangeItem = {
+  startCardId?: string | null;
+  startOrder?: number | null;
+};
 
 type StudentAccountItem = {
   studentId: string;
@@ -19,6 +29,7 @@ type StudentAccountItem = {
   classKey?: string;
   classKeys?: string[];
   classKeysByMonth?: Record<string, string[]>;
+  classAccessRanges?: Record<string, Record<string, StudentClassAccessRangeItem>>;
   monthKey: string;
   expiresAt: string;
   isActive: boolean;
@@ -70,9 +81,51 @@ function normalizeClassKeys(item: {
   return [];
 }
 
+function normalizeClassAccessRanges(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {} as Record<string, Record<string, StudentClassAccessRangeItem>>;
+  }
+
+  return Object.entries(value as Record<string, unknown>).reduce<
+    Record<string, Record<string, StudentClassAccessRangeItem>>
+  >((acc, [yearMonth, classMap]) => {
+    if (!classMap || typeof classMap !== 'object' || Array.isArray(classMap)) {
+      return acc;
+    }
+
+    const monthKey = String(yearMonth ?? '').trim();
+    if (!monthKey) return acc;
+
+    const ranges = Object.entries(classMap as Record<string, unknown>).reduce<
+      Record<string, StudentClassAccessRangeItem>
+    >((classAcc, [classKey, rawRange]) => {
+      if (!rawRange || typeof rawRange !== 'object' || Array.isArray(rawRange)) {
+        return classAcc;
+      }
+
+      const range = rawRange as Record<string, unknown>;
+      const normalizedClassKey = String(classKey ?? '').trim();
+      if (!normalizedClassKey) return classAcc;
+
+      classAcc[normalizedClassKey] = {
+        startCardId: String(range.startCardId ?? '').trim() || null,
+        startOrder: Number.isFinite(Number(range.startOrder))
+          ? Number(range.startOrder)
+          : null,
+      };
+
+      return classAcc;
+    }, {});
+
+    acc[monthKey] = ranges;
+    return acc;
+  }, {});
+}
+
 function mapRowToItem(
   row: StudentAccountRow,
-  permissionRows: Awaited<ReturnType<typeof fetchStudentMonthPermissions>>
+  permissionRows: Awaited<ReturnType<typeof fetchStudentMonthPermissions>>,
+  accessRanges: Awaited<ReturnType<typeof fetchStudentClassAccessRanges>>
 ): StudentAccountItem {
   const classKeys = normalizeClassKeys({
     classKey: row.class_key,
@@ -95,8 +148,10 @@ function mapRowToItem(
       ? columnClassKeysByMonth
       : legacyClassKeysByMonth;
 
+  const studentId = row.student_id || '';
+
   return {
-    studentId: row.student_id || '',
+    studentId,
     id: row.username,
     username: row.username,
     name: row.name,
@@ -105,6 +160,21 @@ function mapRowToItem(
     classKey: row.class_key || classKeys[0] || '',
     classKeys,
     classKeysByMonth: effectiveClassKeysByMonth,
+    classAccessRanges: Object.entries(effectiveClassKeysByMonth).reduce<
+      Record<string, Record<string, StudentClassAccessRangeItem>>
+    >((acc, [yearMonth, classKeysForMonth]) => {
+      acc[yearMonth] = {};
+
+      for (const classKey of classKeysForMonth) {
+        const range = accessRanges.byKey.get(accessRangeKey(studentId, yearMonth, classKey));
+        acc[yearMonth][classKey] = {
+          startCardId: range?.startCardId ?? null,
+          startOrder: range?.startOrder ?? null,
+        };
+      }
+
+      return acc;
+    }, {}),
     monthKey: legacyMonthKey,
     expiresAt: row.expires_at || '',
     isActive: row.is_active,
@@ -117,6 +187,10 @@ export async function GET() {
     const permissionRows = await fetchStudentMonthPermissions();
     if (permissionRows.error) {
       console.error('student_month_permissions GET error:', permissionRows.error);
+    }
+    const accessRanges = await fetchStudentClassAccessRanges();
+    if (accessRanges.error) {
+      console.error('student_class_access_ranges GET error:', accessRanges.error);
     }
 
     let { data, error } = await supabaseAdmin
@@ -148,7 +222,9 @@ export async function GET() {
     }
 
     const items = Array.isArray(data)
-      ? (data as StudentAccountRow[]).map((row) => mapRowToItem(row, permissionRows))
+      ? (data as StudentAccountRow[]).map((row) =>
+          mapRowToItem(row, permissionRows, accessRanges)
+        )
       : [];
 
     return NextResponse.json({
@@ -173,6 +249,7 @@ export async function POST(request: NextRequest) {
       username: item.username ?? item.id,
       studentId: item.studentId,
       classKeysByMonth: normalizeClassKeysByMonth(item.classKeysByMonth),
+      classAccessRanges: normalizeClassAccessRanges(item.classAccessRanges),
     }));
     console.log('save-student-accounts monthly payload:', JSON.stringify(debugPayload));
 
@@ -341,6 +418,49 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
+
+      const accessRangeRows = items.flatMap((item, index) => {
+        const studentId =
+          String(item.studentId ?? '').trim() || `stu${String(index + 1).padStart(3, '0')}`;
+        const classKeysByMonth = normalizeClassKeysByMonth(item.classKeysByMonth);
+        const classAccessRanges = normalizeClassAccessRanges(item.classAccessRanges);
+
+        return Object.entries(classKeysByMonth).flatMap(([yearMonth, classKeys]) =>
+          classKeys.map((classKey) => {
+            const range = classAccessRanges[yearMonth]?.[classKey] ?? {};
+
+            return {
+              studentId,
+              yearMonth,
+              classKey,
+              startCardId: range.startCardId ?? null,
+              startOrder: range.startOrder ?? null,
+            };
+          })
+        );
+      });
+      const accessRangeWrite = await upsertStudentClassAccessRanges(accessRangeRows);
+
+      if (accessRangeWrite.error) {
+        console.error('student_class_access_ranges upsert error:', accessRangeWrite.error);
+
+        return NextResponse.json(
+          { success: false, message: 'Student class access ranges could not be saved.' },
+          { status: 500 }
+        );
+      }
+
+      const hasRestrictedRange = accessRangeRows.some((range) => range.startCardId);
+      if (hasRestrictedRange && !accessRangeWrite.available) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              'Student class access range storage is missing. Run the Supabase migration first.',
+          },
+          { status: 500 }
+        );
+      }
     }
 
     const usernamesToDelete = existingUsernames.filter(
@@ -395,9 +515,15 @@ export async function POST(request: NextRequest) {
     if (finalPermissionRows.error) {
       console.error('student_month_permissions final GET error:', finalPermissionRows.error);
     }
+    const finalAccessRanges = await fetchStudentClassAccessRanges();
+    if (finalAccessRanges.error) {
+      console.error('student_class_access_ranges final GET error:', finalAccessRanges.error);
+    }
 
     const finalItems = Array.isArray(finalRows)
-      ? (finalRows as StudentAccountRow[]).map((row) => mapRowToItem(row, finalPermissionRows))
+      ? (finalRows as StudentAccountRow[]).map((row) =>
+          mapRowToItem(row, finalPermissionRows, finalAccessRanges)
+        )
       : [];
 
     return NextResponse.json({

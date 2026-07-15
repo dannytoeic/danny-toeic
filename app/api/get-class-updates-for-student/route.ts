@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { OPERATING_YEAR_MONTH } from '../../../lib/operating-month';
+import {
+  accessRangeKey,
+  fetchStudentClassAccessRanges,
+} from '../../../lib/student-class-access-ranges';
+import {
+  fetchStudentMonthPermissions,
+  getPermissionMapForOwner,
+  isMissingClassKeysByMonthColumnError,
+  normalizeClassKeysByMonth,
+} from '../../../lib/student-month-permissions';
 
 type ClassUpdateRow = {
   class_key: string;
@@ -10,6 +20,16 @@ type ClassUpdateRow = {
 };
 
 type ClassKey = '600-monwed' | '600-tuthu' | '800-monwed' | '800-tuthu';
+
+type StudentAccountRow = {
+  student_id: string | null;
+  username: string;
+  class_key: string | null;
+  class_keys: string[] | null;
+  class_keys_by_month?: Record<string, string[]> | null;
+  month_key: string | null;
+  is_active: boolean;
+};
 
 const STUDENT_VISIBLE_YEAR_MONTH = OPERATING_YEAR_MONTH;
 
@@ -75,6 +95,95 @@ function isMissingYearMonthError(error: unknown) {
   return item?.code === '42703' || String(item?.message ?? '').includes('year_month');
 }
 
+function normalizeClassKeyArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.map((item) => String(item ?? '').trim()).filter(Boolean);
+}
+
+function hasStudentClassAccess(
+  row: StudentAccountRow,
+  permissionRows: Awaited<ReturnType<typeof fetchStudentMonthPermissions>>,
+  yearMonth: string,
+  classKey: ClassKey
+) {
+  const classKeysByMonth = {
+    ...normalizeClassKeysByMonth(row.class_keys_by_month),
+    ...getPermissionMapForOwner(
+      { studentId: row.student_id, username: row.username },
+      permissionRows
+    ),
+  };
+
+  if (Object.prototype.hasOwnProperty.call(classKeysByMonth, yearMonth)) {
+    return normalizeClassKeyArray(classKeysByMonth[yearMonth]).includes(classKey);
+  }
+
+  return false;
+}
+
+async function findStudentForRequest(request: NextRequest) {
+  const username = String(request.nextUrl.searchParams.get('username') ?? '').trim();
+  const studentId = String(request.nextUrl.searchParams.get('studentId') ?? '').trim();
+
+  if (!username && !studentId) {
+    return { student: null as StudentAccountRow | null, error: null as unknown };
+  }
+
+  let data: unknown = null;
+  let error: unknown = null;
+
+  if (username) {
+    const result = await supabaseAdmin
+      .from('student_accounts')
+      .select(
+        'student_id, username, class_key, class_keys, class_keys_by_month, month_key, is_active'
+      )
+      .eq('username', username)
+      .maybeSingle();
+
+    data = result.data;
+    error = result.error;
+
+    if (isMissingClassKeysByMonthColumnError(error)) {
+      const legacyResult = await supabaseAdmin
+        .from('student_accounts')
+        .select('student_id, username, class_key, class_keys, month_key, is_active')
+        .eq('username', username)
+        .maybeSingle();
+
+      data = legacyResult.data;
+      error = legacyResult.error;
+    }
+  }
+
+  if (!data && !error && studentId) {
+    const result = await supabaseAdmin
+      .from('student_accounts')
+      .select(
+        'student_id, username, class_key, class_keys, class_keys_by_month, month_key, is_active'
+      )
+      .eq('student_id', studentId)
+      .maybeSingle();
+
+    data = result.data;
+    error = result.error;
+
+    if (isMissingClassKeysByMonthColumnError(error)) {
+      const legacyResult = await supabaseAdmin
+        .from('student_accounts')
+        .select('student_id, username, class_key, class_keys, month_key, is_active')
+        .eq('student_id', studentId)
+        .maybeSingle();
+
+      data = legacyResult.data;
+      error = legacyResult.error;
+    }
+  }
+
+  return { student: (data as StudentAccountRow | null) ?? null, error };
+}
+
 function normalizeCardForStudent(raw: unknown, classKey: ClassKey) {
   const c = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
 
@@ -133,6 +242,36 @@ function normalizeCardForStudent(raw: unknown, classKey: ClassKey) {
   };
 }
 
+function filterCardsByAccessRange(
+  cards: ReturnType<typeof normalizeCardForStudent>[],
+  range:
+    | {
+        startCardId: string | null;
+        startOrder: number | null;
+      }
+    | null
+) {
+  if (!range?.startCardId && !range?.startOrder) {
+    return cards;
+  }
+
+  const startCardId = String(range.startCardId ?? '').trim();
+  const startIndex = startCardId
+    ? cards.findIndex((card) => String(card.id ?? '').trim() === startCardId)
+    : -1;
+
+  if (startIndex >= 0) {
+    return cards.slice(startIndex);
+  }
+
+  const startOrder = Number(range.startOrder);
+  if (Number.isFinite(startOrder) && startOrder > 1) {
+    return cards.filter((_, index) => index + 1 >= startOrder);
+  }
+
+  return cards;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const classKey = resolveClassKey(request);
@@ -143,6 +282,43 @@ export async function GET(request: NextRequest) {
         { success: false, message: 'classKey가 필요합니다.' },
         { status: 400 }
       );
+    }
+
+    const { student, error: studentError } = await findStudentForRequest(request);
+
+    if (studentError) {
+      console.error('get-class-updates-for-student student select error:', studentError);
+
+      return NextResponse.json(
+        { success: false, message: 'Student access could not be checked.' },
+        { status: 500 }
+      );
+    }
+
+    if (student) {
+      if (!student.is_active) {
+        return NextResponse.json(
+          { success: false, message: 'Student account is inactive.' },
+          { status: 403 }
+        );
+      }
+
+      const permissionRows = await fetchStudentMonthPermissions();
+      if (permissionRows.error) {
+        console.error('student_month_permissions student class API error:', permissionRows.error);
+
+        return NextResponse.json(
+          { success: false, message: 'Student access could not be checked.' },
+          { status: 500 }
+        );
+      }
+
+      if (!hasStudentClassAccess(student, permissionRows, yearMonth, classKey)) {
+        return NextResponse.json(
+          { success: false, message: 'Student does not have access to this class.' },
+          { status: 403 }
+        );
+      }
     }
 
     let { data, error } = await supabaseAdmin
@@ -170,9 +346,30 @@ export async function GET(request: NextRequest) {
 
     const row = data as ClassUpdateRow | null;
 
-    const normalizedCards = row && Array.isArray(row.cards)
+    const normalizedCardsBeforeAccessRange = row && Array.isArray(row.cards)
       ? row.cards.map((card) => normalizeCardForStudent(card, classKey))
       : [];
+    const studentId = String(student?.student_id ?? '').trim();
+    const accessRanges = studentId
+      ? await fetchStudentClassAccessRanges(studentId)
+      : null;
+
+    if (accessRanges?.error) {
+      console.error('student_class_access_ranges student API error:', accessRanges.error);
+
+      return NextResponse.json(
+        { success: false, message: 'Student access range could not be checked.' },
+        { status: 500 }
+      );
+    }
+
+    const accessRange = studentId
+      ? accessRanges?.byKey.get(accessRangeKey(studentId, yearMonth, classKey)) ?? null
+      : null;
+    const normalizedCards = filterCardsByAccessRange(
+      normalizedCardsBeforeAccessRange,
+      accessRange
+    );
 
     const item = {
       globalNoticeText: row?.global_notice_text || '',

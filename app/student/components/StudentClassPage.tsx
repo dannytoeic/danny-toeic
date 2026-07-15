@@ -13,6 +13,7 @@ import {
 
 type LoggedInStudent = {
   id: string;
+  studentId?: string;
   name: string;
   username?: string;
   classKey?: string;
@@ -371,6 +372,12 @@ export default function StudentClassPage({
         const params = new URLSearchParams({ classKey });
         if (studentMonthKey) {
           params.set('monthKey', studentMonthKey);
+        }
+        if (student?.username || student?.id) {
+          params.set('username', student.username || student.id);
+        }
+        if (student?.studentId) {
+          params.set('studentId', student.studentId);
         }
 
         const response = await fetch(
