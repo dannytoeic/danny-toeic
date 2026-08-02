@@ -112,20 +112,6 @@ const emptyClassUpdates: ClassUpdatesMap = {
   '800-tuthu': { globalNoticeText: '', cards: [] },
 };
 
-function hasClassAccess(
-  student: LoggedInStudent | null,
-  yearMonth: string,
-  classKey: string
-) {
-  if (!student) return false;
-  const monthlyClassKeys = student.classKeysByMonth?.[yearMonth];
-  if (Array.isArray(monthlyClassKeys)) {
-    return monthlyClassKeys.includes(classKey);
-  }
-
-  return false;
-}
-
 function splitLines(text?: string) {
   return (text ?? '')
     .split('\n')
@@ -334,11 +320,6 @@ export default function StudentClassPage({
       const parsed = JSON.parse(savedStudent) as LoggedInStudent;
       const requestedYearMonth =
         new URLSearchParams(window.location.search).get('yearMonth') || OPERATING_YEAR_MONTH;
-
-      if (!hasClassAccess(parsed, requestedYearMonth, classKey)) {
-        router.push('/student');
-        return;
-      }
 
       window.setTimeout(() => {
         setYearMonth(requestedYearMonth);
