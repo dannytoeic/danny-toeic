@@ -112,9 +112,13 @@ const emptyClassUpdates: ClassUpdatesMap = {
   '800-tuthu': { globalNoticeText: '', cards: [] },
 };
 
-function hasClassAccess(student: LoggedInStudent | null, classKey: string) {
+function hasClassAccess(
+  student: LoggedInStudent | null,
+  yearMonth: string,
+  classKey: string
+) {
   if (!student) return false;
-  const monthlyClassKeys = student.classKeysByMonth?.[OPERATING_YEAR_MONTH];
+  const monthlyClassKeys = student.classKeysByMonth?.[yearMonth];
   if (Array.isArray(monthlyClassKeys)) {
     return monthlyClassKeys.includes(classKey);
   }
@@ -299,6 +303,7 @@ export default function StudentClassPage({
 }: StudentClassPageProps) {
   const router = useRouter();
   const [student, setStudent] = useState<LoggedInStudent | null>(null);
+  const [yearMonth, setYearMonth] = useState(OPERATING_YEAR_MONTH);
   const [isChecking, setIsChecking] = useState(true);
   const [updates, setUpdates] = useState<ClassUpdatesMap>(emptyClassUpdates);
   const [message, setMessage] = useState('수업 카드를 불러오는 중...');
@@ -327,13 +332,16 @@ export default function StudentClassPage({
 
     try {
       const parsed = JSON.parse(savedStudent) as LoggedInStudent;
+      const requestedYearMonth =
+        new URLSearchParams(window.location.search).get('yearMonth') || OPERATING_YEAR_MONTH;
 
-      if (!hasClassAccess(parsed, classKey)) {
+      if (!hasClassAccess(parsed, requestedYearMonth, classKey)) {
         router.push('/student');
         return;
       }
 
       window.setTimeout(() => {
+        setYearMonth(requestedYearMonth);
         setStudent(parsed);
         setIsChecking(false);
       }, 0);
@@ -354,25 +362,22 @@ export default function StudentClassPage({
         studentId: student.id,
         name: student.name,
         classKey,
-        monthKey: student.monthKey ?? '',
+        monthKey: yearMonth,
         pageKey: `class-${classKey}`,
         pageTitle: `${title} 페이지`,
       }),
     }).catch((error) => {
       console.error('visit log error:', error);
     });
-  }, [isChecking, student, classKey, title]);
+  }, [isChecking, student, classKey, title, yearMonth]);
 
   useEffect(() => {
     if (isChecking) return;
 
     async function fetchUpdates() {
       try {
-        const studentMonthKey = student?.monthKey || student?.month_key || '';
         const params = new URLSearchParams({ classKey });
-        if (studentMonthKey) {
-          params.set('monthKey', studentMonthKey);
-        }
+        params.set('yearMonth', yearMonth);
         if (student?.username || student?.id) {
           params.set('username', student.username || student.id);
         }
@@ -392,6 +397,8 @@ export default function StudentClassPage({
             ...(result.updates ?? {}),
           });
           setMessage('');
+        } else if (response.status === 403) {
+          router.replace('/student');
         } else {
           setMessage(result.message ?? '수업 카드를 불러오지 못했습니다.');
         }
@@ -402,7 +409,7 @@ export default function StudentClassPage({
     }
 
     fetchUpdates();
-  }, [isChecking, classKey, student?.monthKey, student?.month_key]);
+  }, [isChecking, classKey, student, yearMonth, router]);
 
   useEffect(() => {
     if (isChecking) return;
@@ -739,7 +746,7 @@ export default function StudentClassPage({
 
         <section style={headerOuterStyle}>
           <div style={topLabelStyle}>Danny TOEIC Student Page</div>
-          <h1 style={titleTextStyle}>{title}</h1>
+          <h1 style={titleTextStyle}>{`${Number(yearMonth.slice(5))}월 ${title}`}</h1>
           <p style={descriptionStyle}>{description}</p>
 
           <a

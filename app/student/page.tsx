@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { OPERATING_YEAR_MONTH } from '../../lib/operating-month';
+import type { StudentBoardLink } from '../../lib/student-board-visibility';
 
 type LoggedInStudent = {
   id: string;
+  studentId?: string;
   name: string;
   username: string;
   classKey?: string;
@@ -20,20 +21,6 @@ type NoticeItem = {
   id: string;
   title: string;
   content: string;
-};
-
-const classPageMap: Record<string, string> = {
-  '600-monwed': '/student/class-600-monwed',
-  '600-tuthu': '/student/class-600-tuthu',
-  '800-monwed': '/student/class-800-monwed',
-  '800-tuthu': '/student/class-800-tuthu',
-};
-
-const classLabelMap: Record<string, string> = {
-  '600-monwed': '600 월수반',
-  '600-tuthu': '600 화목반',
-  '800-monwed': '800 월수반',
-  '800-tuthu': '800 화목반',
 };
 
 function normalizeNoticeArray(raw: unknown): NoticeItem[] {
@@ -78,23 +65,14 @@ async function safeFetchJson(url: string) {
   return JSON.parse(text);
 }
 
-function getStudentClassKeys(student: LoggedInStudent | null): string[] {
-  if (!student) return [];
-
-  const monthlyClassKeys = student.classKeysByMonth?.[OPERATING_YEAR_MONTH];
-  if (Array.isArray(monthlyClassKeys)) {
-    return monthlyClassKeys.filter(Boolean);
-  }
-
-  return [];
-}
-
 export default function StudentHomePage() {
   const router = useRouter();
   const [student, setStudent] = useState<LoggedInStudent | null>(null);
   const [isChecking, setIsChecking] = useState(true);
   const [notices, setNotices] = useState<NoticeItem[]>([]);
   const [noticeMessage, setNoticeMessage] = useState('');
+  const [boards, setBoards] = useState<StudentBoardLink[]>([]);
+  const [boardsMessage, setBoardsMessage] = useState('');
 
   useEffect(() => {
     const savedStudent = localStorage.getItem('loggedInStudent');
@@ -117,20 +95,34 @@ export default function StudentHomePage() {
     }
   }, [router]);
 
-  const classKeys = useMemo(() => getStudentClassKeys(student), [student]);
-
   useEffect(() => {
     if (isChecking || !student) return;
 
-    if (classKeys.length === 1) {
-      const onlyClassKey = classKeys[0];
-      const href = classPageMap[onlyClassKey];
+    async function loadBoards() {
+      try {
+        const params = new URLSearchParams({ username: student?.username || student?.id || '' });
+        const studentId = String(student?.studentId ?? '');
+        if (studentId) params.set('studentId', studentId);
+        const response = await fetch(`/api/get-student-boards?${params.toString()}`, {
+          cache: 'no-store',
+        });
+        const result = await response.json();
 
-      if (href) {
-        router.replace(href);
+        if (result.success) {
+          setBoards(Array.isArray(result.boards) ? result.boards : []);
+          setBoardsMessage('');
+          return;
+        }
+      } catch (error) {
+        console.error('student boards fetch error:', error);
       }
+
+      setBoards([]);
+      setBoardsMessage('수강반 정보를 불러오지 못했습니다.');
     }
-  }, [isChecking, student, classKeys, router]);
+
+    loadBoards();
+  }, [isChecking, student]);
 
   useEffect(() => {
     if (isChecking) return;
@@ -176,24 +168,6 @@ export default function StudentHomePage() {
         }}
       >
         로그인 상태 확인 중...
-      </main>
-    );
-  }
-
-  if (classKeys.length === 1) {
-    return (
-      <main
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: 'white',
-          fontFamily: 'Arial, sans-serif',
-          color: '#111827',
-        }}
-      >
-        내 반 페이지로 이동 중...
       </main>
     );
   }
@@ -337,20 +311,19 @@ export default function StudentHomePage() {
               내 수강반
             </h2>
 
-            {classKeys.length === 0 ? (
+            {boardsMessage ? (
+              <p style={{ color: '#475569', margin: 0 }}>{boardsMessage}</p>
+            ) : boards.length === 0 ? (
               <p style={{ color: '#475569', margin: 0 }}>
                 연결된 수강반 정보가 없습니다.
               </p>
             ) : (
               <div style={{ display: 'grid', gap: '14px' }}>
-                {classKeys.map((classKey) => {
-                  const href = classPageMap[classKey];
-                  const label = classLabelMap[classKey] ?? classKey;
-
+                {boards.map((board) => {
                   return (
                     <button
-                      key={classKey}
-                      onClick={() => href && router.push(href)}
+                      key={`${board.yearMonth}-${board.classKey}`}
+                      onClick={() => router.push(board.href)}
                       style={{
                         backgroundColor: '#111827',
                         padding: '20px 22px',
@@ -369,7 +342,7 @@ export default function StudentHomePage() {
                           marginBottom: '8px',
                         }}
                       >
-                        {label}
+                        {board.label}
                       </div>
                       <div
                         style={{

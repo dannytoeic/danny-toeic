@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { OPERATING_YEAR_MONTH } from '../../../lib/operating-month';
+import { isStudentBoardMonthVisible } from '../../../lib/student-board-visibility';
 import {
   accessRangeKey,
   fetchStudentClassAccessRanges,
@@ -30,8 +31,6 @@ type StudentAccountRow = {
   month_key: string | null;
   is_active: boolean;
 };
-
-const STUDENT_VISIBLE_YEAR_MONTH = OPERATING_YEAR_MONTH;
 
 type VideoItem = {
   id?: string;
@@ -275,7 +274,12 @@ function filterCardsByAccessRange(
 export async function GET(request: NextRequest) {
   try {
     const classKey = resolveClassKey(request);
-    const yearMonth = STUDENT_VISIBLE_YEAR_MONTH;
+    const requestedYearMonth = String(
+      request.nextUrl.searchParams.get('yearMonth') ??
+        request.nextUrl.searchParams.get('monthKey') ??
+        ''
+    ).trim();
+    const yearMonth = requestedYearMonth || OPERATING_YEAR_MONTH;
 
     if (!classKey) {
       return NextResponse.json(
@@ -292,6 +296,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { success: false, message: 'Student access could not be checked.' },
         { status: 500 }
+      );
+    }
+
+    if (!isStudentBoardMonthVisible(yearMonth)) {
+      return NextResponse.json(
+        { success: false, message: 'This monthly class board is no longer available.' },
+        { status: 403 }
       );
     }
 
