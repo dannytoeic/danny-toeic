@@ -11,25 +11,6 @@ type ClassUpdateItem = {
   cards?: unknown[];
 };
 
-type ClassUpdateMap = Record<string, ClassUpdateItem>;
-
-type ClassUpdateResult = Record<
-  ClassKey,
-  {
-    globalNoticeText: string;
-    cards: unknown[];
-  }
->;
-
-function buildDefaultResult(): ClassUpdateResult {
-  return {
-    '600-monwed': { globalNoticeText: '', cards: [] },
-    '600-tuthu': { globalNoticeText: '', cards: [] },
-    '800-monwed': { globalNoticeText: '', cards: [] },
-    '800-tuthu': { globalNoticeText: '', cards: [] },
-  };
-}
-
 const classKeys: ClassKey[] = [
   '600-monwed',
   '600-tuthu',
@@ -37,36 +18,39 @@ const classKeys: ClassKey[] = [
   '800-tuthu',
 ];
 
+function isClassKey(value: unknown): value is ClassKey {
+  return typeof value === 'string' && classKeys.includes(value as ClassKey);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const yearMonth = normalizeYearMonth(body?.yearMonth ?? body?.monthKey);
+    const classKey = body?.classKey;
 
-    const incoming: ClassUpdateMap =
-      body?.items && typeof body.items === 'object'
-        ? body.items
-        : body?.classUpdates && typeof body.classUpdates === 'object'
-        ? body.classUpdates
-        : body && typeof body === 'object'
-        ? body
-        : {};
+    if (!isClassKey(classKey)) {
+      return NextResponse.json(
+        { success: false, message: 'A valid classKey is required.' },
+        { status: 400 }
+      );
+    }
 
-    const rows = classKeys.map((classKey) => {
-      const source = incoming[classKey] ?? {};
+    const source: ClassUpdateItem =
+      body?.item && typeof body.item === 'object' ? body.item : {};
+    const row = {
+      year_month: yearMonth,
+      class_key: classKey,
+      global_notice_text: String(source.globalNoticeText ?? '').trim(),
+      cards: Array.isArray(source.cards) ? source.cards : [],
+    };
 
-      return {
-        year_month: yearMonth,
-        class_key: classKey,
-        global_notice_text: String(source.globalNoticeText ?? '').trim(),
-        cards: Array.isArray(source.cards) ? source.cards : [],
-      };
-    });
-
-    const { error } = await supabaseAdmin
+    const { data: savedRow, error } = await supabaseAdmin
       .from('class_updates')
-      .upsert(rows, { onConflict: 'year_month,class_key' });
+      .upsert(row, { onConflict: 'year_month,class_key' })
+      .select('year_month, class_key, global_notice_text, cards')
+      .maybeSingle();
 
-    if (error) {
+    if (error || !savedRow) {
       console.error('save-class-updates error:', error);
 
       return NextResponse.json(
@@ -75,23 +59,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = buildDefaultResult();
+    const { data: verifiedRow, error: verifyError } = await supabaseAdmin
+      .from('class_updates')
+      .select('year_month, class_key, global_notice_text, cards')
+      .eq('year_month', yearMonth)
+      .eq('class_key', classKey)
+      .maybeSingle();
 
-    for (const row of rows) {
-      result[row.class_key] = {
-        globalNoticeText: row.global_notice_text,
-        cards: Array.isArray(row.cards) ? row.cards : [],
-      };
+    if (
+      verifyError ||
+      !verifiedRow ||
+      verifiedRow.year_month !== yearMonth ||
+      verifiedRow.class_key !== classKey ||
+      verifiedRow.global_notice_text !== row.global_notice_text ||
+      JSON.stringify(verifiedRow.cards ?? []) !== JSON.stringify(row.cards)
+    ) {
+      console.error('save-class-updates verification error:', verifyError);
+      return NextResponse.json(
+        { success: false, message: 'Saved class data could not be verified.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
       success: true,
       message: '반별 자료가 저장되었습니다.',
       yearMonth,
-      items: result,
-      classUpdates: result,
-      monthItems: {
-        [yearMonth]: result,
+      classKey,
+      affectedRows: 1,
+      item: {
+        globalNoticeText: verifiedRow.global_notice_text || '',
+        cards: Array.isArray(verifiedRow.cards) ? verifiedRow.cards : [],
       },
     });
   } catch (error) {

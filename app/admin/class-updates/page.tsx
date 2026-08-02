@@ -687,7 +687,11 @@ export default function ClassUpdatesAdminPage() {
       const response = await fetch('/api/save-class-updates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ yearMonth: selectedYearMonth, items: dataMap }),
+        body: JSON.stringify({
+          yearMonth: selectedYearMonth,
+          classKey: selectedClassKey,
+          item: selectedItem,
+        }),
       });
 
       const result = await response.json();
@@ -697,7 +701,29 @@ export default function ClassUpdatesAdminPage() {
         return;
       }
 
-      const normalized = normalizeData(result.items ?? result.classUpdates ?? dataMap);
+      if (
+        result.yearMonth !== selectedYearMonth ||
+        result.classKey !== selectedClassKey ||
+        result.affectedRows !== 1
+      ) {
+        setMessage('저장된 반별 자료를 확인하지 못했습니다.');
+        return;
+      }
+
+      const refreshResponse = await fetch(
+        `/api/get-class-updates?yearMonth=${encodeURIComponent(selectedYearMonth)}`,
+        { cache: 'no-store' }
+      );
+      const refreshResult = await refreshResponse.json();
+
+      if (!refreshResponse.ok || !refreshResult.success) {
+        setMessage('저장 후 최신 반별 자료를 불러오지 못했습니다.');
+        return;
+      }
+
+      const normalized = normalizeData(
+        refreshResult.monthItems?.[selectedYearMonth] ?? refreshResult.items ?? {}
+      );
       setMonthDataMap((prev) => ({
         ...prev,
         [selectedYearMonth]: normalized,
