@@ -143,7 +143,11 @@ values
   ('2026-07', '600-monwed', '', '[]'),
   ('2026-07', '600-tuthu', '', '[]'),
   ('2026-07', '800-monwed', '', '[]'),
-  ('2026-07', '800-tuthu', '', '[]')
+  ('2026-07', '800-tuthu', '', '[]'),
+  ('2026-08', '600-monwed', '', '[]'),
+  ('2026-08', '600-tuthu', '', '[]'),
+  ('2026-08', '800-monwed', '', '[]'),
+  ('2026-08', '800-tuthu', '', '[]')
 on conflict (year_month, class_key) do nothing;
 
 alter table public.class_updates enable row level security;

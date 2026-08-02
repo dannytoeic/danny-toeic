@@ -73,6 +73,7 @@ const CLASS_OPTIONS: Array<{ key: ClassKey; label: string; mode: '600' | '800' }
 ];
 
 const MONTH_OPTIONS = [
+  { key: '2026-08', label: '2026년 8월' },
   { key: '2026-07', label: '2026년 7월' },
   { key: '2026-06', label: '2026년 6월' },
   { key: '2026-05', label: '2026년 5월' },
@@ -551,7 +552,7 @@ export default function ClassUpdatesAdminPage() {
 
   function addCard() {
     const newCard = createEmptyCard(selectedMeta.mode, getNextDayLabel(selectedItem.cards));
-    replaceCards([...selectedItem.cards, newCard]);
+    replaceCards([newCard, ...selectedItem.cards]);
     setCollapsedCardIds((prev) => prev.filter((id) => id !== newCard.id));
     setMessage('');
   }
