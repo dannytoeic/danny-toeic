@@ -317,6 +317,25 @@ function normalizeMonthData(raw: unknown): MonthlyClassUpdateMap {
   return result;
 }
 
+function canonicalizeJson(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalizeJson);
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, item]) => item !== undefined)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, item]) => [key, canonicalizeJson(item)])
+    );
+  }
+
+  return value;
+}
+
+function semanticSnapshot(value: unknown) {
+  return JSON.stringify(canonicalizeJson(value));
+}
+
 function getNextDayLabel(cards: ClassCard[]) {
   const maxDay = cards.reduce((max, card) => {
     const match = String(card.dayLabel ?? '').match(/day\s*(\d+)/i);
@@ -460,8 +479,18 @@ export default function ClassUpdatesAdminPage() {
   const selectedItem = dataMap[selectedClassKey];
   const sortedCards = selectedItem.cards;
 
-  const currentSnapshot = useMemo(() => JSON.stringify(dataMap), [dataMap]);
-  const isDirty = !isLoading && savedSnapshot !== '' && currentSnapshot !== savedSnapshot;
+  const savedItem = useMemo(() => {
+    if (!savedSnapshot) return null;
+
+    try {
+      return normalizeData(JSON.parse(savedSnapshot))[selectedClassKey];
+    } catch {
+      return null;
+    }
+  }, [savedSnapshot, selectedClassKey]);
+  const currentSnapshot = useMemo(() => semanticSnapshot(selectedItem), [selectedItem]);
+  const isDirty =
+    !isLoading && savedItem !== null && currentSnapshot !== semanticSnapshot(savedItem);
 
   useEffect(() => {
     if (!isDirty) return;
@@ -710,20 +739,51 @@ export default function ClassUpdatesAdminPage() {
         return;
       }
 
-      const refreshResponse = await fetch(
-        `/api/get-class-updates?yearMonth=${encodeURIComponent(selectedYearMonth)}`,
-        { cache: 'no-store' }
-      );
-      const refreshResult = await refreshResponse.json();
+      let refreshResult: {
+        success?: boolean;
+        yearMonth?: string;
+        classKey?: string;
+        item?: unknown;
+      };
 
-      if (!refreshResponse.ok || !refreshResult.success) {
-        setMessage('저장 후 최신 반별 자료를 불러오지 못했습니다.');
+      try {
+        const refreshResponse = await fetch(
+          `/api/get-class-updates?yearMonth=${encodeURIComponent(
+            selectedYearMonth
+          )}&classKey=${encodeURIComponent(selectedClassKey)}&_=${Date.now()}`,
+          { cache: 'no-store' }
+        );
+        refreshResult = await refreshResponse.json();
+
+        if (!refreshResponse.ok || !refreshResult.success) throw new Error('Refresh failed');
+      } catch (refreshError) {
+        console.error(refreshError);
+        const savedItemFromResponse = normalizeData({
+          [selectedClassKey]: result.item ?? selectedItem,
+        })[selectedClassKey];
+        const savedDataMap = { ...dataMap, [selectedClassKey]: savedItemFromResponse };
+        setDataMap(savedDataMap);
+        setSavedSnapshot(JSON.stringify(savedDataMap));
+        setMessage(
+          '저장은 완료되었지만 저장 결과 확인에 실패했습니다. 새로고침해 확인하세요.'
+        );
         return;
       }
 
-      const normalized = normalizeData(
-        refreshResult.monthItems?.[selectedYearMonth] ?? refreshResult.items ?? {}
-      );
+      const verifiedItem = normalizeData({
+        [selectedClassKey]: refreshResult.item,
+      })[selectedClassKey];
+
+      if (
+        refreshResult.yearMonth !== selectedYearMonth ||
+        refreshResult.classKey !== selectedClassKey ||
+        semanticSnapshot(verifiedItem) !== semanticSnapshot(selectedItem)
+      ) {
+        setMessage('저장된 반별 자료를 확인하지 못했습니다.');
+        return;
+      }
+
+      const normalized = { ...dataMap, [selectedClassKey]: verifiedItem };
       setMonthDataMap((prev) => ({
         ...prev,
         [selectedYearMonth]: normalized,

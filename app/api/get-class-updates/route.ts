@@ -44,6 +44,43 @@ export async function GET(request: NextRequest) {
     const requestedYearMonth = normalizeYearMonth(
       request.nextUrl.searchParams.get('yearMonth')
     );
+    const requestedClassKey = request.nextUrl.searchParams.get('classKey');
+
+    if (requestedClassKey !== null && !isClassKey(requestedClassKey)) {
+      return NextResponse.json(
+        { success: false, message: 'A valid classKey is required.' },
+        { status: 400 }
+      );
+    }
+
+    if (requestedClassKey) {
+      const { data: selectedRow, error: selectedError } = await supabaseAdmin
+        .from('class_updates')
+        .select('year_month, class_key, global_notice_text, cards')
+        .eq('year_month', requestedYearMonth)
+        .eq('class_key', requestedClassKey)
+        .maybeSingle();
+
+      if (selectedError) {
+        console.error('get-class-updates selected class error:', selectedError);
+        return NextResponse.json(
+          { success: false, message: '반별 자료를 불러오지 못했습니다.' },
+          { status: 500 }
+        );
+      }
+
+      const item = {
+        globalNoticeText: selectedRow?.global_notice_text || '',
+        cards: Array.isArray(selectedRow?.cards) ? selectedRow.cards : [],
+      };
+
+      return NextResponse.json({
+        success: true,
+        yearMonth: requestedYearMonth,
+        classKey: requestedClassKey,
+        item,
+      });
+    }
 
     let { data, error } = await supabaseAdmin
       .from('class_updates')

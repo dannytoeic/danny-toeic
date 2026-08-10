@@ -22,6 +22,27 @@ function isClassKey(value: unknown): value is ClassKey {
   return typeof value === 'string' && classKeys.includes(value as ClassKey);
 }
 
+function canonicalizeJson(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(canonicalizeJson);
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, item]) => item !== undefined)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, item]) => [key, canonicalizeJson(item)])
+    );
+  }
+
+  return value;
+}
+
+function isSemanticallyEqual(left: unknown, right: unknown) {
+  return JSON.stringify(canonicalizeJson(left)) === JSON.stringify(canonicalizeJson(right));
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -72,7 +93,7 @@ export async function POST(request: NextRequest) {
       verifiedRow.year_month !== yearMonth ||
       verifiedRow.class_key !== classKey ||
       verifiedRow.global_notice_text !== row.global_notice_text ||
-      JSON.stringify(verifiedRow.cards ?? []) !== JSON.stringify(row.cards)
+      !isSemanticallyEqual(verifiedRow.cards ?? [], row.cards)
     ) {
       console.error('save-class-updates verification error:', verifyError);
       return NextResponse.json(
