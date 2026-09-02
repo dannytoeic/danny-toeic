@@ -1,7 +1,7 @@
 import { CLASS_KEYS, type ClassKey, OPERATING_YEAR_MONTH } from './operating-month';
 
-export const JULY_BOARD_YEAR_MONTH = '2026-07';
-export const JULY_BOARD_HIDE_AT = '2026-08-10T00:00:00+09:00';
+export const PREVIOUS_BOARD_YEAR_MONTH = '2026-08';
+export const PREVIOUS_BOARD_HIDE_AT = '2026-09-14T00:00:00+09:00';
 
 const CLASS_LABELS: Record<ClassKey, string> = {
   '600-monwed': '600 월수반',
@@ -25,8 +25,8 @@ export type StudentBoardLink = {
 };
 
 export function getStudentVisibleYearMonths(now = new Date()) {
-  return now.getTime() < Date.parse(JULY_BOARD_HIDE_AT)
-    ? [JULY_BOARD_YEAR_MONTH, OPERATING_YEAR_MONTH]
+  return now.getTime() < Date.parse(PREVIOUS_BOARD_HIDE_AT)
+    ? [PREVIOUS_BOARD_YEAR_MONTH, OPERATING_YEAR_MONTH]
     : [OPERATING_YEAR_MONTH];
 }
 

@@ -1,8 +1,15 @@
-export const OPERATING_YEAR_MONTH = '2026-08';
+export const OPERATING_YEAR_MONTH = '2026-09';
 
-export const SUPPORTED_CLASS_UPDATE_MONTHS = ['2026-08', '2026-07', '2026-06', '2026-05'];
+export const SUPPORTED_CLASS_UPDATE_MONTHS = [
+  '2026-09',
+  '2026-08',
+  '2026-07',
+  '2026-06',
+  '2026-05',
+];
 
 export const MONTH_LABELS: Record<string, string> = {
+  '2026-09': '2026년 9월',
   '2026-08': '2026년 8월',
   '2026-07': '2026년 7월',
   '2026-06': '2026년 6월',

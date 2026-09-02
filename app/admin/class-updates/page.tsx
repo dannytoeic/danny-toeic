@@ -73,6 +73,7 @@ const CLASS_OPTIONS: Array<{ key: ClassKey; label: string; mode: '600' | '800' }
 ];
 
 const MONTH_OPTIONS = [
+  { key: '2026-09', label: '2026년 9월' },
   { key: '2026-08', label: '2026년 8월' },
   { key: '2026-07', label: '2026년 7월' },
   { key: '2026-06', label: '2026년 6월' },
