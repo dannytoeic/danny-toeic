@@ -306,30 +306,35 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (student) {
-      if (!student.is_active) {
-        return NextResponse.json(
-          { success: false, message: 'Student account is inactive.' },
-          { status: 403 }
-        );
-      }
+    if (!student) {
+      return NextResponse.json(
+        { success: false, message: 'Student account is not available.' },
+        { status: 403 }
+      );
+    }
 
-      const permissionRows = await fetchStudentMonthPermissions();
-      if (permissionRows.error) {
-        console.error('student_month_permissions student class API error:', permissionRows.error);
+    if (!student.is_active) {
+      return NextResponse.json(
+        { success: false, message: 'Student account is inactive.' },
+        { status: 403 }
+      );
+    }
 
-        return NextResponse.json(
-          { success: false, message: 'Student access could not be checked.' },
-          { status: 500 }
-        );
-      }
+    const permissionRows = await fetchStudentMonthPermissions();
+    if (permissionRows.error) {
+      console.error('student_month_permissions student class API error:', permissionRows.error);
 
-      if (!hasStudentClassAccess(student, permissionRows, yearMonth, classKey)) {
-        return NextResponse.json(
-          { success: false, message: 'Student does not have access to this class.' },
-          { status: 403 }
-        );
-      }
+      return NextResponse.json(
+        { success: false, message: 'Student access could not be checked.' },
+        { status: 500 }
+      );
+    }
+
+    if (!hasStudentClassAccess(student, permissionRows, yearMonth, classKey)) {
+      return NextResponse.json(
+        { success: false, message: 'Student does not have access to this class.' },
+        { status: 403 }
+      );
     }
 
     let { data, error } = await supabaseAdmin
