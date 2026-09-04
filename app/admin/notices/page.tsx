@@ -50,6 +50,7 @@ export default function AdminNoticesPage() {
   const [contentText, setContentText] = useState('');
   const [message, setMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [promotionArea, setPromotionArea] = useState<PromotionArea>({
     isEnabled: false,
     title: '📢 7월 수강신청 안내',
@@ -74,6 +75,25 @@ export default function AdminNoticesPage() {
   useEffect(() => {
     if (isChecking) return;
 
+    async function loadNotice() {
+      try {
+        const response = await fetch('/api/get-notices', { cache: 'no-store' });
+        const result = await response.json();
+        const notice = Array.isArray(result.notices) ? result.notices[0] : null;
+
+        if (result.success) {
+          setTitle(String(notice?.title ?? ''));
+          setContentText(String(notice?.content ?? ''));
+          return;
+        }
+
+        setMessage(result.message ?? '전체공지를 불러오지 못했습니다.');
+      } catch (error) {
+        console.error('notice load error:', error);
+        setMessage('전체공지를 불러오지 못했습니다.');
+      }
+    }
+
     async function loadPromotionArea() {
       try {
         const response = await fetch('/api/promotion-area?admin=1');
@@ -92,8 +112,22 @@ export default function AdminNoticesPage() {
       }
     }
 
+    loadNotice();
     loadPromotionArea();
   }, [isChecking]);
+
+  async function reloadNotice() {
+    const response = await fetch('/api/get-notices', { cache: 'no-store' });
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message ?? '전체공지를 다시 불러오지 못했습니다.');
+    }
+
+    const notice = Array.isArray(result.notices) ? result.notices[0] : null;
+    setTitle(String(notice?.title ?? ''));
+    setContentText(String(notice?.content ?? ''));
+  }
 
   async function handleSave() {
     setIsSaving(true);
@@ -114,6 +148,7 @@ export default function AdminNoticesPage() {
       const result = await response.json();
 
       if (result.success) {
+        await reloadNotice();
         setMessage('전체공지 내용이 저장되었습니다.');
       } else {
         setMessage(result.message ?? '저장에 실패했습니다.');
@@ -123,6 +158,31 @@ export default function AdminNoticesPage() {
       setMessage('저장 중 오류가 발생했습니다.');
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm('현재 전체공지를 삭제하시겠습니까?')) return;
+
+    setIsDeleting(true);
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/save-notice', { method: 'DELETE' });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        setMessage(result.message ?? '삭제에 실패했습니다.');
+        return;
+      }
+
+      await reloadNotice();
+      setMessage('전체공지가 삭제되었습니다.');
+    } catch (error) {
+      console.error(error);
+      setMessage('삭제 중 오류가 발생했습니다.');
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -283,22 +343,41 @@ export default function AdminNoticesPage() {
           />
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          style={{
-            padding: '12px 20px',
-            backgroundColor: '#111827',
-            color: 'white',
-            border: 'none',
-            borderRadius: '10px',
-            fontSize: '15px',
-            cursor: 'pointer',
-            opacity: isSaving ? 0.7 : 1,
-          }}
-        >
-          {isSaving ? '저장 중...' : '저장하기'}
-        </button>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            onClick={handleSave}
+            disabled={isSaving || isDeleting}
+            style={{
+              padding: '12px 20px',
+              backgroundColor: '#111827',
+              color: 'white',
+              border: 'none',
+              borderRadius: '10px',
+              fontSize: '15px',
+              cursor: 'pointer',
+              opacity: isSaving || isDeleting ? 0.7 : 1,
+            }}
+          >
+            {isSaving ? '저장 중...' : '저장하기'}
+          </button>
+
+          <button
+            onClick={handleDelete}
+            disabled={isSaving || isDeleting}
+            style={{
+              padding: '12px 20px',
+              backgroundColor: 'white',
+              color: '#b91c1c',
+              border: '1px solid #fecaca',
+              borderRadius: '10px',
+              fontSize: '15px',
+              cursor: 'pointer',
+              opacity: isSaving || isDeleting ? 0.7 : 1,
+            }}
+          >
+            {isDeleting ? '삭제 중...' : '전체공지 삭제'}
+          </button>
+        </div>
 
         {message && (
           <p

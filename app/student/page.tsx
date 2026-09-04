@@ -50,7 +50,7 @@ function pickNoticeList(result: unknown): NoticeItem[] {
 }
 
 async function safeFetchJson(url: string) {
-  const response = await fetch(url);
+  const response = await fetch(url, { cache: 'no-store' });
   const contentType = response.headers.get('content-type') || '';
   const text = await response.text();
 

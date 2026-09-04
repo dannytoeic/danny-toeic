@@ -27,7 +27,8 @@ export async function GET() {
       );
     }
 
-    const notices: NoticeItem[] = data
+    const hasNotice = Boolean(String(data?.title ?? '').trim() || String(data?.content_text ?? '').trim());
+    const notices: NoticeItem[] = data && hasNotice
       ? [
           {
             id: String(data.notice_key ?? 'latest'),
@@ -38,10 +39,10 @@ export async function GET() {
         ]
       : [];
 
-    return NextResponse.json({
-      success: true,
-      notices,
-    });
+    return NextResponse.json(
+      { success: true, notices },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
   } catch (error) {
     console.error('get-notice catch error:', error);
 
