@@ -602,7 +602,7 @@ export default function StudentAccountsAdminPage() {
             >
               {months.map((month) => (
                 <option key={month} value={month}>
-                  {month === '2026-10' ? '2026년 10월' : MONTH_LABELS[month] ?? month}
+                  {MONTH_LABELS[month] ?? month}
                 </option>
               ))}
             </select>

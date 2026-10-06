@@ -10,7 +10,7 @@ export const SUPPORTED_CLASS_UPDATE_MONTHS = [
 ];
 
 export const MONTH_LABELS: Record<string, string> = {
-  '2026-10': '10월',
+  '2026-10': '2026년 10월',
   '2026-09': '2026년 9월',
   '2026-08': '2026년 8월',
   '2026-07': '2026년 7월',
