@@ -3,6 +3,9 @@ import { CLASS_KEYS, type ClassKey, OPERATING_YEAR_MONTH } from './operating-mon
 export const PREVIOUS_BOARD_YEAR_MONTH = '2026-08';
 export const PREVIOUS_BOARD_HIDE_AT = '2026-09-14T00:00:00+09:00';
 
+// 현재 운영월만 공개합니다. 아래의 과거 8월 공개 유예 정책은 보존합니다.
+const CURRENT_MONTH_ONLY = true;
+
 const CLASS_LABELS: Record<ClassKey, string> = {
   '600-monwed': '600 월수반',
   '600-tuthu': '600 화목반',
@@ -25,6 +28,8 @@ export type StudentBoardLink = {
 };
 
 export function getStudentVisibleYearMonths(now = new Date()) {
+  if (CURRENT_MONTH_ONLY) return [OPERATING_YEAR_MONTH];
+
   return now.getTime() < Date.parse(PREVIOUS_BOARD_HIDE_AT)
     ? [PREVIOUS_BOARD_YEAR_MONTH, OPERATING_YEAR_MONTH]
     : [OPERATING_YEAR_MONTH];

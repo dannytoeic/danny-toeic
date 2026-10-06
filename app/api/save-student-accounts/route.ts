@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { OPERATING_YEAR_MONTH } from '../../../lib/operating-month';
+import { saveStudentAccountDetails } from '../../../lib/save-student-account-details';
 import {
   fetchStudentMonthPermissions,
   getPermissionMapForOwner,
@@ -244,6 +245,9 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    if (body?.mode === 'account-details') {
+      return await saveStudentAccountDetails(body);
+    }
     const items: StudentAccountItem[] = Array.isArray(body?.items) ? body.items : [];
     const debugPayload = items.map((item) => ({
       username: item.username ?? item.id,

@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminShell from '../AdminShell';
 import { getLoggedInAdmin } from '../adminGuard';
+import { buildStudentSavePlan } from '../../../lib/student-account-save-plan';
 import {
   MONTH_LABELS,
   OPERATING_YEAR_MONTH,
@@ -146,6 +147,8 @@ export default function StudentAccountsAdminPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   const [items, setItems] = useState<StudentAccountItem[]>([]);
+  const savedItems = useRef<StudentAccountItem[]>([]);
+  const [hasLoadedItems, setHasLoadedItems] = useState(false);
   const [classUpdateCardsByMonth, setClassUpdateCardsByMonth] =
     useState<ClassUpdateCardsByMonth>({});
   const [message, setMessage] = useState('');
@@ -169,6 +172,7 @@ export default function StudentAccountsAdminPage() {
 
   async function loadItems() {
     setIsLoading(true);
+    setHasLoadedItems(false);
     setMessage('');
 
     try {
@@ -184,7 +188,10 @@ export default function StudentAccountsAdminPage() {
       }
 
       const nextItems = Array.isArray(result.items) ? result.items : [];
+      if (!Array.isArray(result.items)) throw new Error('Invalid student list');
       setItems(nextItems);
+      savedItems.current = nextItems;
+      setHasLoadedItems(true);
     } catch (error) {
       console.error(error);
       setMessage('학생 계정을 불러오는 중 오류가 발생했습니다.');
@@ -292,7 +299,6 @@ export default function StudentAccountsAdminPage() {
         return {
           ...item,
           classKeysByMonth,
-          classKeys: accessYearMonth === item.monthKey ? nextKeys : item.classKeys ?? [],
         };
       })
     );
@@ -346,55 +352,63 @@ export default function StudentAccountsAdminPage() {
   }
 
   async function handleSave() {
+    if (isSaving || isLoading || !hasLoadedItems) return;
     setIsSaving(true);
     setMessage('');
+    const submitted = items;
+    const selectedMonth = accessYearMonth;
+    let detailsSaved = false;
 
     try {
-      const normalized = items.map((item, index) => {
-        const classKeysByMonth = { ...(item.classKeysByMonth ?? {}) };
-        if (!Object.prototype.hasOwnProperty.call(classKeysByMonth, accessYearMonth)) {
-          classKeysByMonth[accessYearMonth] = getClassKeysForMonth(item, accessYearMonth);
-        }
-        const monthKey = item.monthKey?.trim() || OPERATING_YEAR_MONTH;
-        const classKeys = getClassKeysForMonth({ ...item, classKeysByMonth }, monthKey);
-
-        return {
-          ...item,
-          studentId:
-            item.studentId?.trim() || `stu${String(index + 1).padStart(3, '0')}`,
-          id: item.id?.trim() || item.username?.trim() || '',
-          username: item.username?.trim() || item.id?.trim() || '',
-          name: item.name?.trim() || '',
-          password: item.password?.trim() || '',
-          classKey: classKeys[0] || '',
-          classKeys,
-          classKeysByMonth,
-          classAccessRanges: item.classAccessRanges ?? {},
-          monthKey,
-          expiresAt: item.expiresAt?.trim() || '',
-          isActive: Boolean(item.isActive),
-          createdAt: item.createdAt?.trim() || new Date().toISOString(),
-        };
-      });
-
-      const response = await fetch('/api/save-student-accounts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: normalized }),
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        setMessage(result.message ?? '학생 계정 저장에 실패했습니다.');
-        return;
+      const plan = buildStudentSavePlan(submitted, savedItems.current, selectedMonth);
+      if (plan.accountItems.length || plan.deletedUsernames.length || plan.ranges.length) {
+        const response = await fetch('/api/save-student-accounts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'account-details', items: plan.accountItems,
+            deletedUsernames: plan.deletedUsernames, ranges: plan.ranges }),
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.message ?? '계정 정보 저장에 실패했습니다.');
+        detailsSaved = true;
+        // 계정 저장 응답으로 아직 저장하지 않은 월별 체크박스를 덮지 않습니다.
+        savedItems.current = submitted.map((item) => {
+          const before = savedItems.current.find((old) => (old.username ?? old.id) === (item.username ?? item.id));
+          const classAccessRanges = { ...(before?.classAccessRanges ?? {}) };
+          for (const range of plan.ranges.filter((entry) => entry.studentId === item.studentId)) {
+            classAccessRanges[range.yearMonth] = {
+              ...classAccessRanges[range.yearMonth],
+              [range.classKey]: { startCardId: range.startCardId, startOrder: range.startOrder },
+            };
+          }
+          return { ...item, classKeysByMonth: before?.classKeysByMonth ?? {}, classAccessRanges };
+        });
       }
 
-      setItems(Array.isArray(result.items) ? result.items : normalized);
-      setMessage('학생 계정이 저장되었습니다.');
+      if (plan.permissions.length) {
+        const response = await fetch('/api/save-student-month-permissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ yearMonth: selectedMonth, permissions: plan.permissions }),
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.message ?? '월별 권한 저장에 실패했습니다.');
+        savedItems.current = savedItems.current.map((item) => {
+          const permission = plan.permissions.find((entry) => entry.username === (item.username ?? item.id).trim());
+          return permission ? { ...item, classKeysByMonth: {
+            ...item.classKeysByMonth, [selectedMonth]: permission.classKeys,
+          } } : item;
+        });
+      }
+      const pending = submitted.some((item) => Object.keys(item.classKeysByMonth ?? {}).some((month) =>
+        month !== selectedMonth && buildStudentSavePlan([item], savedItems.current.filter((old) =>
+          (old.username ?? old.id) === (item.username ?? item.id)), month).permissions.length > 0));
+      setMessage(pending
+        ? '저장되었습니다. 다른 월의 미저장 권한은 해당 월을 선택한 뒤 저장해 주세요.'
+        : '저장되었습니다.');
     } catch (error) {
       console.error(error);
-      setMessage('학생 계정 저장 중 오류가 발생했습니다.');
+      setMessage(`${detailsSaved ? '계정 정보/접근 범위는 저장되었지만 월별 권한은 저장되지 않았습니다. ' : ''}${error instanceof Error ? error.message : '저장 중 오류가 발생했습니다.'}`);
     } finally {
       setIsSaving(false);
     }
@@ -517,7 +531,7 @@ export default function StudentAccountsAdminPage() {
       title="학생 계정 관리"
       description="학생 계정의 반, 월, 만료일, 활성 상태를 확인하고 수정합니다."
     >
-      <div style={pageWrapStyle}>
+      <div style={pageWrapStyle} inert={isSaving}>
         <section style={panelStyle}>
           <div
             style={{
@@ -588,12 +602,12 @@ export default function StudentAccountsAdminPage() {
             >
               {months.map((month) => (
                 <option key={month} value={month}>
-                  {MONTH_LABELS[month] ?? month}
+                  {month === '2026-10' ? '2026년 10월' : MONTH_LABELS[month] ?? month}
                 </option>
               ))}
             </select>
             <div style={helperStyle}>
-              선택한 월의 반 권한만 편집합니다. 2026년 7월 권한이 없는 기존 계정은 7월 반별 자료에 접근할 수 없습니다.
+              선택한 월의 반 권한만 편집합니다. 해당 월 권한이 없는 계정은 그 월의 반별 자료에 접근할 수 없습니다.
             </div>
           </div>
 
@@ -617,7 +631,7 @@ export default function StudentAccountsAdminPage() {
 
               <button
                 onClick={handleSave}
-                disabled={isSaving}
+                disabled={isSaving || isLoading || !hasLoadedItems}
                 style={{ ...primaryButtonStyle, opacity: isSaving ? 0.72 : 1 }}
               >
                 {isSaving ? '저장 중...' : '저장하기'}
